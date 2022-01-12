@@ -29,6 +29,16 @@ router.post('/',async (req,res)=>{
     if((p.pr_login = p.pr_login.trim()) == '' ||  (p.pr_pass = p.pr_pass.trim()) == ''){
         return res.send({status:false,message:'Tous les champs sont obligatoire.'})
     }
+	
+	//J'ai failli oublier de hacher le mot de pass
+	const pass = await new Promise((resolve,reject)=>{
+        bcrypt.hash(p.pr_pass, 10, function(err, hash) {
+            if (err) reject(err)
+            resolve(hash)
+        });
+    })
+	
+	p.pr_pass = pass
 
     const d = await Profil.addUserProfil(p).catch(e =>{
         return res.send({status:false,message:'Erreur de la base de donnée'})
