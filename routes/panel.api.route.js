@@ -154,6 +154,21 @@ router.get('/limit/:nb/:page',async (req,res)=>{
     })
 })
 
+//Suppression d'un panneau
+router.delete('/:id',async (req,res) =>{
+    let Panel = require('../models/panel')
+
+    
+
+    try {
+        const p_res = await Panel.delete(id)
+        return res.send({status:true})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 
 
 

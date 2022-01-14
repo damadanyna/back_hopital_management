@@ -43,6 +43,36 @@ class Category{
             })
         })
     }
+
+    static delete(id){
+        return new Promise((resolve,reject)=>{
+            let sql = "delete from category where cat_id = ? "
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static deleteMultiple(tab_id){
+        return new Promise((resolve,reject)=>{
+            let sql = "delete from category where cat_id in (?) "
+            connection.query(sql,tab_id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static deleteAllSousCat(tab_id_p){
+        return new Promise((resolve,reject)=>{
+            let sql = "delete from category where parent_cat_id in (?) "
+            connection.query(sql,tab_id_p,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 }
 
 module.exports = Category

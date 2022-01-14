@@ -87,5 +87,32 @@ router.post('/',(req,res)=>{
     })
 })
 
+router.delete('/',async (req,res)=>{
+    let Category = require('../models/category')
+    let Panel = require('../models/panel')
+
+    let d = req.body
+    let state = "delete-begin"
+    let cat_ids = []
+    try {
+        for (let i = 0; i < d.length; i++) {
+            let c = d[i]
+            cat_ids.push(d[i].cat_id)
+        }
+
+        state = "update-panel"
+        await Panel.changeCatToNull(cat_ids)
+        state = "delete-sous-cat"
+        await Category.deleteAllSousCat(cat_ids)
+        state = "delet-cat"
+        await Category.deleteMultiple(cat_ids)
+
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée",state:state})
+    }
+    
+    return res.send({status:true})
+})
 
 module.exports = router

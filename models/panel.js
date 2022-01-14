@@ -106,6 +106,28 @@ class Panneau{
             })
         })
     }
+
+    static delete(id){
+        return new Promise((resolve,reject)=>{
+            connection.query('delete from panneau where pan_id='+id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static changeCatToNull(tab_id_cat){
+        return new Promise((resolve,reject)=>{
+            connection.query('update panneau set cat_id = null where cat_id in (?)',tab_id_cat,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+    
+    static countByVille(){
+
+    }
 }
 
 module.exports = Panneau
