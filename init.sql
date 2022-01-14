@@ -5,4 +5,4 @@ insert into province set province_label="Toliara";
 insert into province set province_label="Mahajanga";
 insert into province set province_label="Antsiranana";
 
-insert into profil set pr_login="angelo", pr_pass="$2b$10$OjHU9Pc75UjXN.XDv8tir.8nPRt5ahFxefM/pzq.VMdE8rWXG2G0q"
+insert into profil set pr_login="angelo", pr_pass="$2a$10$yVaNP2lIJhnPp4YkJDttCuveSHWDQ1BIra8N73ytfo.xI2Nfgpiq6"

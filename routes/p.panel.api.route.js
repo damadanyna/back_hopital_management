@@ -21,11 +21,34 @@ router.get('/limit/:nb/:page',async (req,res)=>{
         return res.send({status:false,message:"Erreur de donnée en entrée"})
     }
 
-    const r = await Panel.getAllLimit(limit,page).catch(e =>{
-        return res.send({status:false,message:"Erreur de la base de donnée"})
-    }).then(e =>{
-        return res.send({status:true,panels:e})
-    })
+    try {
+        const r = await Panel.getAllLimit(limit,page)
+        return res.send({status:true,panels:r})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Récupération pour un visionnage public d'un panneau
+router.get('/:id',async (req,res)=>{
+    let Panel = require('../models/panel')
+    let id = parseInt(req.params.id)
+
+    if(id.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en Entrée"})
+    }
+
+    try {
+        const p_res = await Panel.getByIdP(id)
+        if(p_res.length == 0){
+            return res.send({status:false,message:"Donnée pas trouvée"})
+        }
+        return res.send({status:true,panel:p_res[0]})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur de base de donnée"})
+    }
 })
 
 

@@ -1,0 +1,22 @@
+Panneau
+Mur 
+Abri bus
+...
+Sous catégorie panneau c'est 
+4/3
+8/3
+10/3
+....
+Chaque catégorie as des sous categorie
+
+Panneau
+On doit être capable de créer une base de donnée 
+
+Pays - Madagascar...
+Région - Haute Matsiatra...
+Ville - Fianarantsoa...
+Commune - Ambatomena 
+Quartier - Ampasambazaha 
+
+C'est important car les autorisations des panneaux viennent des communes urbaine. 
+La mairie qui donne les autorisations d'un emplacement est rattaché à différentes communes / arrondissements

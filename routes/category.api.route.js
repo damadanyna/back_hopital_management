@@ -27,11 +27,26 @@ router.get('/',(req,res)=> {
 
     Category.all((err,result)=>{
         if(err){
+            console.log(err)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }else{
             return res.send({status:true,categories:result})
         }
     })
+})
+
+//Get parent category
+router.get('/parent',async (req,res)=>{
+    let Category = require('../models/category')
+
+    try {
+        const c_res = await Category.getParentCat()
+
+        return res.send({status:true,cat_parent:c_res})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée."})
+    }
 })
 
 router.get('/:id',(req,res)=>{
@@ -41,7 +56,7 @@ router.get('/:id',(req,res)=>{
         return res.send({status:false,message:"Erreur de donnée entrée"})
     }
 
-    Category.get_by_id(id,(err,result)=>{
+    Category.getById(id,(err,result)=>{
         if(err){
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }else{
@@ -55,8 +70,12 @@ router.post('/',(req,res)=>{
 
     let c = req.body
 
-    if(c.cat_label == undefined){
+    if(c.cat_label === undefined){
         return res.send({status:false,message:'Erreur de donnée en Entrée'})
+    }
+
+    if(c.cat_label.trim() == ''){
+        return res.send({status:false,message:'Champ obligatoire'})
     }
 
     Category.post(c,(err,result)=>{

@@ -9,90 +9,100 @@ router.use((req, res, next) => {
 });
 
 //Get normal
-router.get('/',(req,res)=>{
+router.get('/',async (req,res)=>{
     let Panel = require('./../models/panel')
 
-    Panel.all((err,result)=>{
-        if(err){
-            console.log(err)
-            res.send({status:false,message:'Erreur de la base de donnée'})
-        }else{
-            res.send({status:true,panels:result})
-        }
-    })
+    try {
+        const p_res = await Panel.all()
+        return res.send({status:true,panels:p_res})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.'})
+    }
 })
 
 
 //Insertion d'un panneau
-router.post('/',(req,res)=>{
+router.post('/',async (req,res)=>{
     let Panel = require('./../models/panel')
-    let p = req.body
+    let d = req.body
+    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_num_quittance','pan_description']
+    let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_commune','lieu_region','lieu_label','lieu_lat','lieu_lng']
 
-    let t_parse_int = ['ann_id','reg_id','cat_id','province_id','image_id']
-
-    t_parse_int.forEach(e =>{
-        p[e] = (p[e] == '')?null:p[e]
-    })
-
-    if(p['pan_lat'] == '' || p['pan_long'] == ''){
-        return res.send({status:false,message:"La latitude et la longitude sont obligatoire."})
-    }
-
-    if(p['pan_label'] == ''){
-        return res.send({status:false,message:"Le libellé est obligatoire pour pouvoir identifier le panneau"})
-    }
-
-    Panel.add(p,(err,result)=>{
-        if(err){
-            return res.send({status:false,message:"Erreur de la base de donnée."})
-        }else{
-            return res.send({status:true,panel:p})
+    let p = {}
+    //Insertion panneau
+    for(let i = 0;i<pan.length;i++){
+        if(d[pan[i]] == undefined){
+            return res.send({status:false,message:"Erreur des données entrées",data:pan[i]})
         }
-    })
+        p[pan[i]] = (d[pan[i]] == '')?null:d[pan[i]] 
+    }
 
-    
+    let l = {}
+    //Inertion Lieu
+    for(let i = 0;i<lieu.length;i++){
+        if(d[lieu[i]] === undefined){
+            return res.send({status:false,message:"Erreur des données entrées",data:lieu[i]})
+        }
+        l[lieu[i]] = (d[lieu[i]] == '')?null:d[lieu[i]] 
+    }
+
+    //Insertion dans la base avec un try catch
+    try {
+        const lieu_res = await Panel.addLieu(l)
+
+        p.pan_validation = (req.user.pr_type == 'a')?1:0
+        p.pan_state = 1
+        p.lieu_id = lieu_res.insertId
+
+        //Insertion du Panneau
+        const pan_res = await Panel.add(p)
+
+        return res.send({status:true,id:pan_res.insertId})
+
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.'})
+    }
+
 })
 
 //Modification d'un panneau
-router.put('/:id',(req,res)=>{
+router.put('/:id',async (req,res)=>{
     let Panel = require('./../models/panel')
-    let p_brut = req.body
-    let id = req.params.id
+    let d = req.body
+    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_num_quittance','pan_description']
+    let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_commune','lieu_region','lieu_label','lieu_lat','lieu_lng']
 
     let p = {}
-
-    let data_to_up = ['pan_lat','pan_long','pan_dimension','pan_lieu','pan_label','province_id',
-                    'ann_id','reg_id','cat_id','image_id']
-    
-
-    data_to_up.forEach(e => {
-        p[e] = p_brut[e]  
-    })
-
-    let t_parse_int = ['ann_id','reg_id','cat_id','province_id','image_id']
-
-    t_parse_int.forEach(e =>{
-        p[e] = (p[e] == '')?null:p[e]
-    })
-
-    if(p['pan_lat'] == '' || p['pan_long'] == ''){
-        return res.send({status:false,message:"La latitude et la longitude sont obligatoire."})
-    }
-
-    if(p['pan_label'] == ''){
-        return res.send({status:false,message:"Le libellé est obligatoire pour pouvoir identifier le panneau"})
-    }
-
-
-    Panel.update(id,p,(err,result)=>{
-        if(err){
-            console.log(err)
-            return res.send({status:false,message:"Erreur de la base de donnée."})
-        }else{
-            return res.send({status:true})
+    //Insertion panneau
+    for(let i = 0;i<pan.length;i++){
+        if(d[pan[i]] === undefined){
+            return res.send({status:false,message:"Erreur des données entrées",data:pan[i]})
         }
-    })
+        p[pan[i]] = (d[pan[i]] == '')?null:d[pan[i]] 
+    }
 
+    let l = {}
+    //Inertion Lieu
+    for(let i = 0;i<lieu.length;i++){
+        if(d[lieu[i]] === undefined){
+            return res.send({status:false,message:"Erreur des données entrées",data:lieu[i]})
+        }
+        l[lieu[i]] = (d[lieu[i]] == '')?null:d[lieu[i]] 
+    }
+
+    try {
+        const l_res = await Panel.updateLieu(d.lieu_id,l)
+        const p_res = await Panel.update(d.pan_id,p) 
+
+        console.log(l_res,p_res)
+        return res.send({status:true})
+
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée ..."})
+    }
 
 })
 
@@ -109,23 +119,21 @@ router.get('/count',(req,res)=>{
 })
 
 //Récupération d'un panneau pour la viewPanel
-router.get('/:id',(req,res)=>{
+router.get('/:id',async (req,res)=>{
     let Panel = require('./../models/panel')
     let id = parseInt(req.params.id)
     if(id.toString() == 'NaN'){
         return res.send({status:false,message:'Erreur de donnée en Entrée.'})
     }
 
-    Panel.get_by_id(id,(err,result)=>{
-        if(err){
-            return res.send({status:false,message:'Erreur de la base de donnée'})
-        }else{
-            if(result.length == 0){
-                return res.send({status:false,message:''})
-            }
-            return res.send({status:true,panel:result[0]})
-        }
-    })
+    try {
+        const p_res = await Panel.getById(id)
+        return res.send({status:true,panel:p_res[0]})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée'})
+    }
+
 })
 
 //Récupération panneau avec limit

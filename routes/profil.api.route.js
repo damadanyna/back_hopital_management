@@ -1,6 +1,7 @@
 let router = require('express').Router()
 let moment = require('moment')
-let fs = require('fs');
+let fs = require('fs')
+const bcrypt = require('bcrypt')
 
 
 //midlware spécifique pour la route
@@ -35,7 +36,7 @@ router.post('/',async (req,res)=>{
         bcrypt.hash(p.pr_pass, 10, function(err, hash) {
             if (err) reject(err)
             resolve(hash)
-        });
+        })
     })
 	
 	p.pr_pass = pass

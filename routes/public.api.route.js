@@ -17,77 +17,6 @@ router.get('/',(req,res)=>{
     return res.send({message:"API Public 1.0 Fonctionnel"})
 })
 
-//Création de route pour la connexion avec la base
-
-//Les routes des applications
-/*router.post('/auth',(req,res)=>{
-    let {login,pass} = req.body
-    if(login && pass){
-        let User = require('./../models/user')
-        User.get_by_login(login,(result)=>{
-            
-            if(result.length <= 0){
-                res.send({status:false,message:"Identifiant non reconnu ..."})
-            }else{
-                let u = result[0]
-
-                //Utilisation de bcrypt hash
-                let true_pass = false
-                bcrypt.compare(pass, u.pass, function(err, result) {
-                    if(result){
-                        //création de token pour l'utilisateur
-                        const token = jwt.sign({
-                            login:u.login,
-                            type:u.type
-                        },config.TOKEN_KEY)
-                        let options = {
-                            path:"/",
-                            sameSite:true,
-                            httpOnly: true, // The cookie only accessible by the web server
-                        }
-                        
-                        if(req.body.create_token){
-                            //on va hasher le login le typr et l'id
-                            bcrypt.hash(u.login+""+u.type+""+u.id, 10, function(err, hash) {
-                                let AuthApp = require('./../models/app_auth')
-                                AuthApp.check_token_by_user_id(u.id,(err,result)=>{
-                                    if(!err){
-                                        if(result.length == 0){
-                                            AuthApp.add_token({user_id:u.id,token:hash},(err,result)=>{
-                                                if(!err){
-                                                    u.tk_app = hash
-                                                    res.cookie('x-access-token',token, options)
-                                                    res.send({status:true,message:"Connexion réussie ...",user:u})
-                                                }
-                                            })
-                                        }else{
-                                            u.tk_app = result[0].token
-                                            res.cookie('x-access-token',token, options)
-                                            res.send({status:true,message:"Connexion réussie ...",user:u})
-                                        }
-                                    }
-                                })
-                            });
-                        }else{
-                            res.cookie('x-access-token',token, options)
-                            res.send({status:true,message:"Connexion réussie ...",user:u})
-                        }
-                    }else{
-                        res.send({status:false,message:"Mot de passe Incorrect"})
-                    }
-                })
-                
-            }
-        })
-
-        //res.send({status:false,message:"Données incorrectes ... ",data:d})
-    }else{
-        res.send({status:false,message:"Erreur de données, Champs obligatoire vide ..."})
-    }
-})
-*/
-
-
 router.post('/auth',(req,res)=>{
     let User = require('../models/user')
 
@@ -187,9 +116,8 @@ router.get('/media/:file',(req,res)=>{
 
 
 //les routes public pour le panneau
-
-
 router.use('/panel',require('./p.panel.api.route'))
+
 
 
 module.exports = router

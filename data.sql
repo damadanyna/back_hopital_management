@@ -1,19 +1,31 @@
 create table if not exists panneau (
     pan_id INT NOT NULL AUTO_INCREMENT,
-    pan_label varchar(255) null,
-    pan_lieu varchar(255) null,
-    pan_lat varchar(255) null,
-    pan_long varchar(255) null,
-    province_id int null,
-    pan_dimension varchar(100) null,
+    pan_ref varchar(255) null,
+    pan_surface varchar(100) null,
     cat_id INT NULL,
     reg_id INT NULL,
     ann_id INT NULL,
+    lieu_id int null,
     image_id int null,
     pan_state int null default 1,
     pan_validation int null default 1,
     created_at datetime null default NOW(),
+    pan_num_quittance varchar(255) null,
+    pan_description text null,
     PRIMARY KEY (pan_id)
+)ENGINE=InnoDB;
+
+create table if not exists lieu(
+    lieu_id int not null auto_increment,
+    lieu_label varchar(255) null,
+    lieu_lat varchar(255) null,
+    lieu_lng varchar(255) null,
+    lieu_pays varchar(255) null,
+    lieu_region varchar(255) null,
+    lieu_ville varchar(255) null,
+    lieu_commune varchar(255) null,
+    lieu_quartier varchar(255) null,
+    PRIMARY KEY (lieu_id)
 )ENGINE=InnoDB;
 
 create table if not exists profil (
@@ -24,9 +36,20 @@ create table if not exists profil (
     pr_pass varchar (255) null,
     pr_type varchar (5) default 'a',
     pr_change_pass int default 0,
+    pr_active int null default 1,
+    abonnement_id int null,
     file_profil int null,
     PRIMARY KEY (pr_id)
 )ENGINE=InnoDB;
+
+create table if not exists abonnement(
+    ab_id int not null auto_increment,
+    ab_label varchar(255) null,
+    ab_price varchar(255) null,
+    ab_description text null,
+    PRIMARY KEY (ab_id)
+)ENGINE=InnoDB;
+
 
 create table if not exists pan_note(
     id int not null AUTO_INCREMENT,
@@ -78,6 +101,7 @@ create table if not exists category (
     cat_color varchar(100) null,
     cat_icon varchar(20) null,
     file_cat_icon int null,
+    parent_cat_id int null,
     PRIMARY KEY (cat_id)
 )ENGINE=InnoDB;
 
@@ -125,6 +149,7 @@ create table if not exists file(
     dimension_file varchar(255) null,
     dimension_min_file varchar(255) null,
     type_file varchar(100) null,
+    description_file text null,
     PRIMARY KEY (file_id)
 )ENGINE=InnoDB;
 
