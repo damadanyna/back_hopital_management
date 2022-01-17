@@ -92,6 +92,7 @@ router.delete('/',async (req,res)=>{
     let Panel = require('../models/panel')
 
     let d = req.body
+    console.log(d)
     let state = "delete-begin"
     let cat_ids = []
     try {
@@ -113,6 +114,30 @@ router.delete('/',async (req,res)=>{
     }
     
     return res.send({status:true})
+})
+
+router.put('/:id',async (req,res)=>{
+    let Category = require('../models/category')
+    let id = parseInt(req.params.id)
+
+    if(id.toString() == "NaN"){
+        return res.send({status:false,message:"Erreur des données en entrées"})
+    }
+
+    let d_brut = req.body 
+
+    let c = {
+        cat_label:d_brut.cat_label,
+        parent_cat_id:d_brut.parent_cat_id
+    }
+
+    try {
+        const c_res = await Category.update(id,c)
+        return res.send({status:true})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"}) 
+    }
 })
 
 module.exports = router

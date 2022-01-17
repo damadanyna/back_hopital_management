@@ -1,5 +1,7 @@
 let router = require('express').Router()
-const bcrypt = require('bcrypt')
+const bcrypt = require('bcrypt');
+const { now } = require('moment');
+const Annonceur = require('../models/annonceur');
 
 
 //midlware spécifique pour la route
@@ -20,21 +22,7 @@ router.get('/count',(req,res)=> {
     })
 })
 
-router.get('/:id',async (req,res)=>{
-    let Annonceur = require('../models/annonceur')
 
-    let id = parseInt(req.params.id)
-
-    if(id.toString() == 'NaN'){
-        return res.send({status:false,message:"Erreur de donnée en Entrée"})
-    }
-
-    const result = await Annonceur.getById(id).catch(e =>{
-        return res.send({status:false,message:"Erreur de la base de donnée."})
-    })
-
-    return res.send({status:true,annonceur:result[0]})
-})
 
 router.get('/',(req,res)=> {
     let Annonceur = require('../models/annonceur')
@@ -203,6 +191,184 @@ router.put('/:id',async (req,res)=>{
         return res.send({status:true})
     })
 
+})
+
+// Manipulation côté espace annonceur
+router.get('/p/reservation',async (req,res)=>{
+    let Annonceur = require('../models/annonceur')
+
+    try {
+        const r = await Annonceur.getListReservation(req.user.pr_id)
+        return res.send({status:true,reservation:r})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur pendant l'Affichage de cette page"})
+    }
+})
+
+router.get('/p/panel',async (req,res)=>{
+    let Annonceur = require('../models/annonceur')
+
+    if(req.user.pr_type != 'ann'){
+        return res.send({status:false,message:"Autorisation non suffisante."})
+    }
+
+    try {
+        const r = await Annonceur.getListPanel(req.user.pr_id)
+        return res.send({status:true,panels:r})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur pendant l'Affichage de cette page"})
+    }
+})
+
+router.get('/p/panel/:id',async (req,res)=>{
+    let Annonceur = require('../models/annonceur')
+    if(req.user.pr_type != 'ann'){
+        return res.send({status:false,message:"Autorisation non suffisante."})
+    }
+
+    let id = parseInt(req.params.id)
+    if(id.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en entrée"})
+    }
+
+    try {
+        const r = await Annonceur.getPanel(id)
+        if(r.length == 0){
+            console.log('Vide')
+            return res.send({status:false,message:"Panneau inexistant"})
+        }
+        return res.send({status:true,panel:r[0]})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur pendant l'Affichage de cette page"})
+    }
+})
+
+router.post('/reservation',async (req,res)=>{
+    let Annonceur = require('../models/annonceur')
+    let Panel = require('../models/panel')
+    let Regisseur = require('../models/regisseur')
+    
+    let d = req.body
+    let t = ['date_debut','date_fin','pan_id']
+
+    for(let i = 0;i<t.length;i++){
+        if(d[t[i]] === undefined){
+            return res.send({status:false,message:"Erreur de donnée en Entrée"})
+        }
+    }
+
+    for(let i = 0;i<t.length;i++){
+        if(d[t[i]] == ''){
+            return res.send({status:false,message:"Champs obligatoire vide."})
+        }
+    }
+
+    //Construction de l'objet reservation
+    let state = "debut"
+    let panel = {}
+    let reg = {}
+    try {
+        //Récupération de l'information du panneau
+        const res_pan_0 = await Panel.getById(d.pan_id)
+
+        if(res_pan_0.length>0){
+            panel = res_pan_0[0]
+        }else{
+            return res.send({status:false,message:"Panneau Inexistant. Il est possible que le panneau a été supprimer."})
+        }
+
+        //Récupération des infos du regisseur
+        const res_reg = await Regisseur.getProfilByPan(d.pan_id)
+        if(res_reg.length>0 && res_reg[0].pr_id != null){
+            reg = res_reg[0]
+        }else{
+            return res.send({status:false,message:"Le panneau n'a pas encore de Regisseur."})
+        }
+
+        //Construction de l'objet reservation
+        let now = new Date()
+        let pan_loc = {
+            pan_id:d.pan_id,
+            pr_id:req.user.pr_id,
+            pan_loc_date_debut:d.date_debut,
+            pan_loc_date_fin:d.date_fin,
+            pan_loc_reservation_date:new Date()
+        }
+
+        state = "insertion-location"
+        const res_pl = await Annonceur.insertPanLocation(pan_loc)
+
+        state = "update-panneau"
+        await Annonceur.setPanLocated(d.pan_id)
+
+        //Insertion de la notification
+        state = "insertion-notification"
+        let notif = {
+            notif_exp_pr_id:req.user.pr_id,
+            notif_motif:'reservation',
+            notif_id_object:res_pl.insertId,
+            notif_title:"Demande de Location"
+        }
+
+        let Notif = require('../models/notif')
+
+        state = 'insertion-notif-regisseur'
+        notif.notif_desc = "Demande de Location pour le Panneau <span class='font-bold'>"+panel.pan_ref+" </span>"
+        notif.notif_dest_pr_id = reg.pr_id
+        
+        
+        await Notif.set(notif)
+
+        state = 'insertion-notif-admin'
+        notif.notif_dest_pr_id = null
+        notif.notif_type = "a"
+        await Notif.set(notif)
+
+        return res.send({status:true})
+    } catch (e) {
+        console.log("Erreur insertion reservation, state : "+state)
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée",state:state})
+    }
+})
+
+
+
+
+router.get('/profil',async (req,res)=>{
+    let Annonceur = require('../models/annonceur')
+    try {
+        const result = await Annonceur.getByIdProfil(req.user.pr_id)
+        console.log(result)
+        return res.send({status:true,annonceur:result[0]})
+        // return res.send({st:"Mais merde"})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur de la base de donnée."})
+    }
+})
+
+
+//Récupération
+router.get('/:id',async (req,res)=>{
+    let Annonceur = require('../models/annonceur')
+
+    let id = parseInt(req.params.id)
+
+    if(id.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en Entrée"})
+    }
+    try {
+        const result = await Annonceur.getById(id)
+        return res.send({status:true,annonceur:result[0]})
+        // return res.send({st:"Mais merde"})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur de la base de donnée."})
+    }
 })
 
 module.exports = router

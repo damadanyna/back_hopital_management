@@ -11,8 +11,38 @@ create table if not exists panneau (
     pan_validation int null default 1,
     created_at datetime null default NOW(),
     pan_num_quittance varchar(255) null,
+    pan_date_validation varchar(255) null,
     pan_description text null,
     PRIMARY KEY (pan_id)
+)ENGINE=InnoDB;
+
+create table if not exists pan_location(
+    pan_loc_id int not null auto_increment,
+    pr_id int null,
+    pan_id int null,
+    pan_loc_date_debut varchar(100) null,
+    pan_loc_date_fin varchar(100) null,
+    pan_loc_validate int null default 0,
+    pan_loc_reservation_date datetime null default NOW(),
+    pan_loc_date_validation datetime null,
+    created_at datetime null default NOW(),
+    PRIMARY KEY (pan_loc_id)
+)ENGINE=InnoDB;
+
+create table if not exists notification(
+    notif_id int not null auto_increment,
+    notif_dest_pr_id int null,
+    notif_exp_pr_id int null,
+    notif_motif varchar(255) null,
+    notif_desc text null,
+    notif_id_object int null,
+    notif_title varchar(255) null,
+    notif_type varchar(100) null,
+    created_at datetime null default NOW(),
+    notif_data text null,
+    notif_lu int null default 0,
+    notif_vu int null default 0,
+    PRIMARY KEY (notif_id)
 )ENGINE=InnoDB;
 
 create table if not exists lieu(

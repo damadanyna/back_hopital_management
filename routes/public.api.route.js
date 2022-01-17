@@ -48,7 +48,8 @@ router.post('/auth',(req,res)=>{
                             pr_id:u.pr_id,
                             pr_login:u.pr_login,
                             pr_type:u.pr_type,
-                            pr_change_pass:u.pr_change_pass
+                            pr_change_pass:u.pr_change_pass,
+                            pr_active:u.pr_active
                         }
                         const token = jwt.sign(u_save,config.TOKEN_KEY)
                         let options = {

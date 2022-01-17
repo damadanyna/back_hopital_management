@@ -53,7 +53,89 @@ class Annonceur{
             })
         })
     }
+
+    static getByIdProfil(id){
+        return new Promise((resolve,reject)=>{
+            let sql = "select *,(select count(*) from panneau as pan where pan.ann_id = ann.ann_id ) as nb_panel,'' as pr_pass "
+            sql+='from annonceur as ann '
+            sql+="left join soc_profil as sp on sp.soc_pr_id = ann.soc_pr_id "
+            sql+="left join profil as p on p.pr_id = ann.pr_id "
+            sql+="where p.pr_id = ?"
+
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+
+    static getListReservation(ann_id){
+        return new Promise((resolve,reject)=>{
+            let sql = "select ploc.*, l.*,pan.pan_description,pan.pan_ref,file.name_file "
+            sql+="from pan_location as ploc "
+            sql+="left join panneau as pan on pan.pan_id = ploc.pan_id "
+            sql+="left join lieu as l on l.lieu_id = pan.lieu_id "
+            sql+="left join file on file.file_id = pan.image_id "
+            sql+="where ploc.pr_id = ? and ploc.pan_loc_validate = 0 "
+            connection.query(sql,ann_id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getListPanel(pr_id){
+        return new Promise((resolve,reject)=>{
+            let sql = "select ploc.*, l.*,pan.pan_description,pan.pan_ref "
+            sql+="from pan_location as ploc "
+            sql+="left join panneau as pan on pan.pan_id = ploc.pan_id "
+            sql+="left join regisseur as reg on pan.reg_id = reg.reg_id "
+            sql+="left join lieu as l on l.lieu_id = pan.lieu_id ",
+            sql+="where ploc.pr_id = ? and ploc.pan_loc_validate = 1 "
+            connection.query(sql,pr_id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getPanel(id){
+        return new Promise((resolve,reject)=>{
+            let sql = "select pan.pan_ref,pan.pan_surface,pan.pan_state,l.*,cat.*,file.name_file from panneau as pan "
+            sql+="left join lieu as l on pan.lieu_id = l.lieu_id "
+            sql+="left join category as cat on pan.cat_id = cat.cat_id "
+            sql+="left join file on pan.image_id = file.file_id "
+            sql+="where pan_id = ?"
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static insertPanLocation(p){
+        return new Promise((resolve,reject)=>{
+            let sql = "insert into pan_location set ? "
+            connection.query(sql,p,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static setPanLocated(id_pan){
+        return new Promise((resolve,reject)=>{
+            let sql = "update panneau set pan_state = 2 where pan_id = ? "
+            connection.query(sql,id_pan,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 }
+
+
 
 
 module.exports = Annonceur

@@ -55,6 +55,20 @@ class Regisseur{
         })
     }
 
+    static getProfilByPan(id_pan){
+        return new Promise((resolve,reject)=>{
+            let sql = "select pr.pr_id,reg.reg_id from panneau as pan "
+            sql+="left join regisseur as reg on reg.reg_id = pan.reg_id "
+            sql+="left join profil as pr on pr.pr_id = reg.pr_id "
+            sql+="where pan.pan_id = ? "
+
+            connection.query(sql,id_pan,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
 }
 
 module.exports = Regisseur
