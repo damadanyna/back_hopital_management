@@ -45,6 +45,10 @@ router.use('/settings',require('./settings.api.route'))
 
 //Profils
 router.use('/profil',require('./profil.api.route'))
+
+//Notifications
+router.use('/notif',require('./notif.api.route'))
+
 //Deconnexion
 router.get('/deconnect',(req,res)=>{
     let options = {
