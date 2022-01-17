@@ -68,10 +68,6 @@ router.get('/count',async (req,res)=>{
     try {
         const d = await Notif.countAdmin()
         console.log(d)
-        if(d.length == 0){
-            d[0].nbTotal = 0,
-            d[0].nbNonVu = 0
-        }
 
         return res.send({status:true,count:d[0]})
     } catch (e) {
