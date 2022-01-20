@@ -11,8 +11,8 @@ const fs = require("fs");
 
 // make a new logger
 const myLogger = new Console({
-  stdout: fs.createWriteStream("normalStdout.txt"),
-  stderr: fs.createWriteStream("errStdErr.txt"),
+  stdout: fs.createWriteStream("nlog.txt"),
+  stderr: fs.createWriteStream("elog.txt"),
 });
 
 
