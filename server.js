@@ -34,7 +34,6 @@ let init = async () =>{
 
         if(i.length == 0){
             await Data.execute('init')
-
         }
     } catch (e) {
         console.log(e)
