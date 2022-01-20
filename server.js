@@ -36,7 +36,6 @@ let init = async () =>{
             await Data.execute('init')
 
         }
-        myLogger.log(e);
     } catch (e) {
         console.log(e)
         myLogger.log(e)
