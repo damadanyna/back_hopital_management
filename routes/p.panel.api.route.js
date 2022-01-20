@@ -30,6 +30,19 @@ router.get('/limit/:nb/:page',async (req,res)=>{
     }
 })
 
+//Récu^ération des panneaux pour la map
+router.get('/map',async (req,res)=>{
+    let Panel = require('../models/panel')
+
+    try{
+        const l = await Panel.getListPanToMap()
+        return res.send({status:true,panels:l})
+    }catch(e){
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //Récupération pour un visionnage public d'un panneau
 router.get('/:id',async (req,res)=>{
     let Panel = require('../models/panel')

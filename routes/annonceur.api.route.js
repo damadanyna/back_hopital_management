@@ -92,7 +92,7 @@ router.post('/',async (req,res)=>{
         pr_pass:pass,
         pr_login:ar.login,
         pr_type:'ann',
-        pr_change_pass:1
+        pr_change_pass:1,
     }
 
 
@@ -270,6 +270,7 @@ router.post('/reservation',async (req,res)=>{
     let state = "debut"
     let panel = {}
     let reg = {}
+    let ann = {}
     try {
         //Récupération de l'information du panneau
         const res_pan_0 = await Panel.getById(d.pan_id)
@@ -304,6 +305,9 @@ router.post('/reservation',async (req,res)=>{
         state = "update-panneau"
         await Annonceur.setPanLocated(d.pan_id)
 
+        //Récupération d'info sur l'annonceur
+        const ann_res = await Annonceur.getByIdProfil(req.user.pr_id)
+        ann = ann_res[0]
         //Insertion de la notification
         state = "insertion-notification"
         let notif = {
@@ -316,7 +320,8 @@ router.post('/reservation',async (req,res)=>{
         let Notif = require('../models/notif')
 
         state = 'insertion-notif-regisseur'
-        notif.notif_desc = "Demande de Location pour le Panneau <span class='font-bold'>"+panel.pan_ref+" </span>"
+        notif.notif_desc = "<div>Un annonceur "+
+        " vient de faire une une demande de location pour votre panneau <nuxt-link class='bt text-sm mx-1' to='/panneau/"+panel.pan_id+"'>"+panel.pan_ref+"</nuxt-link> </div>"
         notif.notif_dest_pr_id = reg.pr_id
         
         
@@ -324,6 +329,8 @@ router.post('/reservation',async (req,res)=>{
 
         state = 'insertion-notif-admin'
         notif.notif_dest_pr_id = null
+        notif.notif_desc = "<div>L'Annonceur <nuxt-link class='bt text-sm mx-1' to='/admin/annonceur/"+ann.ann_id+"'>"+ann.ann_label+"</nuxt-link> "+
+        " vient de faire une réservation du panneau <nuxt-link class='bt text-sm mx-1' to='/admin/panneau/"+panel.pan_id+"'>"+panel.pan_ref+"</nuxt-link> </div>"
         notif.notif_type = "a"
         await Notif.set(notif)
 
@@ -340,6 +347,10 @@ router.post('/reservation',async (req,res)=>{
 
 router.get('/profil',async (req,res)=>{
     let Annonceur = require('../models/annonceur')
+
+    if(req.user.pr_type != 'ann'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
     try {
         const result = await Annonceur.getByIdProfil(req.user.pr_id)
         console.log(result)
@@ -351,7 +362,17 @@ router.get('/profil',async (req,res)=>{
     }
 })
 
+router.get('/notif',async (req,res)=>{
+    let Notif = require('../models/notif')
 
+    try {
+        const n_res = await Notif.getNotifByDestId(req.user.pr_id)
+        return res.send({status:true,notifs:n_res})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
 //Récupération
 router.get('/:id',async (req,res)=>{
     let Annonceur = require('../models/annonceur')
@@ -370,5 +391,7 @@ router.get('/:id',async (req,res)=>{
         return res.send({status:false,message:"Erreur de la base de donnée."})
     }
 })
+
+
 
 module.exports = router

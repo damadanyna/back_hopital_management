@@ -18,13 +18,11 @@ router.get('/',async (req,res)=>{
     try {
         let notifs = {}
         const nb = await Notif.countAdmin() 
+        // console.log(nb)
 
-        const r = await Notif.getAllReservation()
-        notifs.reservation = r
+        const r = await Notif.getAll()
 
-        notifs.inscription = []
-
-        return res.send({status:true,notifs:notifs,nb:nb[0].nb})
+        return res.send({status:true,notifs:r,nb:nb[0].nbTotal})
     } catch (e) {
         console.log(e)
         return res.send({status:false,message:"Erreur dans la base de donnée."})
@@ -55,7 +53,7 @@ router.get('/inscription',async (req,res)=>{
         const nb = await Notif.countAll('inscription') 
 
         const r = await Notif.getAll('inscription')
-        notifs.reservation = r
+        notifs.inscription = r
         return res.send({status:true,notifs:notifs,nb_ins:nb[0].nb})
     } catch (e) {
         console.log(e)
@@ -67,8 +65,6 @@ router.get('/count',async (req,res)=>{
     let Notif = require('../models/notif')
     try {
         const d = await Notif.countAdmin()
-        console.log(d)
-
         return res.send({status:true,count:d[0]})
     } catch (e) {
         console.log(e)

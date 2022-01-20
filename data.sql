@@ -13,6 +13,10 @@ create table if not exists panneau (
     pan_num_quittance varchar(255) null,
     pan_date_validation varchar(255) null,
     pan_description text null,
+    pan_support varchar(100) null,
+    pan_lumineux int null default 0,
+    pan_gold int null default 0,
+    pan_verified_by_publoc int null default 0,
     PRIMARY KEY (pan_id)
 )ENGINE=InnoDB;
 
@@ -20,6 +24,8 @@ create table if not exists pan_location(
     pan_loc_id int not null auto_increment,
     pr_id int null,
     pan_id int null,
+    ann_id int null,
+    reg_id int null,
     pan_loc_date_debut varchar(100) null,
     pan_loc_date_fin varchar(100) null,
     pan_loc_validate int null default 0,
@@ -27,6 +33,13 @@ create table if not exists pan_location(
     pan_loc_date_validation datetime null,
     created_at datetime null default NOW(),
     PRIMARY KEY (pan_loc_id)
+)ENGINE=InnoDB;
+
+create table if not exists reg_ann(
+    reg_ann_id int not null auto_increment,
+    ann_id int null,
+    reg_id int null,
+    PRIMARY KEY (reg_ann_id)
 )ENGINE=InnoDB;
 
 create table if not exists notification(
@@ -67,6 +80,9 @@ create table if not exists profil (
     pr_type varchar (5) default 'a',
     pr_change_pass int default 0,
     pr_active int null default 1,
+    pr_validate int null default 1,
+    pr_date_ins datetime null default NOW(),
+    pr_date_ins_validate datetime null,
     abonnement_id int null,
     file_profil int null,
     PRIMARY KEY (pr_id)

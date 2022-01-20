@@ -1,6 +1,8 @@
 let router = require('express').Router()
-let fs = require('fs');
+let fs = require('fs')
 let multer = require('multer')
+const sharp = require("sharp")
+
 
 
 //midlware spécifique pour la route
@@ -26,6 +28,20 @@ let upload = multer({
     fileFilter:fileFilter
 })
 
+router.get('/all',async (req,res)=>{
+    let File = require('../models/File')
+
+    let details = []
+    try {
+        const image = await File.get()
+        let i = image[0]
+        let im_path = i.path_file+""+i.name_file+"."+i.extension_file
+        const metadata = await sharp(im_path).metadata();
+        return res.send(metadata);
+    } catch (e) {
+        console.log("Error: ", e);
+    }
+})
 
 
 router.post('/',upload.single('file'),async (req,res)=>{

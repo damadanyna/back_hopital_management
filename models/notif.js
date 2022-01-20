@@ -48,15 +48,24 @@ class Notif{
 
     static getAll(params){
         return new Promise((resolve,reject)=>{
-            let sql = "select n.*,pl.*,p.*,a.* ,n.created_at as date_notif "
+            let sql = "select n.*,n.created_at as date_notif "
             sql+="from notification as n "
-            sql+="left join pan_location as pl on pl.pan_loc_id = n.notif_id_object "
-            sql+="left join panneau as p on p.pan_id = pl.pan_id "
-            sql+="left join profil as pr on pr.pr_id = pl.pr_id "
-            sql+="left join annonceur as a on a.pr_id = pr.pr_id "
-            sql+="where notif_type = 'a' and notif_motif = ? order by n.created_at desc "
+            sql+="where notif_type = 'a' order by n.created_at desc "
 
             connection.query(sql,params,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getNotifByDestId(id){
+        return new Promise((resolve,reject)=>{
+            let sql = "select n.*,n.created_at as date_notif "
+            sql+="from notification as n "
+            sql+="where notif_dest_pr_id = ? order by n.created_at desc "
+
+            connection.query(sql,id,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })

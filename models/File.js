@@ -8,6 +8,15 @@ class File{
         })
     }
 
+    static get(){
+        return new Promise((resolve,reject)=>{
+            connection.query('select * from file',(err,res)=>{
+                if(err)return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static get_by_id(id,cb){
         connection.query('select * from file where file_id=?',id,(err,result)=>{
             cb(err,result)

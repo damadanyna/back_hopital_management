@@ -95,6 +95,46 @@ router.put('/active',async (req,res)=>{
     }
 })
 
+//Validation d'un profil
+router.put('/validate/:id',async (req,res)=>{
+    if(req.user.pr_type != 'a'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+    let Profil = require('../models/profil')
+    let Notif = require('../models/notif')
+
+    let id = parseInt(req.params.id)
+    let d = parseInt(req.body.pr_validate)
+
+    if(id.toString() == 'NaN' || d.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en entrée"})
+    }
+
+    try {
+        const p_res = await Profil.updateUserProfil(id,{pr_validate:d,pr_date_ins_validate:new Date()})
+
+        let notif = {
+            notif_exp_pr_id:req.user.pr_id,
+            notif_motif:'validation-profil',
+            notif_id_object:id,
+            notif_title:"Validation de profil"
+        }
+        let ds = "<div class='flex flex-col'>"
+        ds+="<span>Votre profil a été validé par l'Administrateur, Vous pouvez maintenant reserver et louer des panneaux.</span>"
+        ds+="<span>Rechercher et parcourir la liste <nuxt-link to='/panneau' class='text-indigo-600'>ici</nuxt-link> </span>"
+        ds+="</div>"
+        notif.notif_desc = ds
+        notif.notif_dest_pr_id = id
+        await Notif.set(notif)
+        
+        return res.send({status:true,message:"Validation de profil avec succès. Le profil en question recevra une notification"}) 
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur de la base de donnée"})
+    }
+
+})
+
 //Modification de profil
 router.put('/:id',async (req,res)=>{
     let Profil = require('../models/profil')
@@ -113,7 +153,7 @@ router.put('/:id',async (req,res)=>{
         pr.pr_pass = pass
     }
 	
-    if(p.pr_login == ''){
+    if(p.pr_login !=undefined && p.pr_login == ''){
         return res.send({status:false,message:"Champ Login Obligatoire ..."})
     }
 

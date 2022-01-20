@@ -55,6 +55,21 @@ class Regisseur{
         })
     }
 
+    static getByIdProfil(id){
+        return new Promise((resolve,reject)=>{
+            let sql = "select *,(select count(*) from panneau as pan where pan.reg_id = reg.reg_id ) as nb_panel,'' as pr_pass "
+            sql+='from regisseur as reg '
+            sql+="left join soc_profil as sp on sp.soc_pr_id = reg.soc_pr_id "
+            sql+="left join profil as p on p.pr_id = reg.pr_id "
+            sql+="where p.pr_id = ?"
+
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static getProfilByPan(id_pan){
         return new Promise((resolve,reject)=>{
             let sql = "select pr.pr_id,reg.reg_id from panneau as pan "
@@ -63,6 +78,21 @@ class Regisseur{
             sql+="where pan.pan_id = ? "
 
             connection.query(sql,id_pan,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getListAnn(pr_id){
+        return new Promise((resolve,reject)=>{
+            let sql = "select * from reg_ann as ra "
+            sql+="left join annonceur as ann on ann.ann_id = ra.ann_id "
+            sql+="left join soc_profil as sp on sp.soc_pr_id = ann.soc_pr_id "
+            sql+="left join regisseur as reg on reg.reg_id = ra.reg_id "
+            sql+="where reg.pr_id = ? "
+
+            connection.query(sql,pr_id,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })

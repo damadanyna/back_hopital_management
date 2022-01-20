@@ -19,24 +19,7 @@ router.get('/count',(req,res)=> {
     })
 })
 
-router.get('/:id',async (req,res)=>{
-    let Regisseur = require('../models/regisseur')
 
-    let id = parseInt(req.params.id)
-
-    if(id.toString() == 'NaN'){
-        return res.send({status:false,message:"Erreur de donnée en Entrée"})
-    }
-
-    const result = await Regisseur.getById(id).catch(e =>{
-        console.log(e)
-        return res.send({status:false,message:"Erreur de la base de donnée."})
-    }).then(r =>{
-        return res.send({status:true,regisseur:r[0]})
-    } )
-
-    
-})
 
 
 router.get('/',(req,res)=> {
@@ -204,6 +187,61 @@ router.put('/:id',async (req,res)=>{
         return res.send({status:true})
     })
 
+})
+
+
+router.get('/profil',async (req,res)=>{
+    let Regisseur = require('../models/regisseur')
+
+    if(req.user.pr_type != 'reg'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+    try {
+        const result = await Regisseur.getByIdProfil(req.user.pr_id)
+        console.log(result)
+        return res.send({status:true,regisseur:result[0]})
+        // return res.send({st:"Mais merde"})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur de la base de donnée."})
+    }
+})
+
+router.get('/ann',async (req,res)=>{
+    let Regisseur = require('../models/regisseur')
+    if(req.user.pr_type != 'reg'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+    
+    try {
+        const ann = await Regisseur.getListAnn(req.user.pr_id)
+        return res.send({status:true,annonceurs:ann})
+
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+
+
+router.get('/:id',async (req,res)=>{
+    let Regisseur = require('../models/regisseur')
+
+    let id = parseInt(req.params.id)
+
+    if(id.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en Entrée"})
+    }
+
+    const result = await Regisseur.getById(id).catch(e =>{
+        console.log(e)
+        return res.send({status:false,message:"Erreur de la base de donnée."})
+    }).then(r =>{
+        return res.send({status:true,regisseur:r[0]})
+    } )
+
+    
 })
 
 

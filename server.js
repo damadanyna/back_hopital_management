@@ -16,9 +16,18 @@ app.use(bodyParser.urlencoded({extended:false}))
 app.use(bodyParser.json())
 
 
-let init = ()=>{
+let init = async ()=>{
     let Data = require('./models/data')
-    Data.create()
+    try {
+        const t = await Data.execute('data')
+        const i = await Data.check_init()
+
+        if(i.length == 0){
+            await Data.execute('init')
+        }
+    } catch (e) {
+        console.log(e)
+    }
 }
 init()
 

@@ -130,6 +130,20 @@ class Panneau{
     static countByVille(){
 
     }
+
+    static getListPanToMap(){
+        return new Promise((resolve,reject)=>{
+            let sql = "select p.pan_id,p.pan_surface,p.pan_ref,p.pan_verified_by_publoc,p.pan_lumineux,p.pan_gold,l.*,f.name_file "
+            sql+=" from panneau as p "
+            sql+="left join lieu as l on l.lieu_id = p.lieu_id "
+            sql+="left join file as f on f.file_id = p.image_id "
+            sql+="where pan_validation = 1 and pan_state in (1,2) "
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 }
 
 module.exports = Panneau
