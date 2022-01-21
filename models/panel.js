@@ -144,6 +144,18 @@ class Panneau{
             })
         })
     }
+
+    static getListByReg(id_reg){
+        return new Promise((resolve,reject)=>{
+            let sql = "select * from panneau "
+            sql+="left join lieu as l on l.lieu_id = panneau.lieu_id "
+            sql+="where reg_id = ?"
+            connection.query(sql,id_reg,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 }
 
 module.exports = Panneau

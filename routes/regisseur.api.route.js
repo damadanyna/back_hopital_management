@@ -263,6 +263,31 @@ router.delete('/notifs/:id',async(req,res)=>{
     }
 })
 
+//Récupération de la liste des panneaux du régisseur
+router.get('/panel',async (req,res)=>{
+    let Panel = require('../models/panel')
+
+    if(req.user.pr_type != 'reg'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+
+    try {
+        //Récupération du régisseur actuel 
+        let Profil = require ('../models/profil')
+        const reg = await Profil.getRegByProfil(req.user.pr_id)
+        if(reg.length == 0){
+            return res.send({status:false,message:"Aucun profil trouver. Il est possible que votre compte a été supprimeé ou bloqué"})
+        }
+
+        const p = await Panel.getListByReg(reg[0].reg_id)
+
+        return res.send({status:true,panels:p})
+        
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
 
 
 
@@ -284,5 +309,109 @@ router.get('/:id',async (req,res)=>{
 
     
 })
+
+//Ajout d'un panneau par un régisseur
+router.post('/panel',async(req,res)=>{
+    let Regisseur = require('../models/regisseur')
+
+    if(req.user.pr_type != 'reg'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+
+    let Panel = require('./../models/panel')
+    let Profil = require('./../models/profil')
+
+    //Récupération de l'id du régisseur
+    const reg_r = await Profil.getRegByProfil(req.user.pr_id)
+
+    if(reg_r.length == 0){
+        return res.send({status:false,message:"Aucun profil trouvé ou votre profil a été désactivé."})
+    }
+
+    let d = req.body
+    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_num_quittance','pan_description','pan_support','pan_lumineux']
+    let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_commune','lieu_region','lieu_label','lieu_lat','lieu_lng']
+
+    if(d.pan_ref == ''){
+        return res.send({status:false,message:"Un panneau doit voir une référence"})
+    }
+    
+
+    let p = {}
+    //Insertion panneau
+    for(let i = 0;i<pan.length;i++){
+        if(d[pan[i]] == undefined){
+            return res.send({status:false,message:"Erreur des données entrées",data:pan[i]})
+        }
+        p[pan[i]] = (d[pan[i]] === '')?null:d[pan[i]] 
+    }
+
+    let l = {}
+    //Inertion Lieu
+    for(let i = 0;i<lieu.length;i++){
+        if(d[lieu[i]] === undefined){
+            return res.send({status:false,message:"Erreur des données entrées",data:lieu[i]})
+        }
+
+        if(d[lieu[i]] == ''){
+            return res.send({status:false,message:"La partie lieu est obligatoire. Vous pouvez l'ajouter par carte.",data:lieu[i]})
+        }
+
+        l[lieu[i]] = (d[lieu[i]] == '')?null:d[lieu[i]] 
+    }
+
+    //Insertion dans la base avec un try catch
+    try {
+        const lieu_res = await Panel.addLieu(l)
+
+        p.pan_validation = 0
+        p.pan_state = 1
+        p.lieu_id = lieu_res.insertId
+
+        p.reg_id = reg_r[0].reg_id
+
+        //Insertion du Panneau
+        const pan_res = await Panel.add(p)
+
+
+        let no = {
+            id_pr:req.user.pr_id,
+            id_object:pan_res.insertId,
+            reg_id:p.reg_id,
+            reg_label:reg_r[0].reg_label,
+            pan_ref:p.pan_ref
+        }
+
+        notifToAddPanel(no)
+
+        //Insertion d'une notification pour l'Admin
+
+        return res.send({status:true,id:pan_res.insertId})
+
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.'})
+    }
+})
+
+
+async function notifToAddPanel(p){
+    let Notif = require('../models/notif')
+    let d = "<div>"
+    d+="Le régisseur <nuxt-link to='/admin/regisseur/"+p.reg_id+"' class='text-indigo-600' > <span v-html='\" "+ p.reg_label +" \"'></span> </nuxt-link> "
+    d+=" vient d'ajouter le panneau "
+    d+="<nuxt-link to='/admin/panneau/"+p.id_object+"' class='text-indigo-600' > <span v-html='\" "+ p.pan_ref +" \"'></span> </nuxt-link>"
+    d+="</div>"
+    let n = {
+        notif_exp_pr_id:p.id_pr,
+        notif_id_object:p.id_object,
+        notif_title:"Ajout d'un panneau",
+        notif_motif:"ajout-panneau",
+        notif_type:'a',
+        notif_data:'regisseur',
+        notif_desc:d
+    }
+    await Notif.set(n)
+}
 
 module.exports = router

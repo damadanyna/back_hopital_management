@@ -119,6 +119,25 @@ class Profil{
             })
         })
     }
+
+    static getRegByProfil(id){
+        return new Promise((resolve,reject)=>{
+            let sql = "select * from regisseur where pr_id = ? "
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+    static getAnnByProfil(id){
+        return new Promise((resolve,reject)=>{
+            let sql = "select * from annonceur where pr_id = ? "
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 }
 
 
