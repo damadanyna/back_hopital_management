@@ -11,24 +11,6 @@ class Notif{
         })
     }
 
-    // static allAdmin(){
-    //     return new Promise((resolve,reject)=>{
-    //         let sql = "select n.*,pl.* "
-    //         sql+="from notification as n "
-
-    //         sql+="left join pan_location as pl on pl.pan_loc_id = n.notif_id_object "
-    //         sql+="left join panneau as p on p.pan_id = pl.pan_id "
-    //         sql+=""
-    //         sql+="where notif_type = 'a' "
-
-
-    //         connection.query(sql,(err,res)=>{
-    //             if(err) return reject(err)
-    //             resolve(res)
-    //         })
-    //     })
-    // }
-
     static getAllReservation(){
         return new Promise((resolve,reject)=>{
             let sql = "select n.*,pl.*,p.*,a.* ,n.created_at as date_notif "
