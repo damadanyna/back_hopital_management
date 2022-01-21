@@ -1,7 +1,6 @@
 let router = require('express').Router()
 const bcrypt = require('bcrypt');
 const { now } = require('moment');
-const Annonceur = require('../models/annonceur');
 
 
 //midlware spécifique pour la route

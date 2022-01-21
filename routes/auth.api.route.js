@@ -49,6 +49,9 @@ router.use('/profil',require('./profil.api.route'))
 //Notifications
 router.use('/notif',require('./notif.api.route'))
 
+//Pour tous les requêtes Admin
+router.use('/ad',require('./ad.api.route'))
+
 //Deconnexion
 router.get('/deconnect',(req,res)=>{
     let options = {
