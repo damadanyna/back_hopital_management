@@ -1,5 +1,6 @@
 let router = require('express').Router()
-const bcrypt = require('bcrypt')
+const bcrypt = require('bcrypt');
+const { route } = require('./p.panel.api.route');
 
 
 //midlware spécifique pour la route
@@ -222,6 +223,46 @@ router.get('/ann',async (req,res)=>{
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
 })
+
+//récupération des notificatioins du régisseur
+router.get('/notifs',async(req,res)=>{
+    let Notif = require('../models/notif')
+    if(req.user.pr_type != 'reg'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+
+    try {
+        const n = await Notif.getNotifByDestId(req.user.pr_id)
+        return res.send({status:true,notifs:n})
+
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//suppression du notif du régisseur
+router.delete('/notifs/:id',async(req,res)=>{
+    let Notif = require('../models/notif')
+    if(req.user.pr_type != 'reg'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+
+    let id  = parseInt(req.params.id)
+    if(id.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en entrée."})
+    }
+
+    try {
+        await Notif.deleteByProfilAndId([req.user.pr_id,id])
+        return res.send({status:true})
+
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 
 
 

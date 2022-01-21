@@ -18,7 +18,9 @@ router.get('/',async (req,res)=>{
     try {
         let notifs = {}
         const nb = await Notif.countAdmin() 
-        // console.log(nb)
+        if(nb.length == 0){
+            nb = [{nbTotal:0,nbVu:0}]
+        }
 
         const r = await Notif.getAll()
 

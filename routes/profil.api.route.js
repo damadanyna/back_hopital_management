@@ -111,19 +111,30 @@ router.put('/validate/:id',async (req,res)=>{
     }
 
     try {
+        const id_pr = await Profil.getById(id)
+        if(id_pr.length > 0){
+
+        }
         const p_res = await Profil.updateUserProfil(id,{pr_validate:d,pr_date_ins_validate:new Date()})
 
         let notif = {
             notif_exp_pr_id:req.user.pr_id,
             notif_motif:'validation-profil',
             notif_id_object:id,
-            notif_title:"Validation de profil"
+            notif_title:"Validation de profil",
+            notif_type:id_pr.pr_type
         }
         let ds = "<div class='flex flex-col'>"
         ds+="<span>Votre profil a été validé par l'Administrateur, Vous pouvez maintenant reserver et louer des panneaux.</span>"
         ds+="<span>Rechercher et parcourir la liste <nuxt-link to='/panneau' class='text-indigo-600'>ici</nuxt-link> </span>"
         ds+="</div>"
-        notif.notif_desc = ds
+
+        let ds_reg = "<div class='flex flex-col'>"
+        ds_reg+="<span>Votre profil a été validé par l'Administrateur, Vous pouvez maintenant recevoir les demandes de réservation et voir/ajouter/modifier vos panneaux.</span>"
+        ds_reg+="</div>"
+
+        notif.notif_desc = (id_pr.pr_type == 'ann')?ds:ds_reg
+
         notif.notif_dest_pr_id = id
         await Notif.set(notif)
         

@@ -93,6 +93,16 @@ class Notif{
             })
         })
     }
+
+    static deleteByProfilAndId(tab){
+        return new Promise((resolve,reject)=>{
+            let sql = "delete from notification where notif_dest_pr_id = ? and notif_id = ?"
+            connection.query(sql,tab,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 }
 
 module.exports = Notif

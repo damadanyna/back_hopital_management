@@ -74,45 +74,44 @@ router.post('/',async (req,res)=>{
 
 
     let Profil = require('../models/profil')
-    //Insertion du profil de la société
-    const soc_res = await Profil.addSocProfil(soc_pr).catch(e =>{
-        return res.send({status:false,message:"Erreur dans la base de donnée [Insertion profil société]"})
-    })
+    try {
+        //Insertion du profil de la société
+        const soc_res = await Profil.addSocProfil(soc_pr)
 
-    //Insertion profil utilisateur de la société
-    const pass = await new Promise((resolve,reject)=>{
-        bcrypt.hash(ar.pass, 10, function(err, hash) {
-            if (err) reject(err)
-            resolve(hash)
-        });
-    })
+        //Insertion profil utilisateur de la société
+        const pass = await new Promise((resolve,reject)=>{
+            bcrypt.hash(ar.pass, 10, function(err, hash) {
+                if (err) reject(err)
+                resolve(hash)
+            });
+        })
 
 
-    let pr = {
-        pr_pass:pass,
-        pr_login:ar.login,
-        pr_type:'ann',
-        pr_change_pass:1,
+        let pr = {
+            pr_pass:pass,
+            pr_login:ar.login,
+            pr_type:'ann',
+            pr_change_pass:1,
+        }
+
+
+        const pr_res = await Profil.addUserProfil(pr)
+
+        let ann = {
+            ann_label:ar.society,
+            soc_pr_id:soc_res.insertId,
+            pr_id:pr_res.insertId
+        }
+
+
+
+        const ann_res = await Annonceur.add(ann)
+
+        return res.send({status:true,id:ann_res.insertId})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
-
-
-    const pr_res = await Profil.addUserProfil(pr).catch(e =>{
-        return res.send({status:false,message:"Erreur dans la base de donnée [Insertion profil Utilisateur]"})
-    })
-
-    let ann = {
-        ann_label:ar.society,
-        soc_pr_id:soc_res.insertId,
-        pr_id:pr_res.insertId
-    }
-
-
-
-    const ann_res = await Annonceur.add(ann).catch(e =>{
-        return res.send({status:false,message:"Erreur dans la base de donnée [Insertion Annonceur]"})
-    })
-
-    return res.send({status:true,id:ann_res.insertId})
 
 })
 
