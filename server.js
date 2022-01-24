@@ -22,7 +22,7 @@ let app = express()
 
 //Utilisation de socket.io
 let http = require('http').Server(app)
-let io = require('socket.io')(http,{cors:{path:"/api/socket.io",origin:'http://localhost:3000',methods:['GET','POST','PUT','DELETE']}})
+let io = require('socket.io')(http,{path:"/api",cors:{origin:'http://localhost:3000',methods:['GET','POST','PUT','DELETE']}})
 
 //Middleware
 // cookie parser middleware
