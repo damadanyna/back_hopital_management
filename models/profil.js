@@ -27,6 +27,19 @@ class Profil{
         })
     }
 
+    static deleteSocProfil(id){
+        return new Promise((resolve,reject)=>{
+            let sql = 'delete from soc_profil where soc_pr_id = ? '
+            connection.query(sql,id,(err,res)=>{
+                if(err){
+                    return reject(err)
+                }
+
+                resolve(res)
+            })  
+        })
+    }
+
     static addUserProfil(pr){
         return new Promise((resolve,reject)=>{
             let sql = 'insert into profil set ?'
@@ -53,7 +66,9 @@ class Profil{
 
     static all(){
         return new Promise((resolve,reject)=>{
-            let sql = 'select * from profil'
+            let sql = 'select *,pr.pr_id as profil_id from profil as pr '
+            sql+="left join annonceur as ann on ann.pr_id = pr.pr_id "
+            sql+="left join regisseur as reg on reg.pr_id = pr.pr_id "
             connection.query(sql,(err,res)=>{
                 if(err)return reject(err)
                 resolve(res)
@@ -63,7 +78,7 @@ class Profil{
 
     static getById(id){
         return new Promise((resolve,reject)=> {
-            let sql = "select *,'' as pr_pass from profil where pr_id = ?"
+            let sql = "select *,'' as pr_pass from profil where pr_id = ? "
             connection.query(sql,id,(err,res)=>{
                 if(err)return reject(err)
                 resolve(res)
@@ -73,7 +88,7 @@ class Profil{
 
     static checkProfilByLogin(login){
         return new Promise((resolve,reject)=> {
-            let sql = "select * from profil where pr_login = ?"
+            let sql = "select * from profil where pr_login = ? "
             connection.query(sql,login,(err,res)=>{
                 if(err)return reject(err)
                 resolve(res)
@@ -83,7 +98,7 @@ class Profil{
 
     static checkSameProfil(d){
         return new Promise((resolve,reject)=> {
-            let sql = "select * from profil where pr_login = ? and pr_id <> ?"
+            let sql = "select * from profil where pr_login = ? and pr_id <> ? "
             connection.query(sql,d,(err,res)=>{
                 if(err)return reject(err)
                 resolve(res)
@@ -94,7 +109,7 @@ class Profil{
     static deleteMultiple(d){
         return new Promise((resolve,reject)=>{
             let sql = "delete from profil where pr_id in (?) "
-            connection.query(sql,d,(err,res)=>{
+            connection.query(sql,[d],(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })
@@ -104,7 +119,7 @@ class Profil{
     static desactiveMultiple(d){
         return new Promise((resolve,reject)=>{
             let sql = "update profil set pr_active = 0 where pr_id in (?) "
-            connection.query(sql,d,(err,res)=>{
+            connection.query(sql,[d],(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })
@@ -113,7 +128,7 @@ class Profil{
     static activeMultiple(d){
         return new Promise((resolve,reject)=>{
             let sql = "update profil set pr_active = 1 where pr_id in (?) "
-            connection.query(sql,d,(err,res)=>{
+            connection.query(sql,[d],(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })

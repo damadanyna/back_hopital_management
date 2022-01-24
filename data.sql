@@ -17,6 +17,12 @@ create table if not exists panneau (
     pan_lumineux int null default 0,
     pan_gold int null default 0,
     pan_verified_by_publoc int null default 0,
+    pan_auth_cu int null default 1,
+    pan_cu_id int null,
+    pan_list_photo varchar(255) null,
+    sous_ann_id int null,
+    pan_add_by_reg int null default 0,
+    pan_modifiable int null default 1,
     PRIMARY KEY (pan_id)
 )ENGINE=InnoDB;
 
@@ -88,6 +94,13 @@ create table if not exists profil (
     PRIMARY KEY (pr_id)
 )ENGINE=InnoDB;
 
+create table if not exists pan_photos(
+    pan_p_id int not null auto_increment,
+    pan_id int null,
+    file_id int null,
+    PRIMARY KEY (pan_p_id)
+)ENGINE=InnoDB;
+
 create table if not exists abonnement(
     ab_id int not null auto_increment,
     ab_label varchar(255) null,
@@ -105,14 +118,28 @@ create table if not exists pan_note(
     PRIMARY KEY (id)
 )ENGINE=InnoDB;
 
+create table if not exists pan_visited(
+    id int not null AUTO_INCREMENT,
+    pr_id int null,
+    notnb_visit int null default 0,
+    pan_id int null,
+    date_visit datetime null,
+    PRIMARY KEY (id)
+)ENGINE=InnoDB;
 
-create table if not exists cu (
+
+create table if not exists commune_urbaine (
     cu_id INT NOT NULL AUTO_INCREMENT,
     cu_label varchar(255) null,
     pr_id int null,
-    province_id int null,
     ville_id int null,
     PRIMARY KEY (cu_id)
+)ENGINE=InnoDB;
+
+create table if not exists cu_region (
+    cu_region_id INT NOT NULL AUTO_INCREMENT,
+    region_id int null,
+    PRIMARY KEY (cu_region_id)
 )ENGINE=InnoDB;
 
 create table if not exists ville (
@@ -120,13 +147,6 @@ create table if not exists ville (
     ville_label varchar(255) null,
     province_id int null,
     PRIMARY KEY (ville_id)
-)ENGINE=InnoDB;
-
-create table if not exists province (
-    province_id int not null AUTO_INCREMENT,
-    province_label varchar(255) null,
-    province_code varchar(10) null,
-    PRIMARY KEY (province_id)
 )ENGINE=InnoDB;
 
 
@@ -164,6 +184,7 @@ create table if not exists annonceur (
     ann_label varchar (255) null,
     soc_pr_id int null,
     pr_id int null,
+    ann_is_agence_com int null default 0,
     PRIMARY KEY (ann_id)
 )ENGINE=InnoDB;
 

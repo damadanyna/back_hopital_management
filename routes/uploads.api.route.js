@@ -51,71 +51,44 @@ router.post('/',upload.single('file'),async (req,res)=>{
         extension = extension[extension.length-1]
         
 
-         let tmp_path = req.file.path
-         let target = './uploads/'+req.body.name+"."+extension
+        let tmp_path = req.file.path
+        try {
+        const m = await sharp(tmp_path).toFile('./uploads/'+req.body.name+'.'+extension)
+        const r = await sharp(tmp_path).resize(null,400).toFile('./uploads/'+req.body.name+'_min.'+extension)
 
-        let src = fs.createReadStream(tmp_path)
-        let dest = fs.createWriteStream(target)
-        src.pipe(dest)
-
-        src.on('end',()=>{
-            let p = {
-                path_file:'./uploads/',
-                extension_file:extension,
-                size_file:req.file.size,
-                name_origin_file:req.file.originalname,
-                name_file:req.body.name
-            }
-
-            fs.unlinkSync(tmp_path,(err)=>{
-                console.log('Erreur de suppression de donnée temporaire')
-            })
-
-            File.post(p,(err,result)=>{
-                if(err){
-                    return res.send({status:false,message:"Erreur de base de donnée."})
-                }else{
-                    return res.send({status:true,file_id:result.insertId})
-                }
-            })
+        let f = {
+            path_file:'./uploads/',
+            extension_file:extension,
+            name_origin_file:req.file.originalname,
+            name_file:req.body.name,
+            size_file:m.size,
+            size_min_file:r.size,
+            name_min_file:req.body.name+"_min",
+            dimension_file:m.width+','+m.height,
+            dimension_min_file:r.width+','+r.height,
+            type_file:'tmp'
+        }
+        fs.unlinkSync(tmp_path,(err)=>{
+            console.log('Erreur de suppression de donnée temporaire')
         })
 
-        src.on('error',()=>{
-            return res.send({status:false,message:"Erreur d'upload du fichier."})
-        })
+        const i = await File.post(f)
+        res.send({status:true,file_id:i.insertId})
+        } catch (e) {
+            console.log(e)
+        return res.send({status:false,message:"Erreur de la base"})
+        }
     }else{
         return res.send({status:false,message:"Erreur de donnée."})
     }
+
 })
 
-router.delete('/:id',(req,res)=>{
-    if(req.params.id){
+router.delete('/:id',async (req,res)=>{
+    if(parseInt(req.params.id).toString() != 'NaN'){
         let id = req.params.id
-        let File  = require('../models/File')
-
-        File.get_by_id(id,(err,result)=>{
-            if(err || result.length == 0){
-                return res.send({status:false,message:"Erreur de la base de donnée. Il est posiible que la donnée n'existe plus."})
-            }else{
-                let r = result[0]
-                let path = r.path_file+""+r.name_file+"."+r.extension_file
-
-                try {
-                    fs.unlinkSync(path)
-                    //file removed
-
-                    File.delete_by_id(id,(err,result)=>{
-                        if(err){
-                            return res.send({status:false,message:"Erreur de la base de donnée."})
-                        }else{
-                            return res.send({status:true})
-                        }
-                    })
-                } catch(err) {
-                    return res.send({status:false,message:"Erreur de la suppression de donnée."})
-                }
-            }
-        })
+        require('../controller/file').deleteFile(id)
+        return res.send({status:true})
     }else{
         return res.send({status:false,message:"Erreur de donnée."})
     }

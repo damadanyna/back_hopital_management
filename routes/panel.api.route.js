@@ -27,7 +27,9 @@ router.post('/',async (req,res)=>{
     let Panel = require('./../models/panel')
     let d = req.body
     let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_num_quittance','pan_description','pan_support','pan_lumineux']
-    let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_commune','lieu_region','lieu_label','lieu_lat','lieu_lng']
+    let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_region','lieu_label','lieu_lat','lieu_lng']
+
+    
 
     let p = {}
     //Insertion panneau
@@ -45,6 +47,12 @@ router.post('/',async (req,res)=>{
             return res.send({status:false,message:"Erreur des données entrées",data:lieu[i]})
         }
         l[lieu[i]] = (d[lieu[i]] == '')?null:d[lieu[i]] 
+    }
+
+    if(d.pan_list_photo.length > 0){
+        p.pan_list_photo = d.pan_list_photo.join(',')
+        await require('../models/File').setUseFile(d.pan_list_photo)
+        p.image_id = d.pan_list_photo[0]
     }
 
     //Insertion dans la base avec un try catch
@@ -92,11 +100,18 @@ router.put('/:id',async (req,res)=>{
         l[lieu[i]] = (d[lieu[i]] == '')?null:d[lieu[i]] 
     }
 
+    if(d.pan_list_photo.length > 0){
+        p.pan_list_photo = d.pan_list_photo.join(',')
+        await require('../models/File').setUseFile(d.pan_list_photo)
+        p.image_id = d.pan_list_photo[0]
+    }else{
+        p.image_id = null
+        p.pan_list_photo = null
+    }
+
     try {
         const l_res = await Panel.updateLieu(d.lieu_id,l)
         const p_res = await Panel.update(d.pan_id,p) 
-
-        console.log(l_res,p_res)
         return res.send({status:true})
 
     } catch (e) {
@@ -128,7 +143,12 @@ router.get('/:id',async (req,res)=>{
 
     try {
         const p_res = await Panel.getById(id)
-        return res.send({status:true,panel:p_res[0]})
+        let image_list = []
+        if(p_res[0].pan_list_photo != null){
+            const ims = await require('../models/File').getIn(p_res[0].pan_list_photo.split(',').map(x => parseInt(x)) )
+            image_list = ims
+        }
+        return res.send({status:true,panel:p_res[0],image_list:image_list})
     } catch (e) {
         console.log(e)
         return res.send({status:false,message:'Erreur dans la base de donnée'})
@@ -157,9 +177,6 @@ router.get('/limit/:nb/:page',async (req,res)=>{
 //Suppression d'un panneau
 router.delete('/:id',async (req,res) =>{
     let Panel = require('../models/panel')
-
-    
-
     try {
         const p_res = await Panel.delete(id)
         return res.send({status:true})

@@ -3,6 +3,8 @@ let session = require('express-session')
 let bodyParser = require('body-parser')
 let cookieParser = require('cookie-parser')
 
+
+
 let MemoryStore = require('memorystore')(session)
 
 const { Console } = require("console");
@@ -18,6 +20,10 @@ const myLogger = new Console({
 
 let app = express()
 
+//Utilisation de socket.io
+let http = require('http').Server(app)
+let io = require('socket.io')(http,{cors:{origin:'http://localhost:3000',methods:['GET','POST','PUT','DELETE']}})
+
 //Middleware
 // cookie parser middleware
 app.use(cookieParser());
@@ -25,6 +31,11 @@ app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended:false}))
 app.use(bodyParser.json())
 
+
+app.use((req,res,next)=>{
+    req.io = io
+    next()
+})
 
 let init = async () =>{
     let Data = require('./models/data')
@@ -43,7 +54,20 @@ let init = async () =>{
 init()
 
 
+io.on('connection',(socket)=>{
+})
+
+
 app.use('/api',require('./routes/api.route'))
 
 
-app.listen(4040)
+
+
+
+http.listen(4040)
+
+
+
+
+
+

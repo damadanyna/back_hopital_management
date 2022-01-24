@@ -2,9 +2,12 @@ let connection = require('../config/db')
 
 
 class File{
-    static post(p,cb){
-        connection.query('insert into file set ?',p,(err,result)=>{
-            cb(err,result)
+    static post(p){
+        return new Promise((resolve,reject)=>{
+            connection.query('insert into file set ?',p,(err,result)=>{
+                if(err) return reject(err)
+                resolve(result)
+            })
         })
     }
 
@@ -17,22 +20,62 @@ class File{
         })
     }
 
-    static get_by_id(id,cb){
-        connection.query('select * from file where file_id=?',id,(err,result)=>{
-            cb(err,result)
+    static getById(id){
+        return new Promise((resolve,reject)=>{
+            connection.query('select * from file where file_id=?',id,(err,result)=>{
+                if(err) return reject(err)
+                resolve(result)
+            })
+        })
+    }
+
+    static getIn(ids){
+        return new Promise((resolve,reject)=>{
+            connection.query('select * from file where file_id in (?)',[ids],(err,result)=>{
+                if(err) return reject(err)
+                resolve(result)
+            })
+        })
+    }
+
+    static getInP(ids){
+        return new Promise((resolve,reject)=>{
+            connection.query('select dimension_file,dimension_min_file,name_file,name_min_file from file where file_id in (?)',[ids],(err,result)=>{
+                if(err) return reject(err)
+                resolve(result)
+            })
         })
     }
 
     static get_by_name(name,cb){
-        connection.query('select * from file where name_file=?',name,(err,result)=>{
+        connection.query('select * from file where name_file = ? ',name,(err,result)=>{
             cb(err,result)
         })
     }
-    static delete_by_id(id,cb){
-        connection.query('delete from file where file_id=?',id,(err,result)=>{
-            if(cb != undefined){
-                cb(err,result)
-            }
+
+    static getByNameOrMin(name){
+        return new Promise((resolve,reject)=>{
+            connection.query('select * from file where name_file = ? OR name_min_file = ? ',[name,name],(err,result)=>{
+                if(err) return reject(err)
+                resolve(result)
+            })
+        })
+    }
+    static deleteById(id){
+        return new Promise((resolve,reject)=>{
+            connection.query('delete from file where file_id=?',id,(err,result)=>{
+                if(err) return reject(err)
+                resolve(result)
+            })
+        })
+    }
+
+    static setUseFile(ids){
+        return new Promise((resolve,reject)=>{
+            connection.query('update file set type_file="use" where file_id in (?)',[ids],(err,result)=>{
+                if(err) return reject(err)
+                resolve(result)
+            })
         })
     }
 }

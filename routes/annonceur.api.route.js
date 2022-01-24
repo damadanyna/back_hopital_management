@@ -99,13 +99,10 @@ router.post('/',async (req,res)=>{
         let ann = {
             ann_label:ar.society,
             soc_pr_id:soc_res.insertId,
-            pr_id:pr_res.insertId
+            pr_id:pr_res.insertId,
+            ann_is_agence_com:(ar.agence_com != undefined)?ar.agence_com:null
         }
-
-
-
         const ann_res = await Annonceur.add(ann)
-
         return res.send({status:true,id:ann_res.insertId})
     } catch (e) {
         console.log(e)
@@ -150,44 +147,51 @@ router.put('/:id',async (req,res)=>{
     }
 
     let Profil = require('../models/profil')
-    //Insertion du profil de la société
-    const soc_res = await Profil.updateSocProfil(ar_brut.soc_pr_id,soc_pr).catch(e =>{
-        return res.send({status:false,message:"Erreur dans la base de donnée [Mise à our profil société]"})
-    })
+    try {
+        //Insertion du profil de la société
+        const soc_res = await Profil.updateSocProfil(ar_brut.soc_pr_id,soc_pr).catch(e =>{
+            return res.send({status:false,message:"Erreur dans la base de donnée [Mise à our profil société]"})
+        })
 
 
-    //Mise à jour profil
-    //Insertion profil utilisateur de la société
-    const pass = await new Promise((resolve,reject)=>{
-        bcrypt.hash(p.pr_pass, 10, function(err, hash) {
-            if (err) reject(err)
-            resolve(hash)
-        });
-    })
+        //Mise à jour profil
+        //Insertion profil utilisateur de la société
+        const pass = await new Promise((resolve,reject)=>{
+            bcrypt.hash(p.pr_pass, 10, function(err, hash) {
+                if (err) reject(err)
+                resolve(hash)
+            });
+        })
 
-    let pr = {
-        pr_login:p.pr_login,
-        pr_change_pass:1
-    }
+        let pr = {
+            pr_login:p.pr_login,
+            pr_change_pass:1
+        }
 
-    if(p.pr_pass != ''){
-        pr.pr_pass = pass
-    }
+        if(p.pr_pass != ''){
+            pr.pr_pass = pass
+        }
 
 
-    const pr_res = await Profil.updateUserProfil(ar_brut.pr_id,pr).catch(e =>{
-        return res.send({status:false,message:"Erreur dans la base de donnée [Insertion profil Utilisateur]"})
-    })
+        const pr_res = await Profil.updateUserProfil(ar_brut.pr_id,pr).catch(e =>{
+            return res.send({status:false,message:"Erreur dans la base de donnée [Insertion profil Utilisateur]"})
+        })
 
-    let ann = {
-        ann_label:ar.soc_pr_label
-    }
+        // console.log(ar_brut)
 
-    const a = await Annonceur.update(ar_brut.ann_id,ann).catch(e =>{
-        return res.send({status:false,message:"Erreur dans la base de donnée [Modif Annonceur]"})
-    }).then(e =>{
+        let ann = {
+            ann_label:ar.soc_pr_label,
+            ann_is_agence_com:(ar_brut.ann_is_agence_com)?1:0
+        }
+
+        console.log(ann)
+        const a = await Annonceur.update(req.params.id,ann)
+
         return res.send({status:true})
-    })
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur de base de donnée"})
+    }
 
 })
 

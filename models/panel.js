@@ -19,10 +19,10 @@ class Panneau{
 
     static getAllLimit(limit,page){
         return new Promise((resolve,reject)=>{
-            let sql = "select p.pan_id,p.pan_ref,l.lieu_ville,l.lieu_label, l.lieu_quartier,file.name_file from panneau as p "
+            let sql = "select p.pan_id,p.pan_ref,l.lieu_ville,l.lieu_label, l.lieu_quartier,file.name_file,file.name_min_file from panneau as p "
             sql+="left join file on p.image_id = file.file_id "
             sql+="left join lieu as l on p.lieu_id = l.lieu_id "
-            sql+="where p.pan_state = 1 "
+            sql+="where pan_validation = 1 and pan_state in (1,2) "
             sql+="limit ? "
 
             connection.query(sql,limit,(err,res)=>{
@@ -75,9 +75,9 @@ class Panneau{
         })
     }
 
-    static getById(id,cb){
+    static getById(id){
         return new Promise((resolve,reject)=>{
-            let sql = "select panneau.*,lieu.*,category.*,reg.*,ann.*,file.name_file from panneau "
+            let sql = "select panneau.*,lieu.*,category.*,reg.*,ann.*,file.name_file,reg.pr_id as reg_pr_id from panneau "
             sql+="left join lieu on panneau.lieu_id = lieu.lieu_id "
             sql+="left join category on panneau.cat_id = category.cat_id "
             sql+="left join regisseur as reg on panneau.reg_id = reg.reg_id "
@@ -133,7 +133,7 @@ class Panneau{
 
     static getListPanToMap(){
         return new Promise((resolve,reject)=>{
-            let sql = "select p.pan_id,p.pan_surface,p.pan_ref,p.pan_verified_by_publoc,p.pan_lumineux,p.pan_gold,l.*,f.name_file "
+            let sql = "select p.pan_id,p.pan_surface,p.pan_ref,p.pan_verified_by_publoc,p.pan_lumineux,p.pan_gold,l.*,f.name_file,f.name_min_file "
             sql+=" from panneau as p "
             sql+="left join lieu as l on l.lieu_id = p.lieu_id "
             sql+="left join file as f on f.file_id = p.image_id "
@@ -151,6 +151,26 @@ class Panneau{
             sql+="left join lieu as l on l.lieu_id = panneau.lieu_id "
             sql+="where reg_id = ?"
             connection.query(sql,id_reg,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static updateTo(tab){
+        return new Promise((resolve,reject)=>{
+            let sql = "update panneau set ? where ? "
+            connection.query(sql,tab,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getWhere(w){
+        return new Promise((resolve,reject)=>{
+            let sql = "select * from panneau where ? "
+            connection.query(sql,w,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })

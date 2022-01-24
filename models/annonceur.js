@@ -2,11 +2,26 @@ let connection = require('../config/db')
 
 class Annonceur{
     static all(cb){
-        let sql = 'select annonceur.*,soc_profil.soc_pr_email,soc_profil.soc_pr_adresse, (select count(*) from panneau where panneau.ann_id = annonceur.ann_id) as nb_panel '
+        let sql = 'select pl.*,annonceur.*,soc_profil.soc_pr_email,soc_profil.soc_pr_adresse, (select count(*) from panneau where panneau.ann_id = annonceur.ann_id) as nb_panel '
         sql+='from annonceur '
         sql+="left join soc_profil on annonceur.soc_pr_id = soc_profil.soc_pr_id "
+        sql+="left join pan_location as pl on pl.ann_id = annonceur.ann_id "
         connection.query(sql,(err,res)=>{
             cb(err,res)
+        })
+    }
+
+    static getIn(t){
+        return new Promise((resolve,reject)=>{
+            let sql = 'select pl.*,annonceur.*,soc_profil.soc_pr_email,soc_profil.soc_pr_adresse, (select count(*) from panneau where panneau.ann_id = annonceur.ann_id) as nb_panel '
+            sql+='from annonceur '
+            sql+="left join soc_profil on annonceur.soc_pr_id = soc_profil.soc_pr_id "
+            sql+="left join pan_location as pl on pl.ann_id = annonceur.ann_id "
+            sql+="where annonceur.ann_id in (?) "
+            connection.query(sql,[t],(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
         })
     }
 
@@ -22,6 +37,26 @@ class Annonceur{
             let sql = 'insert into annonceur set ?'
 
             connection.query(sql,ann,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static deleteById(id){
+        return new Promise((resolve,reject)=>{
+            let sql = 'delete from annonceur where ann_id = ?'
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static deleteMultiple(tab){
+        return new Promise((resolve,reject)=>{
+            let sql = 'delete from annonceur where ann_id in (?) '
+            connection.query(sql,[tab],(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })
@@ -45,6 +80,7 @@ class Annonceur{
             sql+='from annonceur as ann '
             sql+="left join soc_profil as sp on sp.soc_pr_id = ann.soc_pr_id "
             sql+="left join profil as p on p.pr_id = ann.pr_id "
+            sql+="left join pan_location on pan_location.ann_id = ann.ann_id "
             sql+="where ann.ann_id = ?"
 
             connection.query(sql,id,(err,res)=>{

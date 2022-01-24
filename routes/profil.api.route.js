@@ -13,9 +13,13 @@ router.use((req, res, next) => {
 //Get list
 router.get('/',async (req,res)=>{
     let Profil = require('../models/profil')
-    const d = await Profil.all()
-
-    return res.send({status:true,profils:d})
+    try {
+        const d = await Profil.all()
+        return res.send({status:true,profils:d})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
 })
 //Get list
 router.get('/:id',async (req,res)=>{
@@ -197,7 +201,6 @@ router.put('/:id',async (req,res)=>{
         console.log(e)
         return res.send({status:false,message:"Login déjà existant ..."})
     }
-
     return res.send({status:true})
    
 })
@@ -206,6 +209,7 @@ router.delete('/',async (req,res)=>{
     let Profil = require('../models/profil')
     let p = req.body
 
+    console.log(p)
     try {
         const r = await Profil.deleteMultiple(p)
         return res.send({status:true})

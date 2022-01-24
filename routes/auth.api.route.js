@@ -66,8 +66,22 @@ router.get('/deconnect',(req,res)=>{
 
 
 //Détection de connexion
-router.get('/status',(req,res)=>{
-    return res.send({status:true,pr:req.user})
+router.get('/status',async (req,res)=>{
+    let Notif = require('../models/notif')
+    try {
+        if(req.user.pr_type == 'a'){
+            const t = await Notif.countNotifByAdmin()
+            return res.send({status:true,pr:req.user,nbNotif:t[0].nb})
+        }else{
+            const t = await Notif.countNotifByDestProfil(req.user.pr_id)
+            return res.send({status:true,pr:req.user,nbNotif:t[0].nb})
+        }
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false})
+    }
+    
+    
 })
 
 

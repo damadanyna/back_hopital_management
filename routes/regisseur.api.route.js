@@ -310,6 +310,30 @@ router.get('/:id',async (req,res)=>{
     
 })
 
+//Récupération d'un seul panneau pour la visulaisation côté régisseur
+//Récupération d'un panneau pour la viewPanel
+router.get('/panel/:id',async (req,res)=>{
+    let Panel = require('./../models/panel')
+    let id = parseInt(req.params.id)
+    if(id.toString() == 'NaN'){
+        return res.send({status:false,message:'Erreur de donnée en Entrée.'})
+    }
+
+    try {
+        const p_res = await Panel.getById(id)
+        let image_list = []
+        if(p_res[0].pan_list_photo != null){
+            const ims = await require('../models/File').getInP(p_res[0].pan_list_photo.split(',').map(x => parseInt(x)) )
+            image_list = ims
+        }
+        return res.send({status:true,panel:p_res[0],image_list:image_list})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée'})
+    }
+
+})
+
 //Ajout d'un panneau par un régisseur
 router.post('/panel',async(req,res)=>{
     let Regisseur = require('../models/regisseur')
@@ -330,7 +354,7 @@ router.post('/panel',async(req,res)=>{
 
     let d = req.body
     let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_num_quittance','pan_description','pan_support','pan_lumineux']
-    let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_commune','lieu_region','lieu_label','lieu_lat','lieu_lng']
+    let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_region','lieu_label','lieu_lat','lieu_lng']
 
     if(d.pan_ref == ''){
         return res.send({status:false,message:"Un panneau doit voir une référence"})
@@ -360,6 +384,12 @@ router.post('/panel',async(req,res)=>{
         l[lieu[i]] = (d[lieu[i]] == '')?null:d[lieu[i]] 
     }
 
+    if(d.pan_list_photo.length > 0){
+        p.pan_list_photo = d.pan_list_photo.join(',')
+        await require('../models/File').setUseFile(d.pan_list_photo)
+        p.image_id = d.pan_list_photo[0]
+    }
+
     //Insertion dans la base avec un try catch
     try {
         const lieu_res = await Panel.addLieu(l)
@@ -369,6 +399,7 @@ router.post('/panel',async(req,res)=>{
         p.lieu_id = lieu_res.insertId
 
         p.reg_id = reg_r[0].reg_id
+        p.pan_add_by_reg = 1
 
         //Insertion du Panneau
         const pan_res = await Panel.add(p)
@@ -384,8 +415,9 @@ router.post('/panel',async(req,res)=>{
 
         notifToAddPanel(no)
 
-        //Insertion d'une notification pour l'Admin
+        req.io.emit('new-notif-ad',{t:"Ajout d'un panneau",c:"Le régisseur "+reg_r[0].reg_label+" vient d'ajouter un panneau.",e:false})
 
+        //Insertion d'une notification pour l'Admin
         return res.send({status:true,id:pan_res.insertId})
 
     } catch (e) {

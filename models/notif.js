@@ -54,6 +54,32 @@ class Notif{
         })
     }
 
+    static countNotifByDestProfil(id_pr){
+        return new Promise((resolve,reject)=>{
+            let sql = "select count(*) as nb "
+            sql+="from notification as n "
+            sql+="where notif_dest_pr_id = ? and notif_vu = 0 order by n.created_at desc "
+
+            connection.query(sql,id_pr,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static countNotifByAdmin(){
+        return new Promise((resolve,reject)=>{
+            let sql = "select count(*) as nb "
+            sql+="from notification as n "
+            sql+="where notif_type = 'a' and notif_vu = 0 order by n.created_at desc "
+
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static countAdmin(){
         return new Promise((resolve,reject)=>{
             let sql = "select (select count(*) from notification where notif_type = 'a') as nbTotal, "
@@ -80,6 +106,26 @@ class Notif{
         return new Promise((resolve,reject)=>{
             let sql = "delete from notification where notif_dest_pr_id = ? and notif_id = ?"
             connection.query(sql,tab,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static deleteById(id){
+        return new Promise((resolve,reject)=>{
+            let sql = "delete from notification where notif_id = ?"
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static setVuAll(id_dest){
+        return new Promise((resolve,reject)=>{
+            let sql = "update notification set notif_vu = 1 where notif_dest_pr_id = ? OR notif_type = 'a' "
+            connection.query(sql,id_dest,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })

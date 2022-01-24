@@ -74,46 +74,81 @@ router.post('/auth',(req,res)=>{
 })
 
 //Endpoint pour la génération d'image
-router.get('/media/:file',(req,res)=>{
+router.get('/media/:file',async (req,res)=>{
     let File = require('../models/File')
 
-    File.get_by_name(req.params.file,(err,result)=>{
-        if(err){
-            res.sendStatus(404)
-        }else{
-            if(result.length > 0){
-                let f = result[0]
-                let ext = f.extension_file.toLowerCase();
-                let path = f.name_file+"."+f.extension_file
-                
-                // fs.readFile(, function(err, data) {
-                //     let base64data = new Buffer.from(data).toString('base64')
+    try {
+        const t = await File.getByNameOrMin(req.params.file)
+        if(t.length > 0){
+            let f = t[0]
+            let ext = f.extension_file.toLowerCase();
+            let path = (req.params.file == f.name_file)?f.name_file+"."+f.extension_file:f.name_min_file+"."+f.extension_file
 
-                    
-                //     // res.contentType('image/'+ext)
-                //     return res.end("data:image/"+ext+";base64,"+base64data,'binary')
-                //  });
-                // res.sendFile(path,{root:'./uploads'})
-                fs.readFile('./uploads/' + path, function(err, content) {
-                    if (err) {
-                    res.writeHead(400, {
-                        'Content-type': 'text/html'
-                    })
-                    console.log(err);
-                    res.end("Aucune image disponible");
-                    } else {
-                    //specify the content type in the response will be an image
-                    res.writeHead(200, {
-                        'Content-type': 'image/jpg'
-                    });
-                    res.end(content);
-                    }
-                });
-            }else{
+            fs.readFile('./uploads/' + path, function(err, content) {
+                if (err) {
+                res.writeHead(400, {
+                    'Content-type': 'text/html'
+                })
+                console.log(err);
                 res.end("Aucune image disponible");
-            }
+                } else {
+                //specify the content type in the response will be an image
+                res.writeHead(200, {
+                    'Content-type': 'image/jpg'
+                });
+                res.end(content);
+                }
+            });
+        }else{
+            res.end("Aucune image disponible");
         }
-    })
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+
+    // File.get_by_name(req.params.file,(err,result)=>{
+    //     if(err){
+    //         res.sendStatus(404)
+    //     }else{
+    //         if(result.length > 0){
+    //             let f = result[0]
+    //             let ext = f.extension_file.toLowerCase();
+    //             let path = f.name_file+"."+f.extension_file
+
+    //             fs.readFile('./uploads/' + path, function(err, content) {
+    //                 if (err) {
+    //                 res.writeHead(400, {
+    //                     'Content-type': 'text/html'
+    //                 })
+    //                 console.log(err);
+    //                 res.end("Aucune image disponible");
+    //                 } else {
+    //                 //specify the content type in the response will be an image
+    //                 res.writeHead(200, {
+    //                     'Content-type': 'image/jpg'
+    //                 });
+    //                 res.end(content);
+    //                 }
+    //             });
+    //         }else{
+    //             res.end("Aucune image disponible");
+    //         }
+    //     }
+    // })
+})
+
+router.get('/testIm',async (req,res)=>{
+    let File = require('../models/File')
+
+    try {
+        const t = await File.getByNameOrMin("test")
+
+        return res.send({status:true,d:t})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
 })
 
 
@@ -216,12 +251,16 @@ router.post('/inscription',async (req,res)=>{
         if(ar.soc_type == 'ann'){
             const ann_res = await Annonceur.add(ann)
             insertNotificationIns(ar.society,pr_res.insertId,ann_res.insertId,'ann')
+            req.io.emit('new-notif-ad',{t:"Inscription d'un Annonceur",c:"Une société vient de s'inscrire en tant qu'Annonceur",e:false})
             return res.send({status:true,id:ann_res.insertId,pr:pr})
         }else{
             const reg_res = await Regisseur.add(reg)
             insertNotificationIns(ar.society,pr_res.insertId,reg_res.insertId,'reg')
+            req.io.emit('new-notif-ad',{t:"Inscription d'un Régisseur",c:"Une société vient de s'inscrire en tant que Régisseur",e:false})
             return res.send({status:true,id:reg_res.insertId,pr:pr})
         }
+
+        
         
     } catch (e) {
         console.log(e)
