@@ -221,3 +221,28 @@ create table if not exists file(
 )ENGINE=InnoDB;
 
 
+-- 
+create table if not exists tarif(
+    tarif_id INT NOT NULL auto_increment,
+    cat_id int null,
+    service_id int null,
+    tarif_type int null default 1, -- 1:HT, 2:TTC
+    tarif_min_month int null,
+    tarif_prix_format varchar(100) default 'Ar',
+    tarif_prix varchar(255) null,
+    PRIMARY KEY (tarif_id)
+)ENGINE=InnoDB;
+
+create table if not exists tarif_pan_loc(
+    tar_pan_loc_id INT NOT NULL auto_increment,
+    pan_loc_id int null,
+    tarif_id int null,
+    PRIMARY KEY (tar_pan_loc_id)
+)ENGINE=InnoDB;
+
+create table  if not exists pan_service(
+    pan_serv_id INT NOT NULL auto_increment,
+    pan_serv_label varchar(100) null,
+    PRIMARY KEY (pan_serv_id)
+)ENGINE=InnoDB;
+

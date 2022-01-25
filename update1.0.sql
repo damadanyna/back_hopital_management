@@ -9,3 +9,7 @@ alter table panneau add pan_list_photo varchar(255) null;
 
 alter table panneau add pan_add_by_reg int null;
 alter table panneau add pan_modifiable int null default 1;
+
+
+-- New 
+alter table panneau add pan_show_price int null default 0;
