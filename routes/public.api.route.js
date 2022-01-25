@@ -277,8 +277,8 @@ router.get('/migrate/panel',async (req,res)=>{
         }
 
 
-        return res.end(p)
-        //return res.send({status:true,message:"[modif-2] - Nombre de panneau : "+size+", Nombre d'image transfomée : "+nb})
+        
+        return res.send({status:true,message:"[modif-2] "+p})
     } catch (e) {
         return res.send({status:false,error:e})
     }
