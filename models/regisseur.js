@@ -41,7 +41,7 @@ class Regisseur{
 
     static getById(id){
         return new Promise((resolve,reject)=>{
-            let sql = 'select *,(select count(*) from panneau as pan where pan.reg_id = reg.reg_id ) as nb_panel, '
+            let sql = 'select *,reg.pr_id as reg_pr_id,(select count(*) from panneau as pan where pan.reg_id = reg.reg_id ) as nb_panel, '
             sql+="(select count(*) from panneau as pan where pan.reg_id = reg.reg_id and pan.ann_id <> NULL group by pan.ann_id ) as nb_ann, "
             sql+="(select count(*) from panneau as pan where pan.reg_id = reg.reg_id and pan.pan_state = 1) as nb_dispo "
             sql+='from regisseur as reg '

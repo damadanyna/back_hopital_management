@@ -76,7 +76,7 @@ class Annonceur{
 
     static getById(id){
         return new Promise((resolve,reject)=>{
-            let sql = 'select *,(select count(*) from panneau as pan where pan.ann_id = ann.ann_id ) as nb_panel '
+            let sql = 'select *,ann.pr_id as ann_pr_id,(select count(*) from panneau as pan where pan.ann_id = ann.ann_id ) as nb_panel '
             sql+='from annonceur as ann '
             sql+="left join soc_profil as sp on sp.soc_pr_id = ann.soc_pr_id "
             sql+="left join profil as p on p.pr_id = ann.pr_id "
