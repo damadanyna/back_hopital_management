@@ -199,7 +199,6 @@ router.get('/profil',async (req,res)=>{
     }
     try {
         const result = await Regisseur.getByIdProfil(req.user.pr_id)
-        console.log(result)
         return res.send({status:true,regisseur:result[0]})
         // return res.send({st:"Mais merde"})
     } catch (e) {
@@ -300,14 +299,13 @@ router.get('/:id',async (req,res)=>{
         return res.send({status:false,message:"Erreur de donnée en Entrée"})
     }
 
-    const result = await Regisseur.getById(id).catch(e =>{
-        console.log(e)
-        return res.send({status:false,message:"Erreur de la base de donnée."})
-    }).then(r =>{
+    try {
+        const result = await Regisseur.getById(id)
         return res.send({status:true,regisseur:r[0]})
-    } )
-
-    
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
 })
 
 //Récupération d'un seul panneau pour la visulaisation côté régisseur
@@ -445,5 +443,56 @@ async function notifToAddPanel(p){
     }
     await Notif.set(n)
 }
+
+
+//Modification en detail du profil
+router.put('/profil/det/:id',async (req,res)=>{
+    if(req.user.pr_type != 'reg'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+
+    let data = req.body
+
+    let soc_p_d = ['soc_pr_email','soc_pr_nif','soc_pr_stat','soc_pr_label','soc_pr_adresse']
+    let pr_d = ['pr_login','file_profil']
+
+    try {
+        //Récupération des informations du régisseur en question
+        const r = await require('../models/regisseur').getByIdProfil(req.user.pr_id)
+        let reg = {}
+        if(r.length > 0 ){
+            reg = r[0]
+            for(let i=0;i<soc_p_d.length;i++){
+                if(soc_p_d[i] == data.key){
+                    await require('../models/data').updateWhere('soc_profil',
+                    JSON.parse('{"'+soc_p_d[i]+'":"'+data.value+'"}'),{'soc_pr_id':reg.soc_pr_id})
+
+                    if(data.key == 'soc_pr_label'){
+                        await require('../models/data').updateWhere('regisseur',
+                            {'reg_label':data.value} ,{'reg_id':reg.reg_id})
+                    }
+                    return res.send({status:true})
+                }
+            }
+
+            //Pour le profil
+            for(let i=0;i<soc_p_d.length;i++){
+                if(pr_d[i] == data.key){
+                    await require('../models/data').updateWhere('profil',
+                    JSON.parse('{"'+pr_d[i]+'":"'+data.value+'"}'),{'pr_id':reg.pr_id})
+                    return res.send({status:true})
+                }
+            }
+
+        }else{
+            return res.send({status:false,message:"Il est possible que ce compte n'existe plus"})
+        }
+        
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.'})
+    }
+    return res.send({status:true})
+})
 
 module.exports = router

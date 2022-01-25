@@ -97,10 +97,11 @@ class Regisseur{
 
     static getByIdProfil(id){
         return new Promise((resolve,reject)=>{
-            let sql = "select *,(select count(*) from panneau as pan where pan.reg_id = reg.reg_id ) as nb_panel,'' as pr_pass "
+            let sql = "select reg.*,sp.*,p.*,f.name_file,f.name_min_file,(select count(*) from panneau as pan where pan.reg_id = reg.reg_id ) as nb_panel,'' as pr_pass "
             sql+='from regisseur as reg '
             sql+="left join soc_profil as sp on sp.soc_pr_id = reg.soc_pr_id "
             sql+="left join profil as p on p.pr_id = reg.pr_id "
+            sql+="left join file as f on f.file_id = file_profil "
             sql+="where p.pr_id = ?"
 
             connection.query(sql,id,(err,res)=>{
