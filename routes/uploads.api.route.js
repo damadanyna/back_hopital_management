@@ -54,7 +54,7 @@ router.post('/',upload.single('file'),async (req,res)=>{
         let tmp_path = req.file.path
         try {
         const m = await sharp(tmp_path).toFile('./uploads/'+req.body.name+'.'+extension)
-        const r = await sharp(tmp_path).resize(null,400).toFile('./uploads/'+req.body.name+'_min.'+extension)
+        const r = await sharp(tmp_path).resize(null,250).toFile('./uploads/'+req.body.name+'_min.'+extension)
 
         let f = {
             path_file:'./uploads/',
