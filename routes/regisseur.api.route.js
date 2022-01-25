@@ -174,8 +174,7 @@ router.put('/:id',async (req,res)=>{
             pr.pr_pass = pass
         }
     
-    
-        const pr_res = await Profil.updateUserProfil(ar_brut.pr_id,pr)
+        const pr_res = await Profil.updateUserProfil(ar_brut.reg_pr_id,pr)
     
         let reg = {
             reg_label:ar.soc_pr_label

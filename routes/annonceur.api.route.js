@@ -173,9 +173,7 @@ router.put('/:id',async (req,res)=>{
         }
 
 
-        const pr_res = await Profil.updateUserProfil(ar_brut.pr_id,pr).catch(e =>{
-            return res.send({status:false,message:"Erreur dans la base de donnée [Insertion profil Utilisateur]"})
-        })
+        const pr_res = await Profil.updateUserProfil(ar_brut.ann_pr_id,pr)
 
         // console.log(ar_brut)
 
