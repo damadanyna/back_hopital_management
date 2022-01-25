@@ -42,6 +42,17 @@ class Panneau{
         })
     }
 
+    static getPanelNoListPhoto(){
+        return new Promise((resolve,reject)=>{
+            let sql = "select * from panneau as pan left JOIN file as f on f.file_id = pan.image_id WHERE pan.image_id is not NULL and pan.pan_list_photo is null"
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+
+    }
+
     static addLieu(l){
         return new Promise((resolve,reject)=>{
             connection.query('insert into lieu set ?',l,(err,res)=>{

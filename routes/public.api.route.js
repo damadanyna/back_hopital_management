@@ -264,21 +264,28 @@ router.get('/migrate/panel',async (req,res)=>{
     let data = require('../models/data')
 
     try {
-        const p = await Panel.all()
+        const p = await Panel.getPanelNoListPhoto()
         let size = p.length
         let ims = []
         let nb = 0
         for(let i=0;i<size;i++){
             let tp = p[0]
-            if(tp.image_id != null && tp.pan_list_photo == null){
-                nb++
+            //Redimensionnement de l'image
+            let path = './uploads/'+tp.name_file+'.'+tp.extension_file
+            const r = await sharp(path).resize(null,400).toFile('./uploads/'+tp.name_file+'_min.'+tp.extension_file)
+
+            let im_modif = {
+                name_min_file:tp.name_file+'_min',
+                dimension_min_file:r.width+","+r.height,
+                size_min_file:r.size,
+                type_file:'use'
             }
 
+            await data.updateWhere('file',im_modif,{file_id:p.image_id})
+            await data.updateWhere('panneau',{pan_list_photo:tp.image_id},{pan_id:tp.pan_id})
+            nb++
         }
-
-
-        
-        return res.send({status:true,message:"[modif-2] "+p})
+        return res.send({status:true,message:"[modif-4] - Nombre de panneau : "+size+", Nombre d'image transfomée : "+nb})
     } catch (e) {
         return res.send({status:false,error:e})
     }
