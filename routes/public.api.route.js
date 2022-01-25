@@ -3,6 +3,8 @@ require('dotenv').config()
 const jwt = require("jsonwebtoken");
 const bcrypt = require('bcrypt')
 
+const sharp = require("sharp")
+
 let fs = require('fs')
 
 const config = process.env
@@ -106,36 +108,6 @@ router.get('/media/:file',async (req,res)=>{
         console.log(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
-
-    // File.get_by_name(req.params.file,(err,result)=>{
-    //     if(err){
-    //         res.sendStatus(404)
-    //     }else{
-    //         if(result.length > 0){
-    //             let f = result[0]
-    //             let ext = f.extension_file.toLowerCase();
-    //             let path = f.name_file+"."+f.extension_file
-
-    //             fs.readFile('./uploads/' + path, function(err, content) {
-    //                 if (err) {
-    //                 res.writeHead(400, {
-    //                     'Content-type': 'text/html'
-    //                 })
-    //                 console.log(err);
-    //                 res.end("Aucune image disponible");
-    //                 } else {
-    //                 //specify the content type in the response will be an image
-    //                 res.writeHead(200, {
-    //                     'Content-type': 'image/jpg'
-    //                 });
-    //                 res.end(content);
-    //                 }
-    //             });
-    //         }else{
-    //             res.end("Aucune image disponible");
-    //         }
-    //     }
-    // })
 })
 
 router.get('/testIm',async (req,res)=>{
@@ -283,5 +255,47 @@ async function insertNotificationIns(label_soc,id_pr,id_object,type){
     }
     await Notif.set(n)
 }
+
+
+
+//Pour migréer les images insérer des panneaux d'avant vers la structure des données actuelles
+router.get('/migrate/panel',async (req,res)=>{
+    let Panel = require('../models/panel')
+    let data = require('../models/data')
+
+    try {
+        const p = await Panel.all()
+        let size = p.length
+        let ims = []
+        let nb = 0
+        for(let i=0;i<size;i++){
+            let tp = p[0]
+            if(tp.image_id != null && tp.pan_list_photo == null){
+                ims = await require('../models/File').getById(tp.image_id)
+                
+                if(ims.length > 0){
+                    //Redimensionnement de l'image
+                    let path = './uploads/'+ims[0].name_file+'.'+ims[0].extension_file
+                    const r = await sharp(path).resize(null,400).toFile('./uploads/'+ims[0].name_file+'_min.'+ims[0].extension_file)
+
+                    let im_modif = {
+                        name_min_file:ims[0].name_file+'_min',
+                        dimension_min_file:r.width+","+r.height,
+                        size_min_file:r.size
+                    }
+
+                    await data.updateWhere('file',im_modif,{file_id:p.image_id})
+                    await data.updateWhere('panneau',{pan_list_photo:tp.image_id},{pan_id:tp.pan_id})
+                }
+                nb++
+            }
+
+        }
+
+        return res.send({status:true,message:"Nombre de panneau : "+size+", Nombre d'image transfomée : "+nb++})
+    } catch (e) {
+        return res.send({status:false,error:e})
+    }
+})
 
 module.exports = router

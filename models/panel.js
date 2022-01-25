@@ -2,13 +2,14 @@ let connection = require('../config/db')
 
 class Panneau{
     //New
-    static all(cb){
+    static all(){
         return new Promise((resolve,reject)=>{
-            let sql = "select pan.*,lieu.*,cat_label,reg.*,ann.* from panneau as pan "
+            let sql = "select f.*,pan.*,lieu.*,cat_label,reg.*,ann.* from panneau as pan "
             sql+='left join lieu on pan.lieu_id = lieu.lieu_id '
             sql+='left join category on pan.cat_id = category.cat_id '
             sql+='left join regisseur as reg on reg.reg_id = pan.reg_id '
             sql+='left join annonceur as ann on ann.ann_id = pan.ann_id '
+            sql+="left join file as f on f.file_id = pan.image_id "
             /*sql+="left join regisseur"*/
             connection.query(sql,(err,res) =>{
                 if(err) return reject(err)
