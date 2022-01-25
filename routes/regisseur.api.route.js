@@ -300,7 +300,7 @@ router.get('/:id',async (req,res)=>{
     }
 
     try {
-        const result = await Regisseur.getById(id)
+        const r = await Regisseur.getById(id)
         return res.send({status:true,regisseur:r[0]})
     } catch (e) {
         console.log(e)
