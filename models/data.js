@@ -31,6 +31,28 @@ class Data{
             })
         })
     }
+
+    //Gestion des services et location/réservation
+
+    static getTarifByService(id_serv){
+        return new Promise((resolve,reject)=>{
+            let sql = "select * from tarif where service_id = ? "
+            connection.query(sql,id_serv,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static insert(table,data){
+        return new Promise((resolve,reject)=>{
+            let sql = "insert into "+table+" set ? "
+            connection.query(sql,data,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 }
 
 module.exports = Data

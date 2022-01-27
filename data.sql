@@ -38,6 +38,8 @@ create table if not exists pan_location(
     pan_loc_reservation_date datetime null default NOW(),
     pan_loc_date_validation datetime null,
     created_at datetime null default NOW(),
+    pan_loc_vu int null default 0,
+    pan_loc_lu int null default 0,
     PRIMARY KEY (pan_loc_id)
 )ENGINE=InnoDB;
 
@@ -225,9 +227,11 @@ create table if not exists file(
 create table if not exists tarif(
     tarif_id INT NOT NULL auto_increment,
     cat_id int null,
+    tarif_pr_id int null,
     service_id int null,
-    tarif_type int null default 1, -- 1:HT, 2:TTC
+    tarif_type varchar(50) null default 'HT', -- 1:HT, 2:TTC
     tarif_min_month int null,
+    tarif_pan_dimension varchar(100) null,
     tarif_prix_format varchar(100) default 'Ar',
     tarif_prix varchar(255) null,
     PRIMARY KEY (tarif_id)

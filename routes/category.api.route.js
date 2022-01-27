@@ -140,4 +140,29 @@ router.put('/:id',async (req,res)=>{
     }
 })
 
+router.get('/reg/:id_reg_pr',async (req,res)=>{
+
+    if(req.user.pr_type !='reg'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+
+
+    let id = parseInt(req.params.id_reg_pr)
+    console.log(id);
+    if(id.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en Entrée"})
+    }
+
+    //Récupération des catégories pour les panneux du régisseur
+    try {
+        const cat = await require('../models/category').getRegByIdProfil(id)
+
+        return res.send({status:true,categories:cat})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"}) 
+    }
+
+})
+
 module.exports = router

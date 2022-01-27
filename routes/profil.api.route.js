@@ -2,6 +2,10 @@ let router = require('express').Router()
 let moment = require('moment')
 let fs = require('fs')
 const bcrypt = require('bcrypt')
+const jwt = require("jsonwebtoken");
+
+require('dotenv').config()
+const config = process.env
 
 
 //midlware spécifique pour la route
@@ -126,21 +130,29 @@ router.put('/validate/:id',async (req,res)=>{
             notif_motif:'validation-profil',
             notif_id_object:id,
             notif_title:"Validation de profil",
-            notif_type:id_pr.pr_type
+            notif_type:id_pr[0].pr_type
         }
         let ds = "<div class='flex flex-col'>"
         ds+="<span>Votre profil a été validé par l'Administrateur, Vous pouvez maintenant reserver et louer des panneaux.</span>"
-        ds+="<span>Rechercher et parcourir la liste <nuxt-link to='/panneau' class='text-indigo-600'>ici</nuxt-link> </span>"
+        ds+="<span>Rechercher les panneaux <nuxt-link to='/panneau' class='text-indigo-600'>ici</nuxt-link> </span>"
         ds+="</div>"
 
         let ds_reg = "<div class='flex flex-col'>"
         ds_reg+="<span>Votre profil a été validé par l'Administrateur, Vous pouvez maintenant recevoir les demandes de réservation et voir/ajouter/modifier vos panneaux.</span>"
         ds_reg+="</div>"
 
-        notif.notif_desc = (id_pr.pr_type == 'ann')?ds:ds_reg
+        notif.notif_desc = (id_pr[0].pr_type == 'ann')?ds:ds_reg
 
         notif.notif_dest_pr_id = id
         await Notif.set(notif)
+
+        req.io.emit('new-notif-'+id,{
+            t:"Validation de profil",
+            c:"Votre profil a été validé par l'Admin",
+            e:false
+        })
+        req.io.emit('validate-profil-'+id)
+
         
         return res.send({status:true,message:"Validation de profil avec succès. Le profil en question recevra une notification"}) 
     } catch (e) {

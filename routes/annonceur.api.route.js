@@ -35,14 +35,13 @@ router.get('/',(req,res)=> {
     })
 })
 
-
-
 router.post('/',async (req,res)=>{
     let Annonceur = require('../models/annonceur')
     let ar = req.body
 
     let data_r = ['society','adresse','email_soc','nif','stat','login','pass','c_pass']
     let data_e = ['society','adresse','login','pass']
+
 
 
     data_r.forEach( function(e, index) {
@@ -271,6 +270,8 @@ router.post('/reservation',async (req,res)=>{
     let panel = {}
     let reg = {}
     let ann = {}
+
+
     try {
         //Récupération de l'information du panneau
         const res_pan_0 = await Panel.getById(d.pan_id)
@@ -323,8 +324,13 @@ router.post('/reservation',async (req,res)=>{
         notif.notif_desc = "<div>Un annonceur "+
         " vient de faire une une demande de location pour votre panneau <nuxt-link class='bt text-sm mx-1' to='/panneau/"+panel.pan_id+"'>"+panel.pan_ref+"</nuxt-link> </div>"
         notif.notif_dest_pr_id = reg.pr_id
-        
-        
+
+        req.io.emit('new-notif-'+reg.pr_id,{
+            t:"Réservation d'un panneau",
+            c:"Un annonceur vient de faire une réservation pour un de de vos panneau",
+            e:false
+        })
+
         await Notif.set(notif)
 
         state = 'insertion-notif-admin'
@@ -334,6 +340,25 @@ router.post('/reservation',async (req,res)=>{
         notif.notif_type = "a"
         await Notif.set(notif)
 
+        req.io.emit('new-notif-ad',{
+            t:"Réservation d'un panneau",
+            c:"Un annonceur vient de faire une réservation pour un panneau",
+            e:false
+        })
+
+        //Insertion relation tarif et location
+        if(d.service_id != null && d.service_id != undefined){
+            const tarif = await require('../models/data').getTarifByService(d.service_id)
+
+            if(tarif.length > 0){
+                let t = tarif[0]
+                let tpan = {
+                    pan_loc_id:res_pl.insertId,
+                    tarif_id:t.tarif_id
+                }
+                await require('../models/data').insert('tarif_pan_loc',tpan)
+            }
+        }
         return res.send({status:true})
     } catch (e) {
         console.log("Erreur insertion reservation, state : "+state)
@@ -389,6 +414,81 @@ router.get('/:id',async (req,res)=>{
     } catch (e) {
         console.log(e)
         return res.send({status:false,message:"Erreur de la base de donnée."})
+    }
+})
+
+//Modification en detail du profil
+router.put('/profil/det/:id',async (req,res)=>{
+    if(req.user.pr_type != 'ann'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+
+    let data = req.body
+
+    let soc_p_d = ['soc_pr_email','soc_pr_nif','soc_pr_stat','soc_pr_label','soc_pr_adresse']
+    let pr_d = ['pr_login','file_profil']
+
+    try {
+        //Récupération des informations du régisseur en question
+        const r = await require('../models/annonceur').getByIdProfil(req.user.pr_id)
+        let reg = {}
+        if(r.length > 0 ){
+            ann = r[0]
+            for(let i=0;i<soc_p_d.length;i++){
+                if(soc_p_d[i] == data.key){
+                    await require('../models/data').updateWhere('soc_profil',
+                    JSON.parse('{"'+soc_p_d[i]+'":"'+data.value+'"}'),{'soc_pr_id':ann.soc_pr_id})
+
+                    if(data.key == 'soc_pr_label'){
+                        await require('../models/data').updateWhere('annonceur',
+                            {'ann_label':data.value} ,{'ann_id':ann.ann_id})
+                    }
+                    return res.send({status:true})
+                }
+            }
+
+            //Pour le profil
+            for(let i=0;i<soc_p_d.length;i++){
+                if(pr_d[i] == data.key){
+                    await require('../models/data').updateWhere('profil',
+                    JSON.parse('{"'+pr_d[i]+'":"'+data.value+'"}'),{'pr_id':ann.pr_id})
+
+                    if(data.key == 'file_profil'){
+                        await require('../models/data').updateWhere('file',{type_file:'use'},{file_id:data.value})
+                    }
+                    return res.send({status:true})
+                }
+            }
+
+        }else{
+            return res.send({status:false,message:"Il est possible que ce compte n'existe plus"})
+        }
+        
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.'})
+    }
+})
+
+//suppression du notif de l'annonceur
+router.delete('/notifs/:id',async(req,res)=>{
+    let Notif = require('../models/notif')
+    if(req.user.pr_type != 'ann'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+
+    let id  = parseInt(req.params.id)
+    if(id.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en entrée."})
+    }
+
+    try {
+        await Notif.deleteByProfilAndId([req.user.pr_id,id])
+        return res.send({status:true})
+
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
 })
 

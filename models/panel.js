@@ -188,6 +188,40 @@ class Panneau{
             })
         })
     }
+
+    static getServListById(id_pan){
+        return new Promise((resolve,reject)=>{
+            let sql = "select ps.* from pan_service as ps "
+            sql+="left join tarif as t on t.service_id = ps.pan_serv_id "
+            sql+="left join panneau as pan on pan.cat_id = t.cat_id "
+            sql+="where pan.pan_id = ? "
+            connection.query(sql,id_pan,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getTarifByServ(id_serv){
+        return new Promise((resolve,reject)=>{
+            let sql = "select * from tarif where service_id = ? "
+            connection.query(sql,id_serv,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getAllVillePanneau(){
+        return new Promise((resolve,reject)=>{
+            let sql = "select distinct l.lieu_ville from panneau as p "
+            sql+="left join lieu as l on l.lieu_id = p.lieu_id"
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 }
 
 module.exports = Panneau

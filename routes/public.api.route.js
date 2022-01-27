@@ -1,5 +1,5 @@
 let router = require('express').Router()
-require('dotenv').config()
+
 const jwt = require("jsonwebtoken");
 const bcrypt = require('bcrypt')
 
@@ -7,6 +7,7 @@ const sharp = require("sharp")
 
 let fs = require('fs')
 
+require('dotenv').config()
 const config = process.env
 
 router.get('/test',(req,res)=>{
@@ -50,9 +51,6 @@ router.post('/auth',(req,res)=>{
                             pr_id:u.pr_id,
                             pr_login:u.pr_login,
                             pr_type:u.pr_type,
-                            pr_change_pass:u.pr_change_pass,
-                            pr_active:u.pr_active,
-                            pr_validate:u.pr_validate
                         }
                         const token = jwt.sign(u_save,config.TOKEN_KEY)
                         let options = {
@@ -242,6 +240,9 @@ router.post('/inscription',async (req,res)=>{
 
 async function insertNotificationIns(label_soc,id_pr,id_object,type){
     let Notif = require('../models/notif')
+
+    label_soc = label_soc.replace(/'/g, "\\'").replace(/"/g, "\\\"")
+
     let n = {
         notif_exp_pr_id:id_pr,
         notif_id_object:id_object,
@@ -249,9 +250,9 @@ async function insertNotificationIns(label_soc,id_pr,id_object,type){
         notif_motif:"inscription",
         notif_type:'a',
         notif_data:(type == 'ann')?'annonceur':'regisseur',
-        notif_desc:"<div>Une société nommée <nuxt-link class='bt text-sm mx-1' "+
-        "to='/admin/"+((type == 'ann')?'annonceur':'regisseur')+"/"+id_object+"'> <span v-html='\""+label_soc+"\"'></span> </nuxt-link> vient de s'inscrire en tant que  "
-        +((type == 'ann')?'Annonceur':'Régisseur')+".</div>"
+        notif_desc:`<div>Une société nommée <nuxt-link class='bt text-sm mx-1'
+        to='/admin/${((type == 'ann')?'annonceur':'regisseur')}/${id_object}'> <span v-html="'${label_soc}'"></span> </nuxt-link> vient de s'inscrire en tant que 
+        ${((type == 'ann')?'Annonceur':'Régisseur')}.</div>`
     }
     await Notif.set(n)
 }

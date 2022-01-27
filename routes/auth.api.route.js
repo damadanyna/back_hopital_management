@@ -68,13 +68,25 @@ router.get('/deconnect',(req,res)=>{
 //Détection de connexion
 router.get('/status',async (req,res)=>{
     let Notif = require('../models/notif')
+
+
     try {
+        const id_pr = await require('../models/profil').getById(req.user.pr_id)
+        let u = id_pr[0]
+        let pr = {
+            pr_id:u.pr_id,
+            pr_login:u.pr_login,
+            pr_type:u.pr_type,
+            pr_change_pass:u.pr_change_pass,
+            pr_active:u.pr_active,
+            pr_validate:u.pr_validate
+        }
         if(req.user.pr_type == 'a'){
             const t = await Notif.countNotifByAdmin()
-            return res.send({status:true,pr:req.user,nbNotif:t[0].nb})
+            return res.send({status:true,pr:pr,nbNotif:t[0].nb})
         }else{
             const t = await Notif.countNotifByDestProfil(req.user.pr_id)
-            return res.send({status:true,pr:req.user,nbNotif:t[0].nb})
+            return res.send({status:true,pr:pr,nbNotif:t[0].nb})
         }
     } catch (e) {
         console.log(e)

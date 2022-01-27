@@ -140,6 +140,60 @@ class Regisseur{
         })
     }
 
+    //GESTION DE TARIF
+
+    static insertServ(s){
+        return new Promise((resolve,reject)=>{
+            let sql = "insert into pan_service set ? "
+            connection.query(sql,[s],(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static insertTarif(t){
+        return new Promise((resolve,reject)=>{
+            let sql = "insert into tarif set ? "
+            connection.query(sql,t,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getNbPanelTarif(w){
+        return new Promise((resolve,reject)=>{
+            let sql = "select count(*) as nb from panneau as pan "
+            sql+="left join regisseur as reg on reg.reg_id = pan.reg_id "
+            sql+="where pan_surface = ? and pan.cat_id = ? and reg.pr_id = ? "
+            connection.query(sql,w,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getTarifListByProfil(id_pr){
+        return new Promise((resolve,reject)=>{
+            let sql = "select *, "
+                sql+="(select count(*) from panneau as pan left join regisseur as reg on reg.reg_id = pan.reg_id "
+                sql+="where pan_surface = t.tarif_pan_dimension and pan.cat_id = t.cat_id and reg.pr_id = t.tarif_pr_id ) as nbPanel, "
+
+                sql+="(select c.cat_label from category as c where c.cat_id = cat.parent_cat_id ) as parent_cat_label "
+
+            sql+="from tarif as t "
+            sql+="left join category as cat on cat.cat_id = t.cat_id "
+            sql+="left join pan_service as ps on ps.pan_serv_id = t.service_id "
+            sql+="where t.tarif_pr_id = ?"
+
+            connection.query(sql,id_pr,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
 }
 
 module.exports = Regisseur

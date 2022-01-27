@@ -36,6 +36,21 @@ class Category{
         })
     }
 
+    static getRegByIdProfil(id_pr){
+        return new Promise((resolve,reject)=>{
+            let sql = " select cat.cat_id, cat.cat_label, "
+            sql+="(select c.cat_label from category as c where c.cat_id = cat.parent_cat_id ) as parent_cat_label "
+            sql+="from category as cat "
+            sql+="left join panneau as pan on pan.cat_id = cat.cat_id "
+            sql+="left join regisseur as reg on reg.reg_id = pan.reg_id "
+            sql+="where reg.pr_id = ? "
+            connection.query(sql,id_pr,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static getParentCat(){
         return new Promise((resolve,reject)=>{
             let sql = "select * from category where parent_cat_id is null "

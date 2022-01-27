@@ -1,5 +1,6 @@
 let router = require('express').Router()
 const bcrypt = require('bcrypt');
+const connection = require('../config/db');
 const { route } = require('./p.panel.api.route');
 
 
@@ -288,26 +289,6 @@ router.get('/panel',async (req,res)=>{
     }
 })
 
-
-
-router.get('/:id',async (req,res)=>{
-    let Regisseur = require('../models/regisseur')
-
-    let id = parseInt(req.params.id)
-
-    if(id.toString() == 'NaN'){
-        return res.send({status:false,message:"Erreur de donnée en Entrée"})
-    }
-
-    try {
-        const r = await Regisseur.getById(id)
-        return res.send({status:true,regisseur:r[0]})
-    } catch (e) {
-        console.log(e)
-        return res.send({status:false,message:"Erreur dans la base de donnée"})
-    }
-})
-
 //Récupération d'un seul panneau pour la visulaisation côté régisseur
 //Récupération d'un panneau pour la viewPanel
 router.get('/panel/:id',async (req,res)=>{
@@ -480,6 +461,10 @@ router.put('/profil/det/:id',async (req,res)=>{
                 if(pr_d[i] == data.key){
                     await require('../models/data').updateWhere('profil',
                     JSON.parse('{"'+pr_d[i]+'":"'+data.value+'"}'),{'pr_id':reg.pr_id})
+
+                    if(data.key == 'file_profil'){
+                        await require('../models/data').updateWhere('file',{type_file:'use'},{file_id:data.value})
+                    }
                     return res.send({status:true})
                 }
             }
@@ -492,7 +477,102 @@ router.put('/profil/det/:id',async (req,res)=>{
         console.log(e)
         return res.send({status:false,message:'Erreur dans la base de donnée.'})
     }
-    return res.send({status:true})
+})
+
+router.post('/tarif',async (req,res)=>{
+    if(req.user.pr_type != 'reg'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+
+    let Regisseur = require('../models/regisseur')
+
+    let d = req.body
+
+    let list_p = ['tarif_min_month','tarif_service','tarif_type','tarif_prix','cat_id','tarif_pan_dimension']
+
+    for(let i=0;i<list_p.length;i++){
+        if(d[list_p[i]] === undefined){
+            return res.send({status:false,message:"Erreur de donnée en Entrée"})
+        }
+    }
+
+    //--------------
+    if(parseInt(d.tarif_min_month) < 1){
+        return res.send({status:false,message:"La durée minimale d'une location est de 1 mois"})
+    }
+
+    if(d.tarif_service == ''){
+        return res.send({status:false,message:"Vous devez specifier un type de Service"})
+    }
+    let prix = parseInt(d.tarif_prix)
+    if(prix.toString() == 'NaN' || prix < 0){
+        return res.send({status:false,message:"Erreur de donnée pour le prix"})
+    }
+
+    //insertion de service
+    try {
+        const serv = await Regisseur.insertServ({pan_serv_label:d.tarif_service})
+
+        let tarif = {
+            tarif_pr_id:req.user.pr_id,
+            service_id:serv.insertId,
+            cat_id:d.cat_id,
+            tarif_type:d.tarif_type,
+            tarif_min_month:d.tarif_min_month,
+            tarif_pan_dimension:d.tarif_pan_dimension,
+            tarif_prix:parseInt(d.tarif_prix)
+        }
+
+        const t = await Regisseur.insertTarif(tarif)
+
+        const nbp = await Regisseur.getNbPanelTarif([tarif.tarif_pan_dimension,tarif.cat_id,req.user.pr_i])
+
+        tarif.tarif_id = t.insertId
+        tarif.nbPanel = nbp[0].nb
+        return res.send({status:true,tarif:tarif})
+
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.'})
+    }
+})
+
+router.get('/tarif',async (req,res)=>{
+    if(req.user.pr_type != 'reg'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+
+    let Reg = require('../models/regisseur')
+
+    try {
+        const tarif = await Reg.getTarifListByProfil(req.user.pr_id)
+
+        return res.send({status:true,tarifs:tarif})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.'})
+    }
+})
+
+
+
+//Get d'un rrégisseur
+router.get('/:id',async (req,res)=>{
+    let Regisseur = require('../models/regisseur')
+
+    let id = parseInt(req.params.id)
+
+    if(id.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en Entrée"})
+    }
+
+    try {
+        const r = await Regisseur.getById(id)
+        return res.send({status:true,regisseur:r[0]})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
 })
 
 module.exports = router
