@@ -377,11 +377,11 @@ router.get('/profil',async (req,res)=>{
         return res.send({status:false,message:"Autorisation non suffisante"})
     }
 
-    let annonceur = []
+    let annonceur = {}
     try {
         const result = await Annonceur.getByIdProfil(req.user.pr_id)
         if(result.length > 0) {
-            annonceur.push(result[0])
+            annonceur = result[0]
         }else{
             console.err(req.user)
         }
