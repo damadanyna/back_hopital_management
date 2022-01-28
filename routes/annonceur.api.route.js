@@ -383,7 +383,7 @@ router.get('/profil',async (req,res)=>{
         if(result.length > 0) {
             annonceur = result[0]
         }else{
-            console.err(req.user)
+            console.error(req.user);
         }
         return res.send({status:true,annonceur:annonceur})
         // return res.send({st:"Mais merde"})
