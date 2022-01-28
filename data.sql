@@ -23,6 +23,7 @@ create table if not exists panneau (
     sous_ann_id int null,
     pan_add_by_reg int null default 0,
     pan_modifiable int null default 1,
+    pan_publoc_ref varchar(100) null,
     PRIMARY KEY (pan_id)
 )ENGINE=InnoDB;
 
@@ -249,4 +250,16 @@ create table  if not exists pan_service(
     pan_serv_label varchar(100) null,
     PRIMARY KEY (pan_serv_id)
 )ENGINE=InnoDB;
+
+create table if not exists comments(
+    com_id INT NOT NULL auto_increment,
+    com_date datetime null default NOW(),
+    com_pr_id int null,
+    com_pr_type varchar(50) null,
+    com_content text null,
+    com_obj_id int null,
+    com_media_id int null,
+    PRIMARY KEY (com_id)
+)ENGINE=InnoDB;
+
 

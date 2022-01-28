@@ -262,6 +262,10 @@ router.put('/panel/valid/:id',async (req,res)=>{
     }
 })
 
+router.get('/locations',async (req,res)=>{
+    
+})
+
 
 
 module.exports = router

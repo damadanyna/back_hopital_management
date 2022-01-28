@@ -222,6 +222,19 @@ class Panneau{
             })
         })
     }
+
+    static getAllLocations(){
+        return new Promise((resolve,reject)=>{
+            let sql = "select * from pan_location as pl "
+            sql+="left join panneau as pan on pan.pan_id = pl.pan_id "
+            sql+="left join annonceur as ann on ann.ann_id = pl.ann_id "
+            sql+="left join regisseur as reg "
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 }
 
 module.exports = Panneau

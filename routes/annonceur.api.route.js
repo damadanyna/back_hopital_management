@@ -376,10 +376,12 @@ router.get('/profil',async (req,res)=>{
     if(req.user.pr_type != 'ann'){
         return res.send({status:false,message:"Autorisation non suffisante"})
     }
+
+    let annonceur = []
     try {
         const result = await Annonceur.getByIdProfil(req.user.pr_id)
-        console.log(result)
-        return res.send({status:true,annonceur:result[0]})
+        if(result.length > 0) annonceur.push(result[0])
+        return res.send({status:true,annonceur:annonceur})
         // return res.send({st:"Mais merde"})
     } catch (e) {
         console.log(e)

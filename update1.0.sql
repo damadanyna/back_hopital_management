@@ -13,5 +13,9 @@ alter table panneau add pan_modifiable int null default 1;
 
 -- New 
 alter table panneau add pan_show_price int null default 0;
+-- New
 alter table pan_location add pan_loc_vu int null default 0;
 alter table pan_location add pan_loc_lu int null default 0;
+
+-- New 03
+alter table panneau add pan_publoc_ref varchar(100) null;

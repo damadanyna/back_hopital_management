@@ -258,7 +258,6 @@ async function insertNotificationIns(label_soc,id_pr,id_object,type){
 }
 
 
-
 //Pour migréer les images insérer des panneaux d'avant vers la structure des données actuelles
 router.get('/migrate/panel',async (req,res)=>{
     let Panel = require('../models/panel')

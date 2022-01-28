@@ -34,6 +34,7 @@ app.use(bodyParser.json())
 
 app.use((req,res,next)=>{
     req.io = io
+    req.logger = myLogger
     next()
 })
 
