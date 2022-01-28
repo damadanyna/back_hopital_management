@@ -380,7 +380,11 @@ router.get('/profil',async (req,res)=>{
     let annonceur = []
     try {
         const result = await Annonceur.getByIdProfil(req.user.pr_id)
-        if(result.length > 0) annonceur.push(result[0])
+        if(result.length > 0) {
+            annonceur.push(result[0])
+        }else{
+            console.err(req.user)
+        }
         return res.send({status:true,annonceur:annonceur})
         // return res.send({st:"Mais merde"})
     } catch (e) {
