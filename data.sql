@@ -24,6 +24,7 @@ create table if not exists panneau (
     pan_add_by_reg int null default 0,
     pan_modifiable int null default 1,
     pan_publoc_ref varchar(100) null,
+    pan_visible int null default 1,
     PRIMARY KEY (pan_id)
 )ENGINE=InnoDB;
 
@@ -41,6 +42,7 @@ create table if not exists pan_location(
     created_at datetime null default NOW(),
     pan_loc_vu int null default 0,
     pan_loc_lu int null default 0,
+    pan_loc_archive int null default 0,
     PRIMARY KEY (pan_loc_id)
 )ENGINE=InnoDB;
 
@@ -224,18 +226,31 @@ create table if not exists file(
 )ENGINE=InnoDB;
 
 
--- 
+-- TARIF
 create table if not exists tarif(
     tarif_id INT NOT NULL auto_increment,
     cat_id int null,
     tarif_pr_id int null,
-    service_id int null,
-    tarif_type varchar(50) null default 'HT', -- 1:HT, 2:TTC
     tarif_min_month int null,
-    tarif_pan_dimension varchar(100) null,
+    tarif_designation varchar(100) null,
     tarif_prix_format varchar(100) default 'Ar',
-    tarif_prix varchar(255) null,
+    tarif_service_list varchar(255),
     PRIMARY KEY (tarif_id)
+)ENGINE=InnoDB;
+
+create table  if not exists services(
+    serv_id INT NOT NULL auto_increment,
+    serv_label varchar(100) null,
+    serv_tarif_type varchar(50) null default 'HT', -- 1:HT, 2:TTC
+    serv_tarif_prix varchar(255) null,
+    PRIMARY KEY (serv_id)
+)ENGINE=InnoDB;
+
+create table if not exists tar_serv(
+    tar_serv_id INT NOT NULL auto_increment,
+    tarif_id int null,
+    serv_id int null,
+    PRIMARY KEY (tar_serv_id)
 )ENGINE=InnoDB;
 
 create table if not exists tarif_pan_loc(
@@ -245,11 +260,7 @@ create table if not exists tarif_pan_loc(
     PRIMARY KEY (tar_pan_loc_id)
 )ENGINE=InnoDB;
 
-create table  if not exists pan_service(
-    pan_serv_id INT NOT NULL auto_increment,
-    pan_serv_label varchar(100) null,
-    PRIMARY KEY (pan_serv_id)
-)ENGINE=InnoDB;
+
 
 create table if not exists comments(
     com_id INT NOT NULL auto_increment,

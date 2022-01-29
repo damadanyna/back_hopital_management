@@ -487,49 +487,28 @@ router.post('/tarif',async (req,res)=>{
     let Regisseur = require('../models/regisseur')
 
     let d = req.body
+    let tarif_l = ['tarif_designation','cat_id','tarif_min_month']
+    let service = ['serv_label','serv_tarif_prix','serv_tarif_type']
 
-    let list_p = ['tarif_min_month','tarif_service','tarif_type','tarif_prix','cat_id','tarif_pan_dimension']
-
-    for(let i=0;i<list_p.length;i++){
-        if(d[list_p[i]] === undefined){
-            return res.send({status:false,message:"Erreur de donnée en Entrée"})
-        }
-    }
-
-    //--------------
-    if(parseInt(d.tarif_min_month) < 1){
-        return res.send({status:false,message:"La durée minimale d'une location est de 1 mois"})
-    }
-
-    if(d.tarif_service == ''){
-        return res.send({status:false,message:"Vous devez specifier un type de Service"})
-    }
-    let prix = parseInt(d.tarif_prix)
-    if(prix.toString() == 'NaN' || prix < 0){
-        return res.send({status:false,message:"Erreur de donnée pour le prix"})
-    }
-
-    //insertion de service
+    let serv_id_list = []
+    let serv = {}
     try {
-        const serv = await Regisseur.insertServ({pan_serv_label:d.tarif_service})
 
-        let tarif = {
-            tarif_pr_id:req.user.pr_id,
-            service_id:serv.insertId,
-            cat_id:d.cat_id,
-            tarif_type:d.tarif_type,
-            tarif_min_month:d.tarif_min_month,
-            tarif_pan_dimension:d.tarif_pan_dimension,
-            tarif_prix:parseInt(d.tarif_prix)
+        for(let i=0;i<d.services.length;i++){
+            let tmp = d.services[i]
+            delete tmp.id
+            serv = await Regisseur.insertServ(tmp)
+            serv_id_list.push(serv.insertId)
         }
 
-        const t = await Regisseur.insertTarif(tarif)
+        let t = d.tarif
 
-        const nbp = await Regisseur.getNbPanelTarif([tarif.tarif_pan_dimension,tarif.cat_id,req.user.pr_i])
+        t.tarif_service_list = serv_id_list.join(',')
+        t.tarif_pr_id = req.user.pr_id
 
-        tarif.tarif_id = t.insertId
-        tarif.nbPanel = nbp[0].nb
-        return res.send({status:true,tarif:tarif})
+        const ta = await Regisseur.insertTarif(d.tarif)
+
+        return res.send({status:true})
 
     } catch (e) {
         console.log(e)
@@ -546,15 +525,40 @@ router.get('/tarif',async (req,res)=>{
 
     try {
         const tarif = await Reg.getTarifListByProfil(req.user.pr_id)
+        let tarifs = tarif
+        let size = tarifs.length
 
-        return res.send({status:true,tarifs:tarif})
+        for(let i=0;i<size;i++){
+            tarifs[i].services = await Reg.getListServIn(tarif[i].tarif_service_list.split(','))
+        }
+
+        return res.send({status:true,tarifs:tarifs})
     } catch (e) {
-        console.log(e)
+        console.error(e)
         return res.send({status:false,message:'Erreur dans la base de donnée.'})
     }
 })
 
 
+router.get('/reservation',async (req,res)=>{
+    let Regisseur = require('../models/regisseur')
+
+    if(req.user.pr_type != 'reg'){
+        return res.send({status:false,message:"Autorisation non suffisante"})
+    }
+
+
+    let pan_archive = (req.query.state == 'finish')?1:0
+    let validate = (req.query.state == 'finish' || req.query.state == 'progress')?1:0
+
+    try {
+        const r = await Regisseur.getReservationList([req.user.pr_id,pan_archive,validate])
+        return res.send({status:true,res:r})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.'})
+    }
+})
 
 //Get d'un rrégisseur
 router.get('/:id',async (req,res)=>{
@@ -570,7 +574,27 @@ router.get('/:id',async (req,res)=>{
         const r = await Regisseur.getById(id)
         return res.send({status:true,regisseur:r[0]})
     } catch (e) {
-        console.log(e)
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Mette un panneau visible ou invisible
+//Quand il est disponible
+
+router.put('/panel/:id/visible/:v',async (req,res)=>{
+    let id = parseInt(req.params.id),
+    v = parseInt(req.params.v)
+
+    if(id.toString() == 'NaN' || v.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en entrée"})
+    }
+
+    try {
+        await require('../models/panel').updateTo([ {pan_visible:v}, {pan_id:id} ])
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
 })

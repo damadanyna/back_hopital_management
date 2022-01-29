@@ -181,7 +181,22 @@ router.delete('/:id',async (req,res) =>{
         const p_res = await Panel.delete(id)
         return res.send({status:true})
     } catch (e) {
-        console.log(e)
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Mette un panneau en vérifié pa publoc
+router.put('/:id/verified',async (req,res)=>{
+    if(req.user.pr_type != "a"){
+        return res.send({status:false,message:"Autorisation non satisfaisante"})
+    }
+
+    try{
+        await require('../models/panel').updateTo( [{pan_verified_by_publoc:1}, {pan_id:req.params.id}] )
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
 })

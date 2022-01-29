@@ -38,7 +38,7 @@ class Category{
 
     static getRegByIdProfil(id_pr){
         return new Promise((resolve,reject)=>{
-            let sql = " select cat.cat_id, cat.cat_label, "
+            let sql = " select distinct cat.cat_id, cat.cat_label, "
             sql+="(select c.cat_label from category as c where c.cat_id = cat.parent_cat_id ) as parent_cat_label "
             sql+="from category as cat "
             sql+="left join panneau as pan on pan.cat_id = cat.cat_id "

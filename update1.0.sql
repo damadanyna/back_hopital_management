@@ -19,3 +19,5 @@ alter table pan_location add pan_loc_lu int null default 0;
 
 -- New 03
 alter table panneau add pan_publoc_ref varchar(100) null;
+alter table panneau add pan_visible int null default 1;
+alter table pan_location add pan_loc_archive int null default 0;
