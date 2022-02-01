@@ -122,6 +122,26 @@ class Notif{
         })
     }
 
+    static deleteCommentAdmin(){
+        return new Promise((resolve,reject)=>{
+            let sql = `delete from notification where notif_motif = 'comment-location' and notif_type ='a' `
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static deleteCommentAnn(id_pr){
+        return new Promise((resolve,reject)=>{
+            let sql = `delete from notification where notif_motif = 'comment-location' and notif_dest_pr_id = ? `
+            connection.query(sql,id_pr,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static setVuAll(id_dest){
         return new Promise((resolve,reject)=>{
             let sql = "update notification set notif_vu = 1 where notif_dest_pr_id = ? OR notif_type = 'a' "

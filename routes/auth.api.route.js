@@ -52,6 +52,9 @@ router.use('/notif',require('./notif.api.route'))
 //Pour tous les requêtes Admin
 router.use('/ad',require('./ad.api.route'))
 
+//Commentaire
+router.use('/com',require('./com.api.route'))
+
 //Deconnexion
 router.get('/deconnect',(req,res)=>{
     let options = {

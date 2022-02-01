@@ -139,7 +139,7 @@ class Annonceur{
 
     static getPanel(id){
         return new Promise((resolve,reject)=>{
-            let sql = "select pan.pan_ref,pan.pan_surface,pan.pan_state,l.*,cat.*,file.name_file from panneau as pan "
+            let sql = "select pan.pan_ref,pan.pan_surface,pan.pan_state,pan.pan_verified_by_publoc,l.*,cat.*,file.name_file from panneau as pan "
             sql+="left join lieu as l on pan.lieu_id = l.lieu_id "
             sql+="left join category as cat on pan.cat_id = cat.cat_id "
             sql+="left join file on pan.image_id = file.file_id "

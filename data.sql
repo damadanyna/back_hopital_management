@@ -43,6 +43,9 @@ create table if not exists pan_location(
     pan_loc_vu int null default 0,
     pan_loc_lu int null default 0,
     pan_loc_archive int null default 0,
+    pan_loc_tarif_id int null,
+    pan_loc_service_id int null,
+    pan_loc_month int null,
     PRIMARY KEY (pan_loc_id)
 )ENGINE=InnoDB;
 
@@ -267,7 +270,9 @@ create table if not exists comments(
     com_date datetime null default NOW(),
     com_pr_id int null,
     com_pr_type varchar(50) null,
+    com_pr_login varchar(50) null,
     com_content text null,
+    com_vu int null default 0,
     com_obj_id int null,
     com_media_id int null,
     PRIMARY KEY (com_id)

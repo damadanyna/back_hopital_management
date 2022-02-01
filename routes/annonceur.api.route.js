@@ -21,6 +21,38 @@ router.get('/count',(req,res)=> {
     })
 })
 
+router.get('/locations',async (req,res)=>{
+    let Panel = require('../models/panel')
+    let type = req.query.type
+
+    try {
+        if(type == 'all'){
+            const l = await Panel.getAllLocations()
+            return res.send({status:true,locations:l})
+        }else{
+            const l = await Panel.getAllLocationsBy(parseInt(type))
+            return res.send({status:true,locations:l})
+        }
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+router.get('/location/:id',async (req,res)=>{
+    let Panel = require('../models/panel')
+    let id = req.params.id
+
+    try {
+        const l = await Panel.getLocationById(id)
+        if(l.length == 0){
+            return res.send({status:false,message:"Il est possible que l'objet n'existe plus."})
+        }
+        return res.send({status:true,location:l[0]})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
 
 
 router.get('/',(req,res)=> {
@@ -186,7 +218,7 @@ router.put('/:id',async (req,res)=>{
 
         return res.send({status:true})
     } catch (e) {
-        console.log(e)
+        console.error(e)
         return res.send({status:false,message:"Erreur de base de donnée"})
     }
 
@@ -251,7 +283,7 @@ router.post('/reservation',async (req,res)=>{
     let Regisseur = require('../models/regisseur')
     
     let d = req.body
-    let t = ['date_debut','date_fin','pan_id']
+    let t = ['date_debut','pan_id','month','service_id']
 
     for(let i = 0;i<t.length;i++){
         if(d[t[i]] === undefined){
@@ -263,6 +295,11 @@ router.post('/reservation',async (req,res)=>{
         if(d[t[i]] == ''){
             return res.send({status:false,message:"Champs obligatoire vide."})
         }
+    }
+
+    let month = parseInt(d.month)
+    if(month.toString() == 'NaN' || month < 1){
+        return res.send({status:false,message:"Le nombre de mois doit être supérieur à 1 "})
     }
 
     //Construction de l'objet reservation
@@ -290,13 +327,21 @@ router.post('/reservation',async (req,res)=>{
             return res.send({status:false,message:"Le panneau n'a pas encore de Regisseur."})
         }
 
+        //Récupération d'info sur l'annonceur
+        const ann_res = await Annonceur.getByIdProfil(req.user.pr_id)
+        ann = ann_res[0]
+
         //Construction de l'objet reservation
         let now = new Date()
         let pan_loc = {
             pan_id:d.pan_id,
+            ann_id:ann.ann_id,
+            reg_id:reg.reg_id,
+            pan_loc_month:d.month,
             pr_id:req.user.pr_id,
             pan_loc_date_debut:d.date_debut,
-            pan_loc_date_fin:d.date_fin,
+            pan_loc_tarif_id:d.tarif_id,
+            pan_loc_service_id:d.service_id,
             pan_loc_reservation_date:new Date()
         }
 
@@ -304,11 +349,9 @@ router.post('/reservation',async (req,res)=>{
         const res_pl = await Annonceur.insertPanLocation(pan_loc)
 
         state = "update-panneau"
-        await Annonceur.setPanLocated(d.pan_id)
+        await require('../models/data').updateWhere('panneau',{pan_state:2},{pan_id:d.pan_id})
 
-        //Récupération d'info sur l'annonceur
-        const ann_res = await Annonceur.getByIdProfil(req.user.pr_id)
-        ann = ann_res[0]
+        
         //Insertion de la notification
         state = "insertion-notification"
         let notif = {
@@ -320,23 +363,27 @@ router.post('/reservation',async (req,res)=>{
 
         let Notif = require('../models/notif')
 
-        state = 'insertion-notif-regisseur'
-        notif.notif_desc = "<div>Un annonceur "+
-        " vient de faire une une demande de location pour votre panneau <nuxt-link class='bt text-sm mx-1' to='/panneau/"+panel.pan_id+"'>"+panel.pan_ref+"</nuxt-link> </div>"
-        notif.notif_dest_pr_id = reg.pr_id
+        if(panel.pan_gold){
+            state = 'insertion-notif-regisseur'
+            notif.notif_desc = "<div>Un annonceur "+
+            " vient de faire une une demande de location pour votre panneau <nuxt-link class='bt text-sm mx-1' to='/panneau/"+panel.pan_id+"'>"+panel.pan_ref+"</nuxt-link> </div>"
+            notif.notif_dest_pr_id = reg.pr_id
 
-        req.io.emit('new-notif-'+reg.pr_id,{
-            t:"Réservation d'un panneau",
-            c:"Un annonceur vient de faire une réservation pour un de de vos panneau",
-            e:false
-        })
-
-        await Notif.set(notif)
+            req.io.emit('new-notif-'+reg.pr_id,{
+                t:"Réservation d'un panneau",
+                c:"Un annonceur vient de faire une réservation pour un de de vos panneau",
+                e:false
+            })
+            await Notif.set(notif)
+        }
 
         state = 'insertion-notif-admin'
         notif.notif_dest_pr_id = null
-        notif.notif_desc = "<div>L'Annonceur <nuxt-link class='bt text-sm mx-1' to='/admin/annonceur/"+ann.ann_id+"'>"+ann.ann_label+"</nuxt-link> "+
-        " vient de faire une réservation du panneau <nuxt-link class='bt text-sm mx-1' to='/admin/panneau/"+panel.pan_id+"'>"+panel.pan_ref+"</nuxt-link> </div>"
+        notif.notif_desc = `<div>L'annonceur <nuxt-link to='/admin/annonceur/${ann.ann_id}' class='text-indigo-600'> <span> ${req.escape_html(ann.ann_label)} </span> 
+        </nuxt-link> est intéressé par le panneau  
+        <nuxt-link to='/admin/panneau/${panel.pan_id}' class='text-indigo-600'> <span> ${panel.pan_ref} </span> </nuxt-link>,
+         <button class='bt text-sm' to='/admin/location/${res_pl.insertId}' > Voir </button>
+         </div>`
         notif.notif_type = "a"
         await Notif.set(notif)
 
@@ -346,19 +393,6 @@ router.post('/reservation',async (req,res)=>{
             e:false
         })
 
-        //Insertion relation tarif et location
-        if(d.service_id != null && d.service_id != undefined){
-            const tarif = await require('../models/data').getTarifByService(d.service_id)
-
-            if(tarif.length > 0){
-                let t = tarif[0]
-                let tpan = {
-                    pan_loc_id:res_pl.insertId,
-                    tarif_id:t.tarif_id
-                }
-                await require('../models/data').insert('tarif_pan_loc',tpan)
-            }
-        }
         return res.send({status:true})
     } catch (e) {
         console.log("Erreur insertion reservation, state : "+state)

@@ -21,3 +21,11 @@ alter table pan_location add pan_loc_lu int null default 0;
 alter table panneau add pan_publoc_ref varchar(100) null;
 alter table panneau add pan_visible int null default 1;
 alter table pan_location add pan_loc_archive int null default 0;
+
+-- New 
+
+alter table pan_location add pan_loc_tarif_id int null;
+alter table pan_location add pan_loc_month int null;
+alter table pan_location add pan_loc_service_id int null;
+alter table comments add com_pr_login varchar(50) null;
+alter table comments add com_vu int null default 0;

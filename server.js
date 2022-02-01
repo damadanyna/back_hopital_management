@@ -32,8 +32,13 @@ app.use(bodyParser.urlencoded({extended:false}))
 app.use(bodyParser.json())
 
 
+let escape_html = (t)=>{
+    return t.replace(/'/g, "\\'").replace(/"/g, "\\\"")
+}
+
 app.use((req,res,next)=>{
     req.io = io
+    req.escape_html = escape_html
     req.logger = myLogger
     next()
 })

@@ -105,7 +105,7 @@ class Panneau{
 
     static getByIdP(id){
         return new Promise((resolve,reject)=>{
-            let sql = "select p.pan_ref,p.image_id,cat.cat_label, p.pan_description, p.pan_surface,file.name_file, "
+            let sql = "select p.pan_ref,p.image_id,cat.cat_label, p.pan_description,p.pan_verified_by_publoc, p.pan_surface,file.name_file, "
             sql+="(select cat_label from category as p_cat where p_cat.cat_id = cat.parent_cat_id limit 1 ) as parent_cat_label, "
             sql+="l.lieu_ville,l.lieu_region,l.lieu_quartier,l.lieu_pays,l.lieu_commune,l.lieu_lat,l.lieu_lng,l.lieu_label "
             sql+="from panneau as p "
@@ -189,12 +189,21 @@ class Panneau{
         })
     }
 
-    static getServListById(id_pan){
+    static getServListIn(ids_serv){
         return new Promise((resolve,reject)=>{
-            let sql = "select ps.* from pan_service as ps "
-            sql+="left join tarif as t on t.service_id = ps.pan_serv_id "
-            sql+="left join panneau as pan on pan.cat_id = t.cat_id "
-            sql+="where pan.pan_id = ? "
+            let sql = "select * from services where serv_id in (?) "
+            connection.query(sql,[ids_serv],(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getTarifByPan(id_pan){
+        return new Promise((resolve,reject)=>{
+            let sql = "select * from tarif as t "
+            sql+="left join panneau as p on p.cat_id = t.cat_id "
+            sql+="where p.pan_id = ? order by t.tarif_min_month desc "
             connection.query(sql,id_pan,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
@@ -225,11 +234,58 @@ class Panneau{
 
     static getAllLocations(){
         return new Promise((resolve,reject)=>{
-            let sql = "select * from pan_location as pl "
+            let sql = "select pl.pan_loc_id,pan.pan_ref,pan.pan_id, ann.ann_label,pl.pan_loc_reservation_date from pan_location as pl "
             sql+="left join panneau as pan on pan.pan_id = pl.pan_id "
             sql+="left join annonceur as ann on ann.ann_id = pl.ann_id "
-            sql+="left join regisseur as reg "
+            sql+="left join tarif as t on pl.pan_loc_tarif_id = t.tarif_id "
+            sql+="left join services as srv on pl.pan_loc_service_id = srv.serv_id "
             connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+    static getAllLocationsBy(v){
+        return new Promise((resolve,reject)=>{
+            let sql = "select pl.pan_loc_id,pan.pan_ref,pan.pan_id, ann.ann_label,pl.pan_loc_reservation_date from pan_location as pl "
+            sql+="left join panneau as pan on pan.pan_id = pl.pan_id "
+            sql+="left join annonceur as ann on ann.ann_id = pl.ann_id "
+            sql+="left join tarif as t on pl.pan_loc_tarif_id = t.tarif_id "
+            sql+="left join services as srv on pl.pan_loc_service_id = srv.serv_id "
+            sql+="where pl.pan_loc_validate = ? "
+            connection.query(sql,v,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getLocationById(id){
+        return new Promise((resolve,reject)=>{
+            let sql = "select pl.pan_loc_id,pl.pan_loc_month,pan.pan_ref,pan.pan_id,srv.*,t.*,cat.*,reg.reg_label, "
+            sql+="(select c.cat_label from category as c where c.cat_id = cat.parent_cat_id ) as parent_cat_label "
+            sql+="from pan_location as pl "
+            sql+="left join panneau as pan on pan.pan_id = pl.pan_id "
+            sql+="left join annonceur as ann on ann.ann_id = pl.ann_id "
+            sql+="left join tarif as t on pl.pan_loc_tarif_id = t.tarif_id "
+            sql+="left join file as f on pan.image_id = f.file_id ",
+            sql+="left join regisseur as reg on reg.reg_id = pan.reg_id ",
+            sql+="left join category as cat on pan.cat_id = cat.cat_id "
+            sql+="left join lieu as l on pan.lieu_id = l.lieu_id ",
+            sql+="left join services as srv on pl.pan_loc_service_id = srv.serv_id "
+            sql+="where pl.pan_loc_id = ? "
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getPanLocationById(id_pan_loc){
+        return new Promise((resolve,reject)=>{
+            let sql = "select * from pan_location where pan_loc_id = ? "
+
+            connection.query(sql,id_pan_loc,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })

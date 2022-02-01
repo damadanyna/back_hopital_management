@@ -554,6 +554,7 @@ router.get('/reservation',async (req,res)=>{
     try {
         const r = await Regisseur.getReservationList([req.user.pr_id,pan_archive,validate])
         return res.send({status:true,res:r})
+        
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:'Erreur dans la base de donnée.'})

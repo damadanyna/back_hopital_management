@@ -64,14 +64,32 @@ router.get('/:id_pan/serv',async (req,res)=>{
 
     let id  = parseInt(req.params.id_pan)
 
-    if(id.toString() == 'NaN'){
+    
+    if(req.query.month === undefined) return res.send({status:false,message:"Erreur de donnée en entrér"})
+    let month = parseInt(req.query.month)
+
+    if(id.toString() == 'NaN' || month.toString() == 'NaN'){
         return res.send({status:false,message:"Erreur de donnée en entrér"})
     }
 
+    let services = []
+    let tarif_id = null
     try {
-        const s = await Panel.getServListById(id)
+        const t = await Panel.getTarifByPan(id)
 
-        return res.send({status:true,services:s})
+        if(t.length > 0 ){
+
+            for (let i = 0; i < t.length; i++) {
+                let tmp = t[i]
+                if(month >= tmp.tarif_min_month){
+                    const s = await Panel.getServListIn(tmp.tarif_service_list.split(','))
+                    services = s
+                    tarif_id = tmp.tarif_id
+                    break;
+                }
+            }
+        }
+        return res.send({status:true,services:services,tarif_id:tarif_id})
     } catch (e) {
         console.log(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -92,6 +110,7 @@ router.get('/:id',async (req,res)=>{
         if(p_res.length == 0){
             return res.send({status:false,message:"Donnée pas trouvée"})
         }
+        
         return res.send({status:true,panel:p_res[0]})
     } catch (e) {
         console.log(e)

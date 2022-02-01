@@ -10,6 +10,39 @@ router.use((req, res, next) => {
     next();
 });
 
+router.get('/locations',async (req,res)=>{
+    let Panel = require('../models/panel')
+    let type = req.query.type
+
+    try {
+        if(type == 'all'){
+            const l = await Panel.getAllLocations()
+            return res.send({status:true,locations:l})
+        }else{
+            const l = await Panel.getAllLocationsBy(parseInt(type))
+            return res.send({status:true,locations:l})
+        }
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+router.get('/location/:id',async (req,res)=>{
+    let Panel = require('../models/panel')
+    let id = req.params.id
+
+    try {
+        const l = await Panel.getLocationById(id)
+        if(l.length == 0){
+            return res.send({status:false,message:"Il est possible que l'objet n'existe plus."})
+        }
+        return res.send({status:true,location:l[0]})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 router.delete('/notif/:id',async (req,res)=>{
     let Notif = require('../models/notif')
     try {
@@ -257,13 +290,9 @@ router.put('/panel/valid/:id',async (req,res)=>{
         }
         
     }catch(e){
-        console.log(e)
+        console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
-})
-
-router.get('/locations',async (req,res)=>{
-    
 })
 
 
