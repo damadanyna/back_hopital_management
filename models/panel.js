@@ -234,11 +234,12 @@ class Panneau{
 
     static getAllLocations(){
         return new Promise((resolve,reject)=>{
-            let sql = "select pl.pan_loc_id,pan.pan_ref,pan.pan_id, ann.ann_label,pl.pan_loc_reservation_date from pan_location as pl "
+            let sql = "select pl.pan_loc_id,pan.pan_ref,pan.pan_id,ann.ann_id, ann.ann_label,pl.pan_loc_reservation_date from pan_location as pl "
             sql+="left join panneau as pan on pan.pan_id = pl.pan_id "
             sql+="left join annonceur as ann on ann.ann_id = pl.ann_id "
             sql+="left join tarif as t on pl.pan_loc_tarif_id = t.tarif_id "
             sql+="left join services as srv on pl.pan_loc_service_id = srv.serv_id "
+            sql+="order by pl.pan_loc_id desc"
             connection.query(sql,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)

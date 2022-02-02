@@ -165,7 +165,22 @@ create table if not exists soc_profil (
     soc_pr_nif varchar(255) null,
     soc_pr_stat varchar(255) null,
     soc_pr_email varchar(255) null,
+    soc_sub int null default 0,
     PRIMARY KEY (soc_pr_id)
+)ENGINE=InnoDB;
+
+create table if not exists contacts (
+    contact_id INT NOT NULL AUTO_INCREMENT,
+    contact_type varchar(255) null,
+    contact_label varchar(255) null,
+    PRIMARY KEY (contact_id)
+)ENGINE=InnoDB;
+
+create table if not exists contact_profil (
+    ct_pr_id INT NOT NULL AUTO_INCREMENT,
+    contact_id int null,
+    soc_profil_id int null,
+    PRIMARY KEY (ct_pr_id)
 )ENGINE=InnoDB;
 
 

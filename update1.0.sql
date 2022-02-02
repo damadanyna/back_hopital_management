@@ -29,3 +29,6 @@ alter table pan_location add pan_loc_month int null;
 alter table pan_location add pan_loc_service_id int null;
 alter table comments add com_pr_login varchar(50) null;
 alter table comments add com_vu int null default 0;
+
+-- New 4
+alter table soc_profil add soc_sub int null default 0;
