@@ -231,6 +231,20 @@ class Panneau{
         })
     }
 
+    static getListByAnn(id_ann){
+        return new Promise((resolve,reject)=>{
+            let sql = "select panneau.*,l.*,f.name_file,f.name_min_file from panneau "
+            sql+="left join lieu as l on l.lieu_id = panneau.lieu_id "
+            sql+="left join file as f on f.file_id = panneau.image_id "
+            sql+="where ann_id = ?"
+            connection.query(sql,id_reg,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+
     static updateTo(tab){
         return new Promise((resolve,reject)=>{
             let sql = "update panneau set ? where ? "
