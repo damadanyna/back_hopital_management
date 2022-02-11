@@ -98,6 +98,17 @@ router.post('/location',async (req,res)=>{
     }
 })
 
+router.delete('/location/:id_obj',async (req,res)=>{
+    try {
+        await require('../models/comments').delById(req.query.id)
+        req.io.emit('del-com-'+req.params.id_obj,req.query.index)
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur de base de donnée"})
+    }
+})
+
 router.put('/vu/:id_obj/:type/all',async (req,res)=>{
     try {
         await require('../models/comments').setVuAllByProfilTypeAndObject([req.params.id_obj,req.params.type])

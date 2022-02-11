@@ -32,3 +32,4 @@ alter table comments add com_vu int null default 0;
 
 -- New 4
 alter table soc_profil add soc_sub int null default 0;
+alter table pan_location add pan_loc_desc text null;

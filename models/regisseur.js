@@ -2,10 +2,10 @@ let connection = require('../config/db')
 
 class Regisseur{
     static all(cb){
-        let sql = 'select pl.*,regisseur.*,soc_profil.soc_pr_email,soc_profil.soc_pr_adresse, (select count(*) from panneau where panneau.reg_id = regisseur.reg_id) as nb_panel '
+        let sql = 'select regisseur.*,soc_profil.soc_pr_email,soc_profil.soc_pr_adresse,soc_profil.soc_sub, '
+        sql+='(select count(*) from panneau where panneau.reg_id = regisseur.reg_id) as nb_panel '
         sql+='from regisseur '
         sql+="left join soc_profil on regisseur.soc_pr_id = soc_profil.soc_pr_id "
-        sql+="left join pan_location as pl on pl.reg_id = regisseur.reg_id "
         connection.query(sql,(err,res)=>{
             cb(err,res)
         })

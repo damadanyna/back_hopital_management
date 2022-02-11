@@ -40,5 +40,15 @@ class Comment{
             })
         })
     }
+
+    static delById(id_com){
+        return new Promise((resolve,reject)=>{
+            let sql = "delete from comments where com_id = ? "
+            connection.query(sql,id_com,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 }
 module.exports = Comment

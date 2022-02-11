@@ -150,7 +150,7 @@ router.get('/:id',async (req,res)=>{
         }
         return res.send({status:true,panel:p_res[0],image_list:image_list})
     } catch (e) {
-        console.log(e)
+        console.error(e)
         return res.send({status:false,message:'Erreur dans la base de donnée'})
     }
 
@@ -167,11 +167,16 @@ router.get('/limit/:nb/:page',async (req,res)=>{
         return res.send({status:false,message:"Erreur de donnée en entrée"})
     }
 
-    const r = await Panel.getAllLimit(limit,page).catch(e =>{
-        return res.send({status:false,message:"Erreur de la base de donnée"})
-    }).then(e =>{
+    console.log('Putain  de merde !!')
+
+
+   try {
+        const r = await Panel.getAllLimit(limit,page)
         return res.send({status:true,panels:e})
-    })
+   } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée'})
+   }
 })
 
 //Suppression d'un panneau

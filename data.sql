@@ -46,6 +46,7 @@ create table if not exists pan_location(
     pan_loc_tarif_id int null,
     pan_loc_service_id int null,
     pan_loc_month int null,
+    pan_loc_desc text null,
     PRIMARY KEY (pan_loc_id)
 )ENGINE=InnoDB;
 

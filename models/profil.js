@@ -86,6 +86,16 @@ class Profil{
         })
     }
 
+    static getByIdU(id){
+        return new Promise((resolve,reject)=> {
+            let sql = "select * from profil where pr_id = ? "
+            connection.query(sql,id,(err,res)=>{
+                if(err)return reject(err)
+                resolve(res)
+            })  
+        })
+    }
+
     static checkProfilByLogin(login){
         return new Promise((resolve,reject)=> {
             let sql = "select * from profil where pr_login = ? "

@@ -11,6 +11,46 @@ class Category{
             cb(err,res)
         })
     }
+    
+
+    static getAllParents(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select *, 
+            (select count(*) from category where category.parent_cat_id = c.cat_id ) as nb_child 
+            from category as c where parent_cat_id is null `
+
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+    static getAllChilds(id){
+        return new Promise((resolve,reject)=>{
+            let sql = `select * from category as c where parent_cat_id = ? `
+
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    //Récupération des stats
+    static getStatsPerPanel(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select c.cat_id,c.cat_label,
+            (select count(*) from panneau as p left join category as cat on p.cat_id = cat.cat_id where p.cat_id = c.cat_id or cat.parent_cat_id = p.cat_id ) as nb_panel 
+            from category c 
+            where parent_cat_id is null `
+
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+
+        })
+    }
 
     static count(cb){
         connection.query('select count(*) as nb from category',(err,res)=>{

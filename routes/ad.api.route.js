@@ -43,6 +43,59 @@ router.get('/location/:id',async (req,res)=>{
     }
 })
 
+//Validation d'une location 
+router.put('/location/validate/:id', async (req,res)=>{
+    let data = require('../models/data')
+    let Panel = require('../models/panel')
+    let id = req.params.id
+
+    try {
+        const l = await Panel.getLocationById(id)
+        if(l.length == 0){
+            return res.send({status:false,message:"Il est possible que l'objet n'existe plus."})
+        }
+
+        let pl = l[0]
+        let pl_date_fin = new Date(pl.pan_loc_date_debut)
+        pl_date_fin = new Date(pl_date_fin.setMonth(pl_date_fin.getMonth+ parseInt(pl.pan_loc_month) ))
+
+        //Update de pan location
+        await data.updateWhere('pan_location',{
+            pan_loc_validate:1,
+            pan_loc_date_validation:new Date(),
+            pan_loc_date_fin:pl_date_fin
+        },{ pan_loc_id:pl.pan_loc_id })
+
+        //Update du panneau
+
+        await data.updateWhere('panneau',{
+            ann_id:pl.ann_id,
+            pan_state:3
+        },{pan_id:pl.pan_id})
+
+        //Envoi de notification à la propriétaire 
+        let n = {
+            notif_desc:`<div> Votre réservation sur le panneau <nuxt-link class="text-indigo-600" to="/a/panneau/${pl.pan_id}" > ${pl.pan_ref} </nuxt-link> 
+            a été valider. Vous pouvez voir les détails  <nuxt-link class="text-indigo-600" to="/a/reservation/${pl.pan_loc_id}"> ici</nuxt-link>. </div>`,
+            notif_dest_pr_id:pl.ann_pr_id,
+            notif_motif:'validation-location',
+            notif_title:"Validation de location d'un panneau "
+        }
+
+        //Inertion de la notification
+        await require('../models/notif').set(n)
+        req.io.emit(`new-notif-${pl.ann_pr_id}`,{
+            t:'Validation de location',
+            c:"L'Admin a validé une de votre réservation",
+            e:false
+        })
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 router.delete('/notif/:id',async (req,res)=>{
     let Notif = require('../models/notif')
     try {

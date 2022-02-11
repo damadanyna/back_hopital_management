@@ -33,6 +33,67 @@ class Panneau{
         })
     }
 
+    static getAllLimitLikeLieu(limit,page,s){
+        return new Promise((resolve,reject)=>{
+            let sql = "select p.pan_id,p.pan_ref,l.lieu_ville,l.lieu_label, l.lieu_quartier,file.name_file,file.name_min_file from panneau as p "
+            sql+="left join file on p.image_id = file.file_id "
+            sql+="left join lieu as l on p.lieu_id = l.lieu_id "
+            sql+="where pan_validation = 1 and pan_state in (1,2) and (lieu_ville like ? or lieu_region like ? or lieu_quartier like ? or lieu_label like ? ) "
+            sql+="limit ? "
+
+            connection.query(sql,[s,s,s,s,limit],(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getStatsVillePerPanel(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select distinct l.lieu_ville,
+            (select count(*) from panneau as p join lieu on lieu.lieu_id = p.lieu_id where lieu.lieu_ville = l.lieu_ville and p.pan_state in (1,2) ) as nb_panel 
+            from lieu as l`
+
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getAllLimitLikeLieuAndCat(limit,page,s,cat_child){
+        return new Promise((resolve,reject)=>{
+            let sql = "select p.pan_id,p.pan_ref,l.lieu_ville,l.lieu_label, l.lieu_quartier,file.name_file,file.name_min_file from panneau as p "
+            sql+="left join file on p.image_id = file.file_id "
+            sql+="left join lieu as l on p.lieu_id = l.lieu_id "
+            sql+="where pan_validation = 1 and pan_state in (1,2) and (lieu_ville like ? or lieu_region like ? or lieu_quartier like ? or lieu_label like ? ) "
+            sql+="and p.cat_id = ? "
+            sql+="limit ? "
+
+            connection.query(sql,[s,s,s,s,cat_child,limit],(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getAllLimitLikeLieuAndParentCat(limit,page,s,cat_parent){
+        return new Promise((resolve,reject)=>{
+            let sql = "select p.pan_id,p.pan_ref,l.lieu_ville,l.lieu_label, l.lieu_quartier,file.name_file,file.name_min_file from panneau as p "
+            sql+="left join file on p.image_id = file.file_id "
+            sql+="left join lieu as l on p.lieu_id = l.lieu_id "
+            sql+="left join category as c on p.cat_id = c.cat_id "
+            sql+="where pan_validation = 1 and pan_state in (1,2) and (lieu_ville like ? or lieu_region like ? or lieu_quartier like ? or lieu_label like ? ) "
+            sql+="and ( c.parent_cat_id = ? or p.cat_id = ? ) "
+            sql+="limit ? "
+
+            connection.query(sql,[s,s,s,s,cat_parent,cat_parent,limit],(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static add(p){
         return new Promise((resolve,reject)=>{
             connection.query('insert into panneau set ?',p,(err,res)=>{
@@ -234,7 +295,9 @@ class Panneau{
 
     static getAllLocations(){
         return new Promise((resolve,reject)=>{
-            let sql = "select pl.pan_loc_id,pan.pan_ref,pan.pan_id,ann.ann_id, ann.ann_label,pl.pan_loc_reservation_date from pan_location as pl "
+            let sql = `select pl.pan_loc_id,pan.pan_ref,pan.pan_id, ann.ann_label,pl.pan_loc_reservation_date,
+            ann.ann_id, pl.pan_loc_validate,pl.pan_loc_archive `
+            sql+="from pan_location as pl "
             sql+="left join panneau as pan on pan.pan_id = pl.pan_id "
             sql+="left join annonceur as ann on ann.ann_id = pl.ann_id "
             sql+="left join tarif as t on pl.pan_loc_tarif_id = t.tarif_id "
@@ -248,7 +311,9 @@ class Panneau{
     }
     static getAllLocationsBy(v){
         return new Promise((resolve,reject)=>{
-            let sql = "select pl.pan_loc_id,pan.pan_ref,pan.pan_id, ann.ann_label,pl.pan_loc_reservation_date from pan_location as pl "
+            let sql = `select pl.pan_loc_id,pan.pan_ref,pan.pan_id, ann.ann_label,pl.pan_loc_reservation_date,
+            pl.pan_loc_validate,pl.pan_loc_archive `
+            sql+="from pan_location as pl "
             sql+="left join panneau as pan on pan.pan_id = pl.pan_id "
             sql+="left join annonceur as ann on ann.ann_id = pl.ann_id "
             sql+="left join tarif as t on pl.pan_loc_tarif_id = t.tarif_id "
@@ -263,14 +328,18 @@ class Panneau{
 
     static getLocationById(id){
         return new Promise((resolve,reject)=>{
-            let sql = "select pl.pan_loc_id,pl.pan_loc_month,pan.pan_ref,pan.pan_id,srv.*,t.*,cat.*,reg.reg_label, "
+            let sql = `select pl.pan_loc_id,pl.pan_loc_month,pan.pan_ref,pan.pan_id,srv.*,t.*,cat.*,reg.reg_label,
+            ann.ann_id, reg.reg_id, pr_a.pr_id as ann_pr_id, pr_r.pr_id as reg_pr_id, 
+            pl.pan_loc_validate, pl.pan_loc_date_debut, pl.pan_loc_date_fin, pl.pan_loc_date_validation, `
             sql+="(select c.cat_label from category as c where c.cat_id = cat.parent_cat_id ) as parent_cat_label "
             sql+="from pan_location as pl "
             sql+="left join panneau as pan on pan.pan_id = pl.pan_id "
             sql+="left join annonceur as ann on ann.ann_id = pl.ann_id "
+            sql+="left join profil as pr_a on ann.pr_id = pr_a.pr_id "
             sql+="left join tarif as t on pl.pan_loc_tarif_id = t.tarif_id "
             sql+="left join file as f on pan.image_id = f.file_id ",
-            sql+="left join regisseur as reg on reg.reg_id = pan.reg_id ",
+            sql+="left join regisseur as reg on reg.reg_id = pan.reg_id "
+            sql+="left join profil as pr_r on reg.pr_id = pr_r.pr_id "
             sql+="left join category as cat on pan.cat_id = cat.cat_id "
             sql+="left join lieu as l on pan.lieu_id = l.lieu_id ",
             sql+="left join services as srv on pl.pan_loc_service_id = srv.serv_id "

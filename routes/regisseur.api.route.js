@@ -14,6 +14,7 @@ router.get('/count',(req,res)=> {
 
     Regisseur.count((err,result)=>{
         if(err){
+            console.log(err)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }else{
             return res.send({status:true,nb:result[0].nb})
@@ -21,14 +22,12 @@ router.get('/count',(req,res)=> {
     })
 })
 
-
-
-
 router.get('/',(req,res)=> {
     let Regisseur = require('../models/regisseur')
 
     Regisseur.all((err,result)=>{
         if(err){
+            console.log(err)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }else{
             return res.send({status:true,regisseurs:result})
@@ -475,6 +474,49 @@ router.put('/profil/det/:id',async (req,res)=>{
         
     } catch (e) {
         console.log(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.'})
+    }
+})
+
+//Changement de mot de passe pour un annonceur
+router.put('/profil/pass',async (req,res)=>{
+    let {new_pass,old_pass} = req.body.data
+
+    if(new_pass.trim() == ''){
+        return res.send({status:false,message:"Champ nouveau mot de passe vide"})
+    }
+
+    //Récupération des infos profil de l'annonceur
+    try {
+        const p = await require('../models/profil').getByIdU(req.user.pr_id)
+        if(p.length > 0){
+            let pr = p[0]
+            const is_true = await new Promise((resolve,reject)=>{
+                bcrypt.compare(old_pass, pr.pr_pass, function(err, result) {
+                    if(err) return reject(err)
+                    resolve(result)
+                });
+            })
+
+            const pass = await new Promise((resolve,reject)=>{
+                bcrypt.hash(new_pass, 10, function(err, hash) {
+                    if(err) return reject(err)
+                    resolve(hash)
+                });
+            })
+            
+            if(is_true){
+                await require('../models/data').updateWhere('profil',{pr_pass:pass},{pr_id:req.user.pr_id})
+                return res.send({status:true})
+            }else{
+                return res.send({status:false,message:"Le mot de passe est incorrect."})
+            }
+
+        } else{
+            return res.send({status:false, message:"Erreur pendant la récupération de vos informations."})
+        }
+    } catch (e) {
+        console.error(e)
         return res.send({status:false,message:'Erreur dans la base de donnée.'})
     }
 })
