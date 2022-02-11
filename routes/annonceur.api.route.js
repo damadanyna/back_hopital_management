@@ -245,11 +245,11 @@ router.get('/p/panel',async (req,res)=>{
     }
 
     try {
-        let ann = await Annonceur.getByIdProfil(req.user.pr_id)
+        const ann = await Annonceur.getByIdProfil(req.user.pr_id)
         const r = await require('../models/panel').getListByAnn(ann[0].ann_id)
         return res.send({status:true,panels:r})
     } catch (e) {
-        console.log(e)
+        console.error(e)
         return res.send({status:false,message:"Erreur pendant l'Affichage de cette page"})
     }
 })

@@ -237,7 +237,7 @@ class Panneau{
             sql+="left join lieu as l on l.lieu_id = panneau.lieu_id "
             sql+="left join file as f on f.file_id = panneau.image_id "
             sql+="where ann_id = ?"
-            connection.query(sql,id_reg,(err,res)=>{
+            connection.query(sql,id_ann,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })
