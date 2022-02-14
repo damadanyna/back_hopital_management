@@ -40,9 +40,11 @@ class Category{
     static getStatsPerPanel(){
         return new Promise((resolve,reject)=>{
             let sql = `select c.cat_id,c.cat_label,
-            (select count(*) from panneau as p left join category as cat on p.cat_id = cat.cat_id where p.cat_id = c.cat_id or cat.parent_cat_id = p.cat_id ) as nb_panel 
-            from category c 
-            where parent_cat_id is null `
+            (select count(*) from panneau as p where c.cat_id = p.cat_id and p.pan_state in (1,2)) as nb_panel_parent ,
+            (select count(*) from panneau as p left join category as cat on cat.cat_id = p.cat_id where cat.parent_cat_id = c.cat_id and p.pan_state in (1,2)  ) as nb_panel_child
+            from category c
+            where c.parent_cat_id is null 
+            `
 
             connection.query(sql,(err,res)=>{
                 if(err) return reject(err)
