@@ -55,7 +55,7 @@ router.get('/location/:id',async (req,res)=>{
 })
 
 
-router.get('/',(req,res)=> {
+router.get('/',async (req,res)=> {
     let Annonceur = require('../models/annonceur')
 
     try {
