@@ -19,7 +19,6 @@ class Annonceur{
             sql+="left join pan_location as pl on pl.ann_id = annonceur.ann_id "
             connection.query(sql,(err,res)=>{
                 if(err) return reject(err)
-
                 resolve(res)
             })
         })
