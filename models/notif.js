@@ -142,6 +142,16 @@ class Notif{
         })
     }
 
+    static deleteAllbyType(type){
+        return new Promise((resolve,reject)=>{
+            let sql = `delete from notification where notif_type = ? `
+            connection.query(sql,type,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static setVuAll(id_dest){
         return new Promise((resolve,reject)=>{
             let sql = "update notification set notif_vu = 1 where notif_dest_pr_id = ? OR notif_type = 'a' "

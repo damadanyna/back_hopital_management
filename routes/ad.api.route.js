@@ -110,6 +110,18 @@ router.put('/location/validate/:id', async (req,res)=>{
     }
 })
 
+//Suppression de toutes les notifications
+router.delete('/notif/all',async (req,res)=>{
+    let Notif = require('../models/notif')
+    try {
+        const n = await Notif.deleteAllbyType('a')
+        return res.send({status:true})
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 router.delete('/notif/:id',async (req,res)=>{
     let Notif = require('../models/notif')
     try {
