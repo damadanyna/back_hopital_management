@@ -10,6 +10,20 @@ router.use((req, res, next) => {
     next();
 });
 
+//changement de status Commercial d'un annonceur
+
+router.put('/ann/status_com/:id/:status',async(req,res)=>{
+    try {
+        const d = await require('../models/data').updateWhere('annonceur',{
+            ann_is_agence_com:(parseInt(req.params.status))?0:1
+        },{ann_id:req.params.id})
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 router.get('/locations',async (req,res)=>{
     let Panel = require('../models/panel')
     let type = req.query.type
