@@ -13,7 +13,7 @@ class Annonceur{
 
     static getAll(){
         return new Promise((resolve,reject)=>{
-            let sql = 'select distinct annonceur.*,pl.*,soc_profil.soc_pr_email,soc_profil.soc_pr_adresse, (select count(*) from panneau where panneau.ann_id = annonceur.ann_id) as nb_panel '
+            let sql = 'select annonceur.*,soc_profil.soc_pr_email,soc_profil.soc_pr_adresse, (select count(*) from panneau where panneau.ann_id = annonceur.ann_id) as nb_panel '
             sql+='from annonceur '
             sql+="left join soc_profil on annonceur.soc_pr_id = soc_profil.soc_pr_id "
             connection.query(sql,(err,res)=>{
