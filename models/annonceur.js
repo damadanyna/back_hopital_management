@@ -16,7 +16,6 @@ class Annonceur{
             let sql = 'select distinct annonceur.*,pl.*,soc_profil.soc_pr_email,soc_profil.soc_pr_adresse, (select count(*) from panneau where panneau.ann_id = annonceur.ann_id) as nb_panel '
             sql+='from annonceur '
             sql+="left join soc_profil on annonceur.soc_pr_id = soc_profil.soc_pr_id "
-            sql+="left join pan_location as pl on pl.ann_id = annonceur.ann_id "
             connection.query(sql,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
