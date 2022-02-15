@@ -58,13 +58,12 @@ router.get('/location/:id',async (req,res)=>{
 router.get('/',(req,res)=> {
     let Annonceur = require('../models/annonceur')
 
-    Annonceur.all((err,result)=>{
-        if(err){
-            return res.send({status:false,message:"Erreur dans la base de donnée"})
-        }else{
-            return res.send({status:true,annonceurs:result})
-        }
-    })
+    try {
+        
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
 })
 
 router.post('/',async (req,res)=>{
