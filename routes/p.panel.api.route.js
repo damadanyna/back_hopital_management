@@ -8,7 +8,6 @@ router.use((req, res, next) => {
     next();
 });
 
-
 //Récupération des stats pour l'accueil
 router.get('/stats/acc',async (req,res)=>{
     try {

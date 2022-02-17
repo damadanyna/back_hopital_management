@@ -366,6 +366,19 @@ class Panneau{
         })
     }
 
+    static getPanelPWhere(where){
+        return new Promise((resolve,reject)=>{
+            let sql = `select p.pan_id,p.pan_ref,l.lieu_label from panneau as p 
+            left join lieu as l on l.lieu_id = p.lieu_id 
+            where ? `
+            connection.query(sql,[where],(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+
+            })
+        })
+    }
+
     static getPanLocationById(id_pan_loc){
         return new Promise((resolve,reject)=>{
             let sql = "select * from pan_location where pan_loc_id = ? "

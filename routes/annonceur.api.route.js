@@ -20,6 +20,44 @@ router.get('/count',(req,res)=> {
     })
 })
 
+//Récupération des annonceurs sauf l'annonceur actuel
+router.get('/other',async (req,res)=>{
+    if(req.user.pr_type != 'ann') return res.send({status:false,message:"Erreur d'autorisation"})
+    let s = (req.query.search === undefined)?'':req.query.search
+    s = (s == '')?'':s+'%'
+    try {
+        const ann = await require('../models/annonceur').getByIdProfil(req.user.pr_id)
+        const al = await require('../models/annonceur').getListLikeWhereNot(s,[ann[0].ann_id])
+
+        return res.send({status:true,list:al})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Rcupération des statistiques pour l'annonceur
+router.get('/sous-ann/stats',async (req,res)=>{
+    try {
+        const ann = await require('../models/annonceur').getByIdProfil(req.user.pr_id)
+        const pa = await require('../models/annonceur').getListPanSousAnnById(ann[0].ann_id)
+        return res.send({status:true,list:pa})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+//Récupérations si l'annonceur est une agence de com ou pas 
+router.get('/socprofil/all',async (req,res)=>{
+    try {
+        const a = await require('../models/annonceur').getSocByIdProfil(req.user.pr_id)
+        return res.send({status:true,a:a[0]})
+    }catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 router.get('/locations',async (req,res)=>{
     let Panel = require('../models/panel')
     let type = req.query.type

@@ -50,6 +50,18 @@ create table if not exists pan_location(
     PRIMARY KEY (pan_loc_id)
 )ENGINE=InnoDB;
 
+create table if not exists sous_ann_location(
+    saloc_id int not null auto_increment,
+    saloc_ann_id int null,
+    saloc_sous_ann_id int null,
+    saloc_pan_id int null,
+    saloc_month int null,
+    saloc_date_debut varchar(100) null,
+    saloc_date_fin varchar(100) null,
+    saloc_date_validation datetime null,
+    PRIMARY KEY (saloc_id)
+)ENGINE=InnoDB;
+
 create table if not exists reg_ann(
     reg_ann_id int not null auto_increment,
     ann_id int null,

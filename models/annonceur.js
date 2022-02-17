@@ -117,6 +117,51 @@ class Annonceur{
             })
         })
     }
+    static getSocByIdProfil(id){
+        return new Promise((resolve,reject)=>{
+            let sql = "select *, (select count(*) from panneau as pan where pan.ann_id = ann.ann_id ) as nb_panel,'' as pr_pass "
+            sql+='from annonceur as ann '
+            sql+="left join soc_profil as sp on sp.soc_pr_id = ann.soc_pr_id "
+            sql+="left join profil as p on p.pr_id = ann.pr_id "
+            sql+="where p.pr_id = ?"
+
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    //Récupérer la liste des panneaux alloués
+    static getListPanSousAnnById(id_ann){
+        return new Promise((resolve,reject)=>{
+            let sql = `select sal.saloc_id,sal.saloc_date_debut,sal.saloc_date_fin,sal.saloc_date_validation,
+            sous_ann.ann_id as sous_ann_id,sous_ann.ann_label as sous_ann_label,
+            ann.ann_id, ann.ann_label 
+            from sous_ann_location sal 
+            left join panneau as p on  sal.saloc_pan_id = p.pan_id 
+            left join annonceur as ann ann.ann_id = sal.saloc_ann_id 
+            left join annonceur as sous_ann sous_ann.ann_id = sal.saloc_sous_ann_id 
+            where saloc_ann_id = ? `
+
+            connection.query(sql,id_ann,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    //Récupérer la liste des annonceurs sauf un
+    static getListLikeWhereNot(l,w){
+        return new Promise((resolve,reject)=>{
+            let sql = `select a.ann_label,a.ann_id from annonceur as a
+            where ann_label like ? and ann_id not in ( ? ) `
+            connection.query(sql,[l,w],(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 
 
     static getListReservation(ann_id){

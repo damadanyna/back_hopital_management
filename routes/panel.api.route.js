@@ -8,6 +8,27 @@ router.use((req, res, next) => {
     next();
 });
 
+//Récupération de liste de panneau pour la boîte de dialogue
+router.get('/list-by',async (req,res)=>{
+    if(req.user.pr_id === undefined) return res.send({status:false,message:"Erreur d'autorisation"})
+    try {
+        let t = {}
+        if(req.user.pr_type == 'ann'){
+            const a = await require('../models/annonceur').getByIdProfil(req.user.pr_id)
+            t.ann_id = a[0].ann_id
+        }else if(req.user.pr_type == 'reg'){
+            const r = await require('../models/regisseur').getByIdProfil(req.user.pr_id)
+            t.reg_id = r[0].reg_id
+        }
+        const p = await require('../models/panel').getPanelPWhere(t)
+
+        return res.send({status:true,list:p})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //Get normal
 router.get('/',async (req,res)=>{
     let Panel = require('./../models/panel')

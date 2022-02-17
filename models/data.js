@@ -32,6 +32,16 @@ class Data{
         })
     }
 
+    static getWhere(table,where){
+        return new Promise((resolve,reject)=>{
+            let sql = "select * from "+table+" where ? "
+            connection.query(sql,[where],(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     //Gestion des services et location/réservation
 
     static getTarifByService(id_serv){
