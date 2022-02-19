@@ -20,7 +20,7 @@ router.get('/list-by',async (req,res)=>{
             const r = await require('../models/regisseur').getByIdProfil(req.user.pr_id)
             t.reg_id = r[0].reg_id
         }
-        const p = await require('../models/panel').getPanelPWhere(t)
+        const p = await require('../models/panel').getPanelPWhereInNotSousAnnLocation(t)
 
         return res.send({status:true,list:p})
     } catch (e) {
@@ -100,7 +100,7 @@ router.post('/',async (req,res)=>{
 router.put('/:id',async (req,res)=>{
     let Panel = require('./../models/panel')
     let d = req.body
-    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_num_quittance','pan_description']
+    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_num_quittance','pan_description','pan_lumineux']
     let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_commune','lieu_region','lieu_label','lieu_lat','lieu_lng']
 
     let p = {}

@@ -178,6 +178,12 @@ create table if not exists soc_profil (
     soc_pr_nif varchar(255) null,
     soc_pr_stat varchar(255) null,
     soc_pr_email varchar(255) null,
+    
+    soc_pr_facebook varchar(255) null,
+    soc_pr_tel varchar(255) null,
+    soc_pr_linkedin varchar(255) null,
+    soc_pr_whatsapp varchar(255) null,
+    
     soc_sub int null default 0,
     PRIMARY KEY (soc_pr_id)
 )ENGINE=InnoDB;

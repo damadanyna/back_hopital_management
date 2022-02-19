@@ -33,3 +33,12 @@ alter table comments add com_vu int null default 0;
 -- New 4
 alter table soc_profil add soc_sub int null default 0;
 alter table pan_location add pan_loc_desc text null;
+
+-- New 5
+alter table sous_ann_location add saloc_validate int null default 0;
+alter table sous_ann_location add saloc_add datetime null default NOW();
+
+alter table soc_profil add soc_pr_facebook varchar(255) null;
+alter table soc_profil add soc_pr_tel varchar(255) null;
+alter table soc_profil add soc_pr_linkedin varchar(255) null;
+alter table soc_profil add soc_pr_whatsapp varchar(255) null;

@@ -433,7 +433,8 @@ router.put('/profil/det/:id',async (req,res)=>{
 
     let data = req.body
 
-    let soc_p_d = ['soc_pr_email','soc_pr_nif','soc_pr_stat','soc_pr_label','soc_pr_adresse']
+    let soc_p_d = ['soc_pr_email','soc_pr_nif','soc_pr_stat','soc_pr_label','soc_pr_adresse','soc_pr_facebook','soc_pr_linkedin','soc_pr_whatsapp',
+                    'soc_pr_tel']
     let pr_d = ['pr_login','file_profil']
 
     try {

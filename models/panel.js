@@ -379,6 +379,20 @@ class Panneau{
         })
     }
 
+    static getPanelPWhereInNotSousAnnLocation(where){
+        return new Promise((resolve,reject)=>{
+            let sql = `select p.pan_id,p.pan_ref,l.lieu_label from panneau as p 
+            left join sous_ann_location as sal on sal.saloc_pan_id = p.pan_id 
+            left join lieu as l on l.lieu_id = p.lieu_id 
+            where ? and sal.saloc_pan_id is null  `
+            connection.query(sql,[where],(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+
+            })
+        })
+    }
+
     static getPanLocationById(id_pan_loc){
         return new Promise((resolve,reject)=>{
             let sql = "select * from pan_location where pan_loc_id = ? "
