@@ -9,6 +9,69 @@ router.use((req, res, next) => {
     next();
 });
 
+//Suppression de location par le régisseur
+router.delete('/location/:id',async (req,res)=>{
+    let id = parseInt(req.params.id)
+    if(id.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en entrée"})
+    }
+
+    try {
+        const Loc = require('../models/location')
+        const pl = await Loc.getPanLocationById(id)
+        let tmp_pl = pl[0]
+
+        if(tmp_pl.pan_loc_by_reg){
+            await Loc.deleteLocationBy({pan_loc_id:id})
+            await require('../models/data').updateWhere('panneau',{pan_state:1},{pan_id:tmp_pl.pan_id})
+
+            return res.send({status:true})
+        }else{
+            return res.send({status:false,message:"Vous n'avez pas l'autorisation de supprimer la location"})
+        }
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur de la base de donnée."})
+    }
+})
+
+//Validation de location pour un régisseur
+router.post('/location',async (req,res)=>{
+    //console.log(req.body)
+    let p = req.body
+
+    try {
+
+        const reg = await require('../models/regisseur').getByIdProfil(req.user.pr_id)
+
+        let loc = {
+            pan_loc_by_reg:1,
+            reg_id:reg[0].reg_id,
+            ann_id:null,
+            pan_id:p.pan_id,
+            pan_loc_date_debut:p.pan_loc_date_debut,
+            pan_loc_month:p.pan_loc_month
+        }
+
+        //On détecte si le panneau existe déjà dans la location en tant que réservation
+        const pl = await require('../models/location').checkPanInLocation(p.pan_id)
+
+        if(pl.length > 0){
+            let pl_t = pl[0]
+            await require('../models/data').updateWhere('pan_location',loc,{pan_loc_id:pl_t.pan_loc_id})
+        }else{
+            await require('../models/annonceur').insertPanLocation(loc)
+        }
+        await require('../models/data').updateWhere('panneau',{pan_state:3},{pan_id:p.pan_id})
+
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur de la base de donnée."})
+    }
+})
+
+
 router.get('/count',(req,res)=> {
     let Regisseur = require('../models/regisseur')
 
@@ -184,7 +247,7 @@ router.put('/:id',async (req,res)=>{
 
         return res.send({status:true})
     }catch(e){
-        console.log(e)
+        console.error(e)
         return res.send({status:false,message:"Erreur de la base de donnée."})
     }
 
@@ -617,6 +680,25 @@ router.get('/:id',async (req,res)=>{
     try {
         const r = await Regisseur.getById(id)
         return res.send({status:true,regisseur:r[0]})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Mettre un panneau en non dispo
+router.put('/panel/:id/state',async (req,res)=>{
+
+    let pan_state = parseInt(req.body.pan_state)
+    let id = parseInt(req.params.id)
+
+    if(pan_state.toString() == 'NaN' || id.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en entrée"})
+    }
+
+    try {
+        await require('../models/data').updateWhere('panneau',{pan_state:pan_state},{pan_id:id})
+        return res.send({status:true})  
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})

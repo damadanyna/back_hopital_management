@@ -11,6 +11,16 @@ class Category{
             cb(err,res)
         })
     }
+
+    static getListSousCat(id_cat){
+        return new Promise((resolve,reject)=>{
+            let sql = `select *,(select count(*) from panneau where cat_id = c.cat_id) as nb_panel from category as c where parent_cat_id = ? `
+            connection.query(sql,id_cat,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
     
 
     static getAllParents(){

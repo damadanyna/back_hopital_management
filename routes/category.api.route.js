@@ -6,6 +6,27 @@ const bcrypt = require('bcrypt')
 router.use((req, res, next) => {
     next();
 });
+//Récupérer la liste des catégorie parent
+router.get('/parent',async(req,res)=>{
+    try {
+        const c = await require('../models/category').getAllParents()
+        return res.send({status:true,list:c})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée."})
+    }
+})
+
+//Récupérer la liste de sous-catégorie
+router.get('/sous/:id',async (req,res)=>{
+    try {
+        const c = await require('../models/category').getListSousCat(req.params.id)
+        return res.send({status:true,list:c})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée."})
+    }
+})
 
 //Compter le nombre de catégorie
 router.get('/count',(req,res)=> {
@@ -35,19 +56,6 @@ router.get('/',(req,res)=> {
     })
 })
 
-//Get parent category
-router.get('/parent',async (req,res)=>{
-    let Category = require('../models/category')
-
-    try {
-        const c_res = await Category.getParentCat()
-
-        return res.send({status:true,cat_parent:c_res})
-    } catch (e) {
-        console.log(e)
-        return res.send({status:false,message:"Erreur dans la base de donnée."})
-    }
-})
 
 router.get('/:id',(req,res)=>{
     let Category = require('../models/category')
@@ -77,9 +85,12 @@ router.post('/',(req,res)=>{
     if(c.cat_label.trim() == ''){
         return res.send({status:false,message:'Champ obligatoire'})
     }
-
+    // console.log(c)
+    c.parent_cat_id = (c.parent_cat_id == '')?null:c.parent_cat_id
     Category.post(c,(err,result)=>{
         if(err){
+            
+            console.error(err)
             return res.send({status:false,message:'Erreur de la base de donnée'})
         }else{
             return res.send({status:true})

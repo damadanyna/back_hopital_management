@@ -45,6 +45,8 @@ create table if not exists pan_location(
     pan_loc_archive int null default 0,
     pan_loc_tarif_id int null,
     pan_loc_service_id int null,
+    pan_loc_by_reg int null default 0,
+    pan_loc_reject int null default 0,
     pan_loc_month int null,
     pan_loc_desc text null,
     PRIMARY KEY (pan_loc_id)
@@ -297,8 +299,6 @@ create table if not exists tarif_pan_loc(
     PRIMARY KEY (tar_pan_loc_id)
 )ENGINE=InnoDB;
 
-
-
 create table if not exists comments(
     com_id INT NOT NULL auto_increment,
     com_date datetime null default NOW(),
@@ -310,6 +310,19 @@ create table if not exists comments(
     com_obj_id int null,
     com_media_id int null,
     PRIMARY KEY (com_id)
+)ENGINE=InnoDB;
+
+
+-- Pour les settings
+create table if not exists menu_slides(
+    ms_id INT NOT NULL auto_increment,
+    ms_label varchar(255) null,
+    ms_image_id int null,
+    ms_big_title text null,
+    ms_sub_title text null,
+    ms_text_color int null default 0,
+    ms_rang int null,
+    PRIMARY KEY (ms_id)
 )ENGINE=InnoDB;
 
 

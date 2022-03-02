@@ -369,7 +369,8 @@ router.post('/reservation',async (req,res)=>{
         if(res_reg.length>0 && res_reg[0].pr_id != null){
             reg = res_reg[0]
         }else{
-            return res.send({status:false,message:"Le panneau n'a pas encore de Regisseur."})
+            reg = null
+            // return res.send({status:false,message:"Le panneau n'a pas encore de Regisseur."})
         }
 
         //Récupération d'info sur l'annonceur
@@ -381,7 +382,7 @@ router.post('/reservation',async (req,res)=>{
         let pan_loc = {
             pan_id:d.pan_id,
             ann_id:ann.ann_id,
-            reg_id:reg.reg_id,
+            reg_id:(reg)?reg.reg_id:reg,
             pan_loc_month:d.month,
             pr_id:req.user.pr_id,
             pan_loc_date_debut:d.date_debut,
@@ -394,7 +395,7 @@ router.post('/reservation',async (req,res)=>{
         const res_pl = await Annonceur.insertPanLocation(pan_loc)
 
         state = "update-panneau"
-        await require('../models/data').updateWhere('panneau',{pan_state:2},{pan_id:d.pan_id})
+        await require('../models/data').updateWhere('panneau',{pan_state:3},{pan_id:d.pan_id})
 
         
         //Insertion de la notification

@@ -109,6 +109,49 @@ router.put('/location/validate/:id', async (req,res)=>{
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
 })
+router.delete('/location/:id',async (req,res)=>{ //del-location
+    let id = parseInt(req.params.id)
+    let Pl = require('../models/location')
+    let Data = require('../models/data')
+
+    try {
+        const pl = await Pl.getPanLocationById(id)
+
+        if(pl.length > 0){
+            let pl_t = pl[0]
+            const p = await require('../models/panel').getById(pl_t.pan_id)
+            await Data.updateWhere('pan_location',{pan_loc_reject:1},{pan_loc_id:id})
+            await Data.updateWhere('panneau',{pan_state:1},{pan_id:pl_t.pan_id})
+
+            //Insertion de notification pour l'annulation du panneau
+            let n = {
+                notif_desc:`<div>
+                Votre réservation sur le panneau <nuxt-link to="/panneau/${p[0].pan_id}" class="text-indigo-600" > ${p[0].pan_ref} </nuxt-link> a été annulé par l'admin.
+                Date de la réservation {{ dateToText(${pl_t.created_at}) }}. 
+                </div>`,
+                notif_dest_pr_id:pl_t.pr_id,
+                notif_title:'Annulation réservation Panneau',
+                notif_type:'ann',
+                notif_motif:'del-location'
+            }
+
+            await require('../models/notif').set(n)
+
+            req.io.emit('new-notif-'+pl_t.pr_id,{
+                t:"Annulation réservation de panneau",
+                c:"L'administrateur a annulé votre réservation de panneau",
+                e:true
+            })
+
+            return res.send({status:true})
+        }else{
+            return res.send({status:false,message:"Il est possible que le panneau n'existe plus"})
+        }
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
 
 //Suppression de toutes les notifications
 router.delete('/notif/all',async (req,res)=>{

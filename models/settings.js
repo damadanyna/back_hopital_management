@@ -1,25 +1,63 @@
 let connection = require('../config/db')
 
 class Settings{
-    static getall(cb){
-        connection.query('select * from settings',(err,result)=>{
-            cb(err,result)
+    static getSlidesAdmin(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select * from menu_slides as ms
+            left join file as f on f.file_id = ms.ms_image_id 
+            order by ms.ms_rang `
+            
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
         })
     }
 
-    static update(p,cb){
-        connection.query('update settings set ? where id=1',p,(err,result)=>{
-            cb(err,result)
+    static getSlides(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select ms.*,f.file_id,f.name_file,f.dimension_file from menu_slides as ms
+            left join file as f on f.file_id = ms.ms_image_id 
+            order by ms.ms_rang `
+            
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
         })
     }
 
-    static creatdefault(cb){
-        let p = {
-            temp_control_jour:'08:00:00',
-            temp_control_nuit:'17:00:00'
-        }
-        connection.query('insert into settings set ? ',p,(err,result)=>{
-            cb(err,result)
+    static getById(id){
+        return new Promise((resolve,reject)=>{
+            let sql = `select * from menu_slides as ms
+            left join file as f on f.file_id = ms.ms_image_id 
+            where ms_id = ? `
+            
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static deleteById(id){
+        return new Promise((resolve,reject)=>{
+            let sql = `delete from menu_slides where ms_id = ? `
+            
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static addSlide(s){
+        return new Promise((resolve,reject)=>{
+            let sql = `insert into menu_slides set ?`
+            connection.query(sql,s,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
         })
     }
 }

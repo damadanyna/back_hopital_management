@@ -125,6 +125,9 @@ router.get('/testIm',async (req,res)=>{
 //les routes public pour le panneau
 router.use('/panel',require('./p.panel.api.route'))
 
+//les routes public pour le panneau
+router.use('/settings',require('./p.settings.api.route'))
+
 //Les routes public d'inscription
 router.post('/inscription',async (req,res)=>{
     let Annonceur = require('../models/annonceur')

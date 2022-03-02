@@ -220,10 +220,11 @@ class Panneau{
 
     static getListByReg(id_reg){
         return new Promise((resolve,reject)=>{
-            let sql = "select panneau.*,l.*,f.name_file,f.name_min_file from panneau "
+            let sql = "select panneau.*,l.*,f.name_file,f.name_min_file,pl.pan_loc_id,pl.pan_loc_date_debut, pl.pan_loc_month,pl.pan_loc_by_reg from panneau "
             sql+="left join lieu as l on l.lieu_id = panneau.lieu_id "
             sql+="left join file as f on f.file_id = panneau.image_id "
-            sql+="where reg_id = ?"
+            sql+="left join pan_location as pl on pl.pan_id = panneau.pan_id "
+            sql+="where panneau.reg_id = ?"
             connection.query(sql,id_reg,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
@@ -257,7 +258,7 @@ class Panneau{
 
     static getWhere(w){
         return new Promise((resolve,reject)=>{
-            let sql = "select * from panneau where ? "
+            let sql = "select * from panneau left join lieu as l on l.lieu_id = panneau.lieu_id where ? "
             connection.query(sql,w,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
@@ -311,7 +312,7 @@ class Panneau{
     static getAllLocations(){
         return new Promise((resolve,reject)=>{
             let sql = `select pl.pan_loc_id,pan.pan_ref,pan.pan_id, ann.ann_label,pl.pan_loc_reservation_date,
-            ann.ann_id, pl.pan_loc_validate,pl.pan_loc_archive `
+            ann.ann_id, pl.pan_loc_validate,pl.pan_loc_archive,pl.pan_loc_reject `
             sql+="from pan_location as pl "
             sql+="left join panneau as pan on pan.pan_id = pl.pan_id "
             sql+="left join annonceur as ann on ann.ann_id = pl.ann_id "
@@ -327,7 +328,7 @@ class Panneau{
     static getAllLocationsBy(v){
         return new Promise((resolve,reject)=>{
             let sql = `select pl.pan_loc_id,pan.pan_ref,pan.pan_id, ann.ann_label,pl.pan_loc_reservation_date,
-            pl.pan_loc_validate,pl.pan_loc_archive `
+            pl.pan_loc_validate,pl.pan_loc_archive,pl.pan_loc_reject `
             sql+="from pan_location as pl "
             sql+="left join panneau as pan on pan.pan_id = pl.pan_id "
             sql+="left join annonceur as ann on ann.ann_id = pl.ann_id "
@@ -345,7 +346,7 @@ class Panneau{
         return new Promise((resolve,reject)=>{
             let sql = `select pl.pan_loc_id,pl.pan_loc_month,pan.pan_ref,pan.pan_id,srv.*,t.*,cat.*,reg.reg_label,
             ann.ann_id, reg.reg_id, pr_a.pr_id as ann_pr_id, pr_r.pr_id as reg_pr_id, 
-            pl.pan_loc_validate, pl.pan_loc_date_debut, pl.pan_loc_date_fin, pl.pan_loc_date_validation, `
+            pl.pan_loc_validate, pl.pan_loc_date_debut, pl.pan_loc_date_fin,pl.pan_loc_reject, pl.pan_loc_date_validation, `
             sql+="(select c.cat_label from category as c where c.cat_id = cat.parent_cat_id ) as parent_cat_label "
             sql+="from pan_location as pl "
             sql+="left join panneau as pan on pan.pan_id = pl.pan_id "

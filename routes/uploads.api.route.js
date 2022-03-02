@@ -73,7 +73,11 @@ router.post('/',upload.single('file'),async (req,res)=>{
         })
 
         const i = await File.post(f)
-        res.send({status:true,file_id:i.insertId})
+        res.send({status:true,file_id:i.insertId,opt:{
+            width:m.width,
+            height:m.height,
+            name:f.name_file
+        }})
         } catch (e) {
             console.log(e)
         return res.send({status:false,message:"Erreur de la base"})

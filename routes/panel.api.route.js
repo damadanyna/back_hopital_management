@@ -8,6 +8,18 @@ router.use((req, res, next) => {
     next();
 });
 
+//Récupération de panneaux à afficher dans les boîtes de dialogue
+router.get('/by',async (req,res)=>{
+    try {
+        console.log(req.query)
+        const p = await require('../models/panel').getWhere(req.query)
+        return res.send({status:true,panels:p})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //Récupération de liste de panneau pour la boîte de dialogue
 router.get('/list-by',async (req,res)=>{
     if(req.user.pr_id === undefined) return res.send({status:false,message:"Erreur d'autorisation"})
