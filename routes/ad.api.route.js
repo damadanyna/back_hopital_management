@@ -10,8 +10,23 @@ router.use((req, res, next) => {
     next();
 });
 
-//changement de status Commercial d'un annonceur
+//Changement abonnement d'un régisseur
+router.put('/reg/sub/:id',async (req,res)=>{
+    let id  = parseInt(req.params.id)
 
+    try {
+        const r = await require('../models/regisseur').getById(id)
+
+        await require('../models/data').updateWhere('soc_profil',{soc_sub:req.body.soc_sub},{soc_pr_id:r[0].soc_pr_id})
+        return res.send({status:true})
+        
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//changement de status Commercial d'un annonceur
 router.put('/ann/status_com/:id/:status',async(req,res)=>{
     try {
         const d = await require('../models/data').updateWhere('annonceur',{

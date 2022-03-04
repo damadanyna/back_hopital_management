@@ -23,6 +23,21 @@ router.get('/stats/acc',async (req,res)=>{
 })
 
 
+//Réupérer les catégoriers et sous catégories 
+router.get('/cat/all',async (req,res)=>{
+    let Cat = require('../models/category')
+
+    try {
+        const p = await Cat.getAllParents()
+        const sub = await Cat.getAllChilds()
+
+        return res.send({status:true,parents:p,childs:sub})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //Récupération des catégories sans les enfants
 router.get('/cat/parent',async (req,res)=>{
     let Cat = require('../models/category')
@@ -37,6 +52,18 @@ router.get('/cat/parent',async (req,res)=>{
     }
 })
 
+//Récupérer toutes les sous-catégories
+router.get('/cat/child/all',async (req,res)=>{
+    let Cat = require('../models/category')
+    try {
+        const d = await Cat.getAllChilds()
+        return res.send({status:true,cats:d})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //Récupération des catégories sans les enfants
 router.get('/cat/child/:id',async (req,res)=>{
     let Cat = require('../models/category')
@@ -46,7 +73,6 @@ router.get('/cat/child/:id',async (req,res)=>{
     }
     try {
         const d = await Cat.getAllChilds(id)
-
         return res.send({status:true,cats:d})
     }catch (e) {
         console.error(e)

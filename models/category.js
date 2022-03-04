@@ -38,8 +38,17 @@ class Category{
     static getAllChilds(id){
         return new Promise((resolve,reject)=>{
             let sql = `select * from category as c where parent_cat_id = ? `
-
             connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getAllChilds(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select * from category as c where parent_cat_id is not null `
+            connection.query(sql,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })
