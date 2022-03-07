@@ -152,6 +152,20 @@ class Regisseur{
         })
     }
 
+    //On recupère tous les regisseurs abonnés
+    static getAbonneReg(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select * from regisseur as reg 
+            left join soc_profil as sp on sp.soc_pr_id = reg.soc_pr_id 
+            where soc_sub = 1`
+
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static insertTarif(t){
         return new Promise((resolve,reject)=>{
             let sql = "insert into tarif set ? "

@@ -1,6 +1,7 @@
 let router = require('express').Router()
 let moment = require('moment')
 let fs = require('fs');
+const { table } = require('console');
 
 
 //midlware spécifique pour la route
@@ -16,6 +17,66 @@ router.get('/stats/acc',async (req,res)=>{
         const v = await require('../models/panel').getStatsVillePerPanel()
         
         return res.send({status:true,cats:c,villes:v})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Récupération des panneaux selon les critères
+router.get('/search/all',async (req,res)=>{
+    let Panel = require('../models/panel')
+    let d_ = ['p_cat','s_cat','ville','reg']
+
+    let tab = [], sql=''
+    if(req.query.p_cat !== undefined){
+        let p_cat = req.query.p_cat.split(',')
+        sql+=((sql.length != 0)?' and ':'')+"( p_cat.parent_cat_label in (?) )"
+        tab.push(p_cat)
+    }
+
+    if(req.query.s_cat !== undefined){
+        let s_cat = req.query.s_cat.split(',')
+        sql+=((sql.length != 0)?' and ':'')+"( s_cat.cat_label in (?) )"
+        tab.push(s_cat)
+    }
+
+    if(req.query.ville !== undefined){
+        let ville = req.query.ville.split(',')
+        sql+=((sql.length != 0)?' and ':'')+"( l.lieu_ville in (?) )"
+        tab.push(ville)
+    }
+
+    if(req.query.reg !== undefined){
+        let reg = req.query.reg.split(',')
+        sql+=((sql.length != 0)?' and ':'')+"( reg.reg_label in (?) )"
+        tab.push(reg)
+    }
+
+    try {
+        if(tab.length == 0){
+            //const p = await Panel
+        }else{
+            
+        }
+
+        return res.send({status:false,message:"Fonctionnalités en cours de développement"})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Récupération des données pour la recherche
+router.get('/search/criteria',async (req,res)=>{
+    let Cat = require('../models/category')
+
+    try {
+        const p = await Cat.getAllParents()
+        const sub = await Cat.getAllChilds()
+        const r = await require('../models/regisseur').getAbonneReg()
+
+        return res.send({status:true,cat_p:p,cat_childs:sub,reg:r})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -86,8 +147,8 @@ router.get('/limit/:nb/:page',async (req,res)=>{
 
     
 
-    let limit = parseInt(req.params.nb)
-    let page = parseInt(req.params.page)
+    let limit = 1000//parseInt(req.params.nb)
+    let page = 1//parseInt(req.params.page)
 
     if(limit.toString() == 'NaN' || page.toString() == 'NaN'){
         return res.send({status:false,message:"Erreur de donnée en entrée"})

@@ -18,6 +18,15 @@ class Panneau{
         })
     }
 
+    //Côté public
+    //On récupère les panneaux avec seulement les limitations de pagination
+    static getPanleByLimit(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_surface from panneau as p 
+            left join file as f on f.file_id = p.image_id `
+        })
+    }
+
     static getAllLimit(limit,page){
         return new Promise((resolve,reject)=>{
             let sql = "select p.pan_id,p.pan_ref,l.lieu_ville,l.lieu_label, l.lieu_quartier,file.name_file,file.name_min_file from panneau as p "
