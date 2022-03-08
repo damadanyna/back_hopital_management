@@ -20,10 +20,21 @@ class Panneau{
 
     //Côté public
     //On récupère les panneaux avec seulement les limitations de pagination
-    static getPanleByLimit(){
+    static getPanelByLimit(s,data){
         return new Promise((resolve,reject)=>{
-            let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_surface from panneau as p 
-            left join file as f on f.file_id = p.image_id `
+            let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_surface,p.pan_id from panneau as p 
+            left join file as f on f.file_id = p.image_id 
+            left join lieu as l on l.lieu_id = p.lieu_id 
+            left join category as s_cat on s_cat.cat_id = p.cat_id 
+            left join category as p_cat on s_cat.parent_cat_id = p_cat.cat_id 
+            left join regisseur as reg on reg.reg_id = p.reg_id 
+            where ${s}`
+
+            connection.query(sql,data,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+
         })
     }
 

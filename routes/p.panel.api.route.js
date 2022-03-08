@@ -31,7 +31,7 @@ router.get('/search/all',async (req,res)=>{
     let tab = [], sql=''
     if(req.query.p_cat !== undefined){
         let p_cat = req.query.p_cat.split(',')
-        sql+=((sql.length != 0)?' and ':'')+"( p_cat.parent_cat_label in (?) )"
+        sql+=((sql.length != 0)?' and ':'')+"( p_cat.cat_label in (?) )"
         tab.push(p_cat)
     }
 
@@ -54,13 +54,14 @@ router.get('/search/all',async (req,res)=>{
     }
 
     try {
-        if(tab.length == 0){
-            //const p = await Panel
+        if(tab.length != 0){
+            const p = await Panel.getPanelByLimit(sql,tab)
+            return res.send({status:true,panels:p})
         }else{
-            
+            return res.send({status:true,panels:[]})
         }
 
-        return res.send({status:false,message:"Fonctionnalités en cours de développement"})
+        //return res.send({status:false,message:"Fonctionnalités en cours de développement"})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
