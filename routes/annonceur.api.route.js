@@ -374,7 +374,7 @@ router.post('/reservation',async (req,res)=>{
         }
 
         //Récupération d'info sur l'annonceur
-        return res.send({status:false,messgae:"sdfqsdf",e:req.user})
+        //return res.send({status:false,messgae:"sdfqsdf",e:req.user})
         //-------------------------------
         const ann_res = await Annonceur.getByIdProfil(req.user.pr_id)
         ann = ann_res[0]
