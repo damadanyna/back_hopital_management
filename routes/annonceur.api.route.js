@@ -469,7 +469,7 @@ router.get('/profil',async (req,res)=>{
         // return res.send({st:"Mais merde"})
     } catch (e) {
         console.log(e)
-        return res.send({status:false,message:"Erreur de la base de donnée."})
+        return res.send({status:false,message:"Erreur de la base de donnée.",err:e})
     }
 })
 
