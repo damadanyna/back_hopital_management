@@ -443,7 +443,7 @@ router.post('/reservation',async (req,res)=>{
     } catch (e) {
         console.log("Erreur insertion reservation, state : "+state)
         console.log(e)
-        return res.send({status:false,message:"Erreur dans la base de donnée",state:state})
+        return res.send({status:false,message:"Erreur dans la base de donnée",state:state,err:e})
     }
 })
 
@@ -469,7 +469,7 @@ router.get('/profil',async (req,res)=>{
         // return res.send({st:"Mais merde"})
     } catch (e) {
         console.log(e)
-        return res.send({status:false,message:"Erreur de la base de donnée.",err:e})
+        return res.send({status:false,message:"Erreur de la base de donnée."})
     }
 })
 
