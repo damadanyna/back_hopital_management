@@ -56,7 +56,9 @@ router.get('/search/all',async (req,res)=>{
     try {
         if(tab.length != 0){
             const p = await Panel.getPanelByLimit(sql,tab)
-            return res.send({status:true,panels:p})
+            const c = await Panel.countPanelByLimit(sql,tab)
+
+            return res.send({status:true,panels:p,count:c[0].nb})
         }else{
             return res.send({status:true,panels:[]})
         }
