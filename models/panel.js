@@ -20,7 +20,7 @@ class Panneau{
 
     //Côté public
     //on compte le nombre de panneau avec la limite
-    static countPanelByLimit(s,data){
+    static countPanelByLimitAndParams(s,data){
         return new Promise((resolve,reject)=>{
             let sql = `select count(*) as nb from panneau as p 
             left join file as f on f.file_id = p.image_id 
@@ -38,7 +38,7 @@ class Panneau{
         })
     }
     //On récupère les panneaux avec seulement les limitations de pagination
-    static getPanelByLimit(s,data){
+    static getPanelByLimitAndParams(s,data,l){
         return new Promise((resolve,reject)=>{
             let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_surface,p.pan_id from panneau as p 
             left join file as f on f.file_id = p.image_id 
@@ -46,9 +46,44 @@ class Panneau{
             left join category as s_cat on s_cat.cat_id = p.cat_id 
             left join category as p_cat on s_cat.parent_cat_id = p_cat.cat_id 
             left join regisseur as reg on reg.reg_id = p.reg_id 
-            where ${s}`
+            where ${s} limit ${l.limit} offset ${l.offset} `
 
             connection.query(sql,data,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+
+        })
+    }
+    //on compte le nombre de panneau avec la limite
+    static countPanelByLimit(s,data){
+        return new Promise((resolve,reject)=>{
+            let sql = `select count(*) as nb from panneau as p 
+            left join file as f on f.file_id = p.image_id 
+            left join lieu as l on l.lieu_id = p.lieu_id 
+            left join category as s_cat on s_cat.cat_id = p.cat_id 
+            left join category as p_cat on s_cat.parent_cat_id = p_cat.cat_id 
+            left join regisseur as reg on reg.reg_id = p.reg_id `
+
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+
+        })
+    }
+    //On récupère les panneaux sans limite et sans paramètres
+    static getPanelByLimit(l){
+        return new Promise((resolve,reject)=>{
+            let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_surface,p.pan_id from panneau as p 
+            left join file as f on f.file_id = p.image_id 
+            left join lieu as l on l.lieu_id = p.lieu_id 
+            left join category as s_cat on s_cat.cat_id = p.cat_id 
+            left join category as p_cat on s_cat.parent_cat_id = p_cat.cat_id 
+            left join regisseur as reg on reg.reg_id = p.reg_id 
+            limit ${l.limit} offset ${l.offset} `
+
+            connection.query(sql,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })
