@@ -377,6 +377,8 @@ router.post('/reservation',async (req,res)=>{
         const ann_res = await Annonceur.getByIdProfil(req.user.pr_id)
         ann = ann_res[0]
 
+        return res.send({status:false,messgae:"sdfqsdf",e:ann_res})
+
         //Construction de l'objet reservation
         let now = new Date()
         let pan_loc = {
