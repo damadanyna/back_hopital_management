@@ -443,7 +443,7 @@ router.post('/reservation',async (req,res)=>{
     } catch (e) {
         console.log("Erreur insertion reservation, state : "+state)
         console.log(e)
-        return res.send({status:false,message:"Erreur dans la base de donnée",state:state,err:e})
+        return res.send({status:false,message:"Erreur dans la base de donnée",state:state,err:e.toString()})
     }
 })
 
