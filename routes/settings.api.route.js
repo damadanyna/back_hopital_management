@@ -68,4 +68,69 @@ router.delete('/slides/:id',async (req,res)=>{
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
 })
+
+//Gestion des pubprisés
+router.get('/panels',async (req,res)=>{
+    let Panel  = require('../models/panel')
+    let d = ['a.ann_label','r.reg_label','p.pan_ref']
+    let s = '',
+    t = []
+
+    for (let i = 0; i < d.length; i++) {
+        s+= ((i == 0)?'':'or')+` ${d[i]} like ? `
+        t.push(`%${req.query.search}%`)
+    }
+
+    if(req.query.search.trim() == ''){
+        return res.send({status:true,panels:[]})
+    }
+
+    try {
+        const p = await Panel.getPanelToSettingsBy(s,t)
+        return res.send({status:true,panels:p})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//récupération des prises
+router.get('/prises',async (req,res)=>{
+    try {
+        const p = await require('../models/panel').getPrisesSettings()
+        return res.send({status:true,pan_prises:p})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+router.post('/prises',async (req,res)=>{
+    try {
+        const p = await require('../models/panel').getPrisesLastRange()
+
+        let pp = {
+            pan_pr_pan_id:req.body.id,
+            pan_pr_rang:(p.length <= 0)?1:(parseInt(p[0].pan_pr_rang)+1)
+        }
+
+        await require('../models/data').set('pan_prises',pp)
+        return res.send({status:true})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+router.delete('/prises/:id',async (req,res)=>{
+    try {
+        await require('../models/data').del('pan_prises',{pan_pr:req.params.id})
+
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
 module.exports = router

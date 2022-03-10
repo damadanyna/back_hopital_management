@@ -326,5 +326,14 @@ create table if not exists menu_slides(
 )ENGINE=InnoDB;
 
 
+-- pour les pubprisés
+create table if not exists pan_prises(
+    pan_pr INT NOT NULL auto_increment,
+    pan_pr_pan_id int null,
+    pan_pr_rang int null,
+    pan_pr_start int null,
+    PRIMARY KEY (pan_pr)
+)ENGINE=InnoDB;
+
 
 

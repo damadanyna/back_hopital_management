@@ -28,7 +28,7 @@ class Panneau{
             left join category as s_cat on s_cat.cat_id = p.cat_id 
             left join category as p_cat on s_cat.parent_cat_id = p_cat.cat_id 
             left join regisseur as reg on reg.reg_id = p.reg_id 
-            where ${s}`
+            where p.pan_state in (1,2) and ( ${s} ) `
 
             connection.query(sql,data,(err,res)=>{
                 if(err) return reject(err)
@@ -46,7 +46,7 @@ class Panneau{
             left join category as s_cat on s_cat.cat_id = p.cat_id 
             left join category as p_cat on s_cat.parent_cat_id = p_cat.cat_id 
             left join regisseur as reg on reg.reg_id = p.reg_id 
-            where ${s} limit ${l.limit} offset ${l.offset} `
+            where p.pan_state in (1,2) and ( ${s} ) limit ${l.limit} offset ${l.offset} `
 
             connection.query(sql,data,(err,res)=>{
                 if(err) return reject(err)
@@ -63,7 +63,8 @@ class Panneau{
             left join lieu as l on l.lieu_id = p.lieu_id 
             left join category as s_cat on s_cat.cat_id = p.cat_id 
             left join category as p_cat on s_cat.parent_cat_id = p_cat.cat_id 
-            left join regisseur as reg on reg.reg_id = p.reg_id `
+            left join regisseur as reg on reg.reg_id = p.reg_id 
+            where p.pan_state in (1,2) `
 
             connection.query(sql,(err,res)=>{
                 if(err) return reject(err)
@@ -81,6 +82,7 @@ class Panneau{
             left join category as s_cat on s_cat.cat_id = p.cat_id 
             left join category as p_cat on s_cat.parent_cat_id = p_cat.cat_id 
             left join regisseur as reg on reg.reg_id = p.reg_id 
+            where p.pan_state in (1,2) 
             limit ${l.limit} offset ${l.offset} `
 
             connection.query(sql,(err,res)=>{
@@ -88,6 +90,48 @@ class Panneau{
                 resolve(res)
             })
 
+        })
+    }
+
+    //Pour le settings
+    static getPanelToSettingsBy(s,t){
+        return new Promise((resolve,reject)=>{
+            let sql = `select * from panneau as p 
+            left join pan_prises as pp on pp.pan_pr_pan_id = p.pan_id 
+            left join file as f on f.file_id = p.image_id 
+            left join regisseur as r on r.reg_id = p.reg_id 
+            left join annonceur as a on a.ann_id = p.ann_id 
+            left join lieu as l on l.lieu_id = p.lieu_id
+            where pp.pan_pr_pan_id is null and p.pan_state in (1,2) and ( ${s} ) `
+
+            connection.query(sql,t,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+    static getPrisesSettings(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select * from pan_prises as pp 
+            left join panneau as p on p.pan_id = pp.pan_pr_pan_id 
+            left join file as f on f.file_id = p.image_id 
+            left join lieu as l on l.lieu_id = p.lieu_id 
+            order by pp.pan_pr_rang `
+
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    static getPrisesLastRange(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select * from pan_prises order by pan_pr_rang desc limit 1`
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
         })
     }
 

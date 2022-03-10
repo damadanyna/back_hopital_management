@@ -13,6 +13,25 @@ class Data{
             })
         })
     }
+
+    static set(table,s){
+        return new Promise((resolve,reject)=>{
+            let sql = `insert into ${table} set ? `
+            connection.query(sql,s,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+    static del(table,w){
+        return new Promise((resolve,reject)=>{
+            let sql = `delete from ${table} where ? `
+            connection.query(sql,w,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
     static check_init(){
         return new Promise((resolve,reject)=>{
             connection.query("select * from profil",(err,result) =>{
