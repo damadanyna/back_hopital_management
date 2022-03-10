@@ -125,6 +125,21 @@ class Panneau{
         })
     }
 
+    static getPrisesPublic(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select pp.*,p.pan_ref,l.*,p.pan_id,f.file_id,f.name_min_file from pan_prises as pp 
+            left join panneau as p on p.pan_id = pp.pan_pr_pan_id 
+            left join file as f on f.file_id = p.image_id 
+            left join lieu as l on l.lieu_id = p.lieu_id 
+            order by pp.pan_pr_rang `
+
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static getPrisesLastRange(){
         return new Promise((resolve,reject)=>{
             let sql = `select * from pan_prises order by pan_pr_rang desc limit 1`

@@ -80,6 +80,18 @@ router.get('/search/all',async (req,res)=>{
     }
 })
 
+//Les pub prisés
+router.get('/prises',async (req,res)=>{
+    try {
+        const p = await require('../models/panel').getPrisesPublic()
+        return res.send({status:true,prises:p})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //Récupération des données pour la recherche
 router.get('/search/criteria',async (req,res)=>{
     let Cat = require('../models/category')
