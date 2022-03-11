@@ -150,6 +150,19 @@ class Panneau{
         })
     }
 
+    //Les quartiers
+    static getQuartierByVilleList(v_list){
+        return new Promise((resolve,reject)=>{
+            let sql = `select distinct l.lieu_quartier from panneau as p 
+            left join lieu as l on l.lieu_id = p.lieu_id where l.lieu_ville in (?)`
+
+            connection.query(sql,[v_list],(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static getAllLimit(limit,page){
         return new Promise((resolve,reject)=>{
             let sql = "select p.pan_id,p.pan_ref,l.lieu_ville,l.lieu_label, l.lieu_quartier,file.name_file,file.name_min_file from panneau as p "

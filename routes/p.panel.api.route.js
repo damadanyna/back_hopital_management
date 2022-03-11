@@ -47,6 +47,12 @@ router.get('/search/all',async (req,res)=>{
         tab.push(ville)
     }
 
+    if(req.query.quartier !== undefined){
+        let quartier = req.query.quartier.split(',')
+        sql+=((sql.length != 0)?' and ':'')+"( l.lieu_quartier in (?) )"
+        tab.push(quartier)
+    }
+
     if(req.query.reg !== undefined){
         let reg = req.query.reg.split(',')
         sql+=((sql.length != 0)?' and ':'')+"( reg.reg_label in (?) )"
@@ -74,6 +80,7 @@ router.get('/search/all',async (req,res)=>{
         }
 
         //return res.send({status:false,message:"Fonctionnalités en cours de développement"})
+
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -85,7 +92,17 @@ router.get('/prises',async (req,res)=>{
     try {
         const p = await require('../models/panel').getPrisesPublic()
         return res.send({status:true,prises:p})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
 
+//Récupérer les quartiers selon les villes séléctionnées
+router.get('/ville/quartier', async (req,res)=>{
+    try {
+        const q = await require('../models/panel').getQuartierByVilleList(req.query.ville)
+        return res.send({status:true,list:q})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
