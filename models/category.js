@@ -12,6 +12,18 @@ class Category{
         })
     }
 
+    static getAllToAdmin(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select *,
+            (select count(*) from category as ca where ca.parent_cat_id = c.cat_id) as nb_sous_cat,
+            (select count(*) from panneau as p left join category as cp on cp.cat_id = p.cat_id where cp.cat_id = p.cat_id or cp.cat_id = c.cat_id) as nb_panel 
+            from category as c where c.parent_cat_id is null `
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
     static getListSousCat(id_cat){
         return new Promise((resolve,reject)=>{
             let sql = `select *,(select count(*) from panneau where cat_id = c.cat_id) as nb_panel from category as c where parent_cat_id = ? `

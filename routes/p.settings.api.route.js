@@ -26,6 +26,7 @@ router.get('/views',async (req,res)=>{
         const s = await Set.getSlides()
         const gp = await Set.getGrosPlanPublic()
         const p = await require('../models/panel').getPrisesPublic()
+
         return res.send({
             status:true,
             menu_slides:s,

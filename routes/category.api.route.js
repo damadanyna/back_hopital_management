@@ -42,18 +42,30 @@ router.get('/count',(req,res)=> {
 })
 
 
-//Get
-router.get('/',(req,res)=> {
-    let Category = require('../models/category')
+//Récupération de toutes les catégories
+// router.get('/',(req,res)=> {
+//     let Category = require('../models/category')
 
-    Category.all((err,result)=>{
-        if(err){
-            console.log(err)
-            return res.send({status:false,message:"Erreur dans la base de donnée"})
-        }else{
-            return res.send({status:true,categories:result})
-        }
-    })
+//     Category.all((err,result)=>{
+//         if(err){
+//             console.log(err)
+//             return res.send({status:false,message:"Erreur dans la base de donnée"})
+//         }else{
+//             return res.send({status:true,categories:result})
+//         }
+//     })
+// })
+
+//Création de nouvelles méthodes de récupération des catégories (côté admin)
+router.get('/',async (req,res)=>{
+    let Category = require('../models/category')
+    try {
+        const c = await Category.getAllToAdmin()
+        return res.send({status:true,categories:c})
+    }catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
 })
 
 
@@ -120,11 +132,21 @@ router.delete('/',async (req,res)=>{
         await Category.deleteMultiple(cat_ids)
 
     } catch (e) {
-        console.log(e)
-        return res.send({status:false,message:"Erreur dans la base de donnée",state:state})
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
     
     return res.send({status:true})
+})
+
+//Récupération des sous-cat d'un parent
+router.get('/:id/sub',async (req,res)=>{
+    try {
+        
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
 })
 
 router.put('/:id',async (req,res)=>{
