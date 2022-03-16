@@ -93,8 +93,8 @@ class Panneau{
         })
     }
 
-    //Pour le settings
-    static getPanelToSettingsBy(s,t){
+    //Récupération des panneaux qui ne sont pas encore dans les gros plans
+    static getPanelPrisesToSettingsBy(s,t){
         return new Promise((resolve,reject)=>{
             let sql = `select * from panneau as p 
             left join pan_prises as pp on pp.pan_pr_pan_id = p.pan_id 
@@ -110,6 +110,40 @@ class Panneau{
             })
         })
     }
+
+    //Récupération des panneaux pour les gros plans
+    static getPanelGrosPlanToSettingsBy(s,t){
+        return new Promise((resolve,reject)=>{
+            let sql = `select * from panneau as p 
+            left join gros_plan as gp on gp.gp_pan_id = p.pan_id 
+            left join file as f on f.file_id = p.image_id 
+            left join regisseur as r on r.reg_id = p.reg_id 
+            left join annonceur as a on a.ann_id = p.ann_id 
+            left join lieu as l on l.lieu_id = p.lieu_id
+            where gp.gp_pan_id is null and p.pan_state in (1,2) and ( ${s} ) `
+
+            connection.query(sql,t,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    //Récu^ération des gros plans
+    static getGrosPlanSettings(){
+        return new Promise((resolve,reject)=>{
+            let sql = `select * from gros_plan as gp
+            left join panneau as p on p.pan_id = gp.gp_pan_id 
+            left join lieu as l on l.lieu_id = p.lieu_id 
+            left join file as f on f.file_id = p.image_id `
+
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static getPrisesSettings(){
         return new Promise((resolve,reject)=>{
             let sql = `select * from pan_prises as pp 

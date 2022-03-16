@@ -70,7 +70,7 @@ router.delete('/slides/:id',async (req,res)=>{
 })
 
 //Gestion des pubprisés
-router.get('/panels',async (req,res)=>{
+router.get('/prises/panels',async (req,res)=>{
     let Panel  = require('../models/panel')
     let d = ['a.ann_label','r.reg_label','p.pan_ref']
     let s = '',
@@ -86,9 +86,73 @@ router.get('/panels',async (req,res)=>{
     }
 
     try {
-        const p = await Panel.getPanelToSettingsBy(s,t)
+        const p = await Panel.getPanelPrisesToSettingsBy(s,t)
         return res.send({status:true,panels:p})
 
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Récupération des panneaux qui ne sont pas encore dans la base gros plan
+router.get('/gros-plan/panels',async (req,res)=>{
+    let Panel = require('../models/panel')
+    let d = ['a.ann_label','r.reg_label','p.pan_ref']
+    let s = ''
+    t = []
+
+    for (let i = 0; i < d.length; i++) {
+        s+= ((i == 0)?'':'or')+` ${d[i]} like ? `
+        t.push(`%${req.query.search}%`)
+    }
+
+    if(req.query.search.trim() == ''){
+        return res.send({status:true,panels:[]})
+    }
+
+    try {
+        const p = await Panel.getPanelGrosPlanToSettingsBy(s,t)
+        return res.send({status:true,panels:p})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+
+})
+//Réupération des gros plans
+router.get('/gros-plan',async (req,res)=>{
+    try {
+        const gp = await require('../models/panel').getGrosPlanSettings()
+        return res.send({status:true,gros_plan:gp})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Insertion des panneaux pour le gros plan
+router.post('/gros-plan',async (req,res)=>{
+    try {
+        let gp = {
+            gp_pan_id:parseInt(req.body.id),
+            gp_rang:1
+        }
+
+        await require('../models/data').set('gros_plan',gp)
+        return res.send({status:true})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+//Suppression d'un gros plan
+router.delete('/gros-plan/:id', async (req,res)=>{
+    try {
+        await require('../models/data').del('gros_plan',{gp_id:req.params.id})
+        return res.send({status:true})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})

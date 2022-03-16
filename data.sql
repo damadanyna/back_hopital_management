@@ -335,5 +335,14 @@ create table if not exists pan_prises(
     PRIMARY KEY (pan_pr)
 )ENGINE=InnoDB;
 
+-- pour les gros plans
+create table if not exists gros_plan(
+    gp_id int not null auto_increment,
+    gp_pan_id int null,
+    gp_rang int null,
+    gp_style text null,
+    PRIMARY KEY (gp_id)
+)ENGINE=InnoDB;
+
 
 
