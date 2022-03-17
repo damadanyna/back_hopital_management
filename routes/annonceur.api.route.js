@@ -47,6 +47,51 @@ router.get('/sous-ann/stats',async (req,res)=>{
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
 })
+
+//Création d'une location de sous-annonceur
+router.post('/sous-ann/location',async (req,res)=>{
+    let d = req.body
+    try {
+        let ann = (await require('../models/annonceur').getByIdProfil(req.user.pr_id))[0]
+
+        let saloc = {
+            saloc_ann_id:ann.ann_id,
+            saloc_sous_ann_id:d.saloc_sous_ann_id,
+            saloc_pan_id:d.saloc_pan_id,
+            saloc_month:d.saloc_month,
+            saloc_date_debut:d.saloc_date_debut,
+            saloc_date_validation:new Date()
+        }
+
+        await require('../models/data').updateWhere('panneau',{sous_ann_id:d.saloc_sous_ann_id},{pan_id:d.saloc_pan_id})
+        await require('../models/data').set('sous_ann_location',saloc)
+
+        return res.send({status:true})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Suppression d'une location de d'annonceur
+router.delete('/sous-ann/location/:id',async (req,res)=>{
+    let id = parseInt(req.params.id)
+    if(id.toString() == 'NaN'){
+        return res.send({status:false,message:"Erreur de donnée en entrée"})
+    }
+
+    try {
+
+        let sal = (await require('../models/panel').getSousAnnLocById(id))[0]
+        await require('../models/data').del('sous_ann_location',{saloc_id:id})
+        await require('../models/data').updateWhere('panneau',{sous_ann_id:null},{pan_id:sal.saloc_pan_id})
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
 //Récupérations si l'annonceur est une agence de com ou pas 
 router.get('/socprofil/all',async (req,res)=>{
     try {

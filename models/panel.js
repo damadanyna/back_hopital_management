@@ -522,6 +522,17 @@ class Panneau{
         })
     }
 
+    //Récupération de sous-ann_location by id
+    static getSousAnnLocById(id_saloc){
+        return new Promise((resolve,reject)=>{
+            let sql = `select * from sous_ann_location where saloc_id = ? `
+            connection.query(sql,id_saloc,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static getLocationById(id){
         return new Promise((resolve,reject)=>{
             let sql = `select pl.pan_loc_id,pl.pan_loc_month,pan.pan_ref,pan.pan_id,srv.*,t.*,cat.*,reg.reg_label,

@@ -137,11 +137,13 @@ class Annonceur{
         return new Promise((resolve,reject)=>{
             let sql = `select sal.saloc_id,sal.saloc_date_debut,sal.saloc_date_fin,sal.saloc_date_validation,
             sous_ann.ann_id as sous_ann_id,sous_ann.ann_label as sous_ann_label,
-            ann.ann_id, ann.ann_label 
+            ann.ann_id, ann.ann_label, sal.saloc_pan_id,p.pan_ref, l.lieu_label,f.name_min_file
             from sous_ann_location sal 
             left join panneau as p on  sal.saloc_pan_id = p.pan_id 
-            left join annonceur as ann ann.ann_id = sal.saloc_ann_id 
-            left join annonceur as sous_ann sous_ann.ann_id = sal.saloc_sous_ann_id 
+            left join lieu as l on l.lieu_id = p.lieu_id
+            left join file as f on f.file_id = p.image_id 
+            left join annonceur as ann on ann.ann_id = sal.saloc_ann_id 
+            left join annonceur as sous_ann on sous_ann.ann_id = sal.saloc_sous_ann_id 
             where saloc_ann_id = ? `
 
             connection.query(sql,id_ann,(err,res)=>{
