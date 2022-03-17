@@ -497,6 +497,7 @@ class Panneau{
             sql+="left join annonceur as ann on ann.ann_id = pl.ann_id "
             sql+="left join tarif as t on pl.pan_loc_tarif_id = t.tarif_id "
             sql+="left join services as srv on pl.pan_loc_service_id = srv.serv_id "
+            sql+="where pl.pan_loc_validate = 0 "
             sql+="order by pl.pan_loc_id desc"
             connection.query(sql,(err,res)=>{
                 if(err) return reject(err)

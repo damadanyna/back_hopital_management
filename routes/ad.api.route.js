@@ -135,7 +135,10 @@ router.delete('/location/:id',async (req,res)=>{ //del-location
         if(pl.length > 0){
             let pl_t = pl[0]
             const p = await require('../models/panel').getById(pl_t.pan_id)
-            await Data.updateWhere('pan_location',{pan_loc_reject:1},{pan_loc_id:id})
+            //Suppression de la réservation
+            await require('../models/data').del('pan_location',{pan_loc_id:req.params.id})
+
+            //Modification du panneau en mode disponnible
             await Data.updateWhere('panneau',{pan_state:1},{pan_id:pl_t.pan_id})
 
             //Insertion de notification pour l'annulation du panneau
