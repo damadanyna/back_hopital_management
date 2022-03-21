@@ -127,34 +127,32 @@ router.delete('/location/:id',async (req,res)=>{
         const l = await Panel.getLocationById(req.params.id)
         if(l.length > 0){
             let loc = l[0]
-            if(!loc.pan_loc_validate && !loc.pan_loc_archive){
 
-                //Suppression de la réservation
-                await require('../models/data').del('pan_location',{pan_loc_id:req.params.id})
+            //Suppression de la réservation
+            await require('../models/data').del('pan_location',{pan_loc_id:req.params.id})
 
-                //Modification du panneau 
-                await require('../models/data').updateWhere('panneau',{pan_state:1},{pan_id:loc.pan_id})
+            //Suppression des sous-locations avec le panneau
+            await require('../models/data').del('sous_ann_location',{saloc_pan_id:loc.pan_id})
+
+            //Modification du panneau 
+            await require('../models/data').updateWhere('panneau',{pan_state:1,ann_id:null,sous_ann_id:null},{pan_id:loc.pan_id})
+
+            //Récupération de l'annonceur
+            let an = (await require('../models/annonceur').getByIdProfil(req.user.pr_id))[0]
 
 
-                //Récupération de l'annonceur
-                let an = (await require('../models/annonceur').getByIdProfil(req.user.pr_id))[0]
-
-
-                //Notification
-                let n = {
-                    notif_desc:`<div>L'Annonceur <nuxt-link class='underline' to='/admin/annonceur/${an.ann_id}' >${an.ann_label}</nuxt-link> 
-                    a annulé sa réservation sur le panneau <nuxt-link class='underline' to='/admin/panneau/${loc.pan_id}}'> ${loc.pan_ref} </nuxt-link> </div> `,
-                    notif_type:'a',
-                    notif_motif:'del-location',
-                    notif_title:`Annulation d'une réservation.`
-                }
-
-                await require('../models/notif').set(n)
-
-                return res.send({status:true})
-            }else{
-                return res.send({status:false,message:"La location ne peut pas être supprimer."})
+            //Notification
+            let n = {
+                notif_desc:`<div>L'Annonceur <nuxt-link class='underline' to='/admin/annonceur/${an.ann_id}' >${an.ann_label}</nuxt-link> 
+                a annulé sa réservation sur le panneau <nuxt-link class='underline' to='/admin/panneau/${loc.pan_id}}'> ${loc.pan_ref} </nuxt-link> </div> `,
+                notif_type:'a',
+                notif_motif:'del-location',
+                notif_title:`Annulation d'une réservation.`
             }
+
+            await require('../models/notif').set(n)
+
+            return res.send({status:true})
         }else{
             return res.send({status:false,message:'Il est possible que cette location a été déjà supprimée.'})
         }
@@ -712,7 +710,4 @@ router.delete('/notifs/:id',async(req,res)=>{
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
 })
-
-
-
 module.exports = router

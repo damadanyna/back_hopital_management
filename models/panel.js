@@ -413,10 +413,13 @@ class Panneau{
 
     static getListByAnn(id_ann){
         return new Promise((resolve,reject)=>{
-            let sql = "select panneau.*,l.*,f.name_file,f.name_min_file from panneau "
-            sql+="left join lieu as l on l.lieu_id = panneau.lieu_id "
-            sql+="left join file as f on f.file_id = panneau.image_id "
-            sql+="where ann_id = ?"
+            let sql = `select p.pan_id, p.pan_ref,
+            pl.pan_loc_validate,pl.pan_loc_id,pl.pan_loc_date_debut, pl.pan_loc_month,pl.pan_loc_date_fin
+            ,l.*,f.name_file,f.name_min_file from panneau  p `
+            sql+="left join pan_location as pl on pl.pan_id = p.pan_id "
+            sql+="left join lieu as l on l.lieu_id = p.lieu_id "
+            sql+="left join file as f on f.file_id = p.image_id "
+            sql+="where p.ann_id = ?"
             connection.query(sql,id_ann,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
