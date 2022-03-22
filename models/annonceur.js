@@ -135,7 +135,7 @@ class Annonceur{
     //Récupérer la liste des panneaux alloués
     static getListPanSousAnnById(id_ann){
         return new Promise((resolve,reject)=>{
-            let sql = `select sal.saloc_id,sal.saloc_date_debut,sal.saloc_date_fin,sal.saloc_date_validation,
+            let sql = `select sal.saloc_id,sal.saloc_date_debut,sal.saloc_date_fin,sal.saloc_date_validation,sal.saloc_month,
             sous_ann.ann_id as sous_ann_id,sous_ann.ann_label as sous_ann_label,
             ann.ann_id, ann.ann_label, sal.saloc_pan_id,p.pan_ref, l.lieu_label,f.name_min_file
             from sous_ann_location sal 
