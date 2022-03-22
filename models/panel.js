@@ -420,7 +420,7 @@ class Panneau{
             sql+="left join pan_location as pl on pl.pan_id = p.pan_id "
             sql+="left join lieu as l on l.lieu_id = p.lieu_id "
             sql+="left join file as f on f.file_id = p.image_id "
-            sql+="left join sous_ann_location as sal on p.pan_id = sal.pan_id "
+            sql+="left join sous_ann_location as sal on p.pan_id = sal.saloc_pan_id "
             sql+="where p.ann_id = ? or p.sous_ann_id = ? "
             connection.query(sql,[id_ann,id_ann],(err,res)=>{
                 if(err) return reject(err)
