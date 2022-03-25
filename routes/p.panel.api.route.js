@@ -299,8 +299,18 @@ router.get('/:id',async (req,res)=>{
         if(p_res.length == 0){
             return res.send({status:false,message:"Donnée pas trouvée"})
         }
+        let ims = []
+        if(p_res[0].pan_list_photo){
+            ims = await require('../models/File').getFileByIds(p_res[0].pan_list_photo.split(','))
+        }
+
+        let pan = {
+            panel:p_res[0],
+            images:ims
+        }
         
-        return res.send({status:true,panel:p_res[0]})
+        return res.send({status:true,panel:pan})
+
     } catch (e) {
         console.log(e)
         return res.send({status:false,message:"Erreur de base de donnée"})

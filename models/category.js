@@ -33,7 +33,6 @@ class Category{
             })
         })
     }
-    
 
     static getAllParents(){
         return new Promise((resolve,reject)=>{

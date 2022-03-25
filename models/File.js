@@ -78,6 +78,17 @@ class File{
             })
         })
     }
+
+    //Récupération de liste d'image 
+    static getFileByIds(ids){
+        return new Promise((resolve,reject)=>{
+            let sql = `select name_file,name_min_file,dimension_file,file_id from file as f where file_id in (?) `
+            connection.query(sql,[ids],(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 }
 
 module.exports = File

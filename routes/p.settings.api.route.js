@@ -27,6 +27,10 @@ router.get('/views',async (req,res)=>{
         const gp = await Set.getGrosPlanPublic()
         const p = await require('../models/panel').getPrisesPublic()
 
+        //Récupération de panneau par sous-catégories ou format
+        //const sub_cat = await require('')
+        //----------------------------------------------
+
         return res.send({
             status:true,
             menu_slides:s,
