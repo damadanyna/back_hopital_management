@@ -137,7 +137,7 @@ class Annonceur{
         return new Promise((resolve,reject)=>{
             let sql = `select sal.saloc_id,sal.saloc_date_debut,sal.saloc_date_fin,sal.saloc_date_validation,sal.saloc_month,
             sous_ann.ann_id as sous_ann_id,sous_ann.ann_label as sous_ann_label,
-            ann.ann_id, ann.ann_label, sal.saloc_pan_id,p.pan_ref, l.lieu_label,f.name_min_file
+            ann.ann_id, ann.ann_label, sal.saloc_pan_id,p.pan_publoc_ref, l.lieu_label,f.name_min_file
             from sous_ann_location sal 
             left join panneau as p on  sal.saloc_pan_id = p.pan_id 
             left join lieu as l on l.lieu_id = p.lieu_id
@@ -198,7 +198,7 @@ class Annonceur{
 
     static getPanel(id){
         return new Promise((resolve,reject)=>{
-            let sql = `select pan.pan_ref,pan.pan_surface,pan.pan_state,pan.pan_verified_by_publoc,l.*,cat.*,file.name_file from panneau as pan `
+            let sql = `select pan.pan_publoc_ref,pan.pan_surface,pan.pan_state,pan.pan_verified_by_publoc,l.*,cat.*,file.name_file from panneau as pan `
             sql+="left join lieu as l on pan.lieu_id = l.lieu_id "
             sql+="left join category as cat on pan.cat_id = cat.cat_id "
             sql+="left join file on pan.image_id = file.file_id "

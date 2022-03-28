@@ -40,7 +40,7 @@ class Panneau{
     //On récupère les panneaux avec seulement les limitations de pagination
     static getPanelByLimitAndParams(s,data,l){
         return new Promise((resolve,reject)=>{
-            let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_surface,p.pan_id from panneau as p 
+            let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_publoc_ref,p.pan_surface,p.pan_id from panneau as p 
             left join file as f on f.file_id = p.image_id 
             left join lieu as l on l.lieu_id = p.lieu_id 
             left join category as s_cat on s_cat.cat_id = p.cat_id 
@@ -76,7 +76,7 @@ class Panneau{
     //On récupère les panneaux sans limite et sans paramètres
     static getPanelByLimit(l){
         return new Promise((resolve,reject)=>{
-            let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_surface,p.pan_id from panneau as p 
+            let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_publoc_ref,p.pan_surface,p.pan_id from panneau as p 
             left join file as f on f.file_id = p.image_id 
             left join lieu as l on l.lieu_id = p.lieu_id 
             left join category as s_cat on s_cat.cat_id = p.cat_id 
@@ -161,7 +161,7 @@ class Panneau{
 
     static getPrisesPublic(){
         return new Promise((resolve,reject)=>{
-            let sql = `select pp.*,p.pan_ref,l.*,p.pan_id,f.file_id,f.name_min_file from pan_prises as pp 
+            let sql = `select pp.*,p.pan_ref,p.pan_publoc_ref,l.*,p.pan_id,f.file_id,f.name_min_file from pan_prises as pp 
             left join panneau as p on p.pan_id = pp.pan_pr_pan_id 
             left join file as f on f.file_id = p.image_id 
             left join lieu as l on l.lieu_id = p.lieu_id 
@@ -345,7 +345,7 @@ class Panneau{
 
     static getByIdP(id){
         return new Promise((resolve,reject)=>{
-            let sql = "select p.pan_ref,p.image_id,cat.cat_label, p.pan_description,p.pan_verified_by_publoc,p.pan_list_photo, p.pan_surface,file.name_file, "
+            let sql = "select p.pan_ref,p.pan_publoc_ref,p.image_id,cat.cat_label, p.pan_description,p.pan_verified_by_publoc,p.pan_list_photo, p.pan_surface,file.name_file, "
             sql+="(select cat_label from category as p_cat where p_cat.cat_id = cat.parent_cat_id limit 1 ) as parent_cat_label, "
             sql+="l.lieu_ville,l.lieu_region,l.lieu_quartier,l.lieu_pays,l.lieu_commune,l.lieu_lat,l.lieu_lng,l.lieu_label "
             sql+="from panneau as p "
@@ -413,7 +413,7 @@ class Panneau{
 
     static getListByAnn(id_ann){
         return new Promise((resolve,reject)=>{
-            let sql = `select p.pan_id, p.pan_ref, p.sous_ann_id,
+            let sql = `select p.pan_id, p.pan_publoc_ref, p.sous_ann_id,
             pl.pan_loc_validate,pl.pan_loc_id,pl.pan_loc_date_debut, pl.pan_loc_month,pl.pan_loc_date_fin,
             sal.*
             ,l.*,f.name_file,f.name_min_file from panneau  p `
@@ -591,7 +591,7 @@ class Panneau{
 
     static getPanelPWhereInNotSousAnnLocation(where){
         return new Promise((resolve,reject)=>{
-            let sql = `select p.pan_id,p.pan_ref,l.lieu_label from panneau as p 
+            let sql = `select p.pan_id,p.pan_publoc_ref,l.lieu_label from panneau as p 
             left join sous_ann_location as sal on sal.saloc_pan_id = p.pan_id 
             left join lieu as l on l.lieu_id = p.lieu_id 
             where ? and sal.saloc_pan_id is null  `

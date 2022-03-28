@@ -97,6 +97,17 @@ router.post('/',async (req,res)=>{
         p.lieu_id = lieu_res.insertId
 
         //Insertion du Panneau
+        //récupération des nombres de panneau
+        const nbp = (await require('../models/data').exec('select count(*) as nbp from panneau  '))[0].nbp
+        if(nbp+1> 1000){
+            p.pan_publoc_ref = 'PBLC-'+(nbp+1)
+        }else if(nbp+1 > 100){
+            p.pan_publoc_ref = 'PBLC-0'+(nbp+1)
+        }else if(nbp+1> 10){
+            p.pan_publoc_ref = 'PBLC-00'+(nbp+1)
+        }else{
+            p.pan_publoc_ref = 'PBLC-000'+(nbp+1)
+        }
         const pan_res = await Panel.add(p)
 
         return res.send({status:true,id:pan_res.insertId})

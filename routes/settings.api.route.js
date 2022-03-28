@@ -197,4 +197,66 @@ router.delete('/prises/:id',async (req,res)=>{
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
 })
+
+
+//Gestion Réference panneau
+router.get('/ref/stats',async (req,res)=>{
+    let Data = require('../models/data')
+    try {
+        const nbP = (await Data.exec('select count(*) as nbp from panneau'))[0].nbp
+        const nbrefpubloc = (await Data.exec('select count(*) as nbp from panneau where pan_publoc_ref is not null '))[0].nbp
+        return res.send({status:true,nb_panel:nbP,nb_publoc_ref:nbrefpubloc})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+router.put('/ref/to-publoc-ref',async (req,res)=>{
+    let Data = require('../models/data')
+
+    try {
+        const panels = await Data.exec('select * from panneau order by created_at asc ')
+
+        let sql = ''
+        let tmp = {}, ref_tmp = ''
+        for(let i = 0;i < panels.length;i++){
+            tmp = panels[i]
+            if(i+1 > 1000){
+                ref_tmp = 'PBLC-'+(i+1)
+            }else if(i+1> 100){
+                ref_tmp = 'PBLC-0'+(i+1)
+            }else if(i+1> 10){
+                ref_tmp = 'PBLC-00'+(i+1)
+            }else{
+                ref_tmp = 'PBLC-000'+(i+1)
+            }
+
+
+            sql+=`update panneau set pan_publoc_ref = '${ref_tmp}' where pan_id = ${tmp.pan_id};`
+        }
+
+
+        const re = await Data.exec(sql)
+
+        return res.send({status:true,data:re})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Récupération d'exemple de panneau
+router.get('/ref/example-pan',async (req,res)=>{
+    let Data = require('../models/data')
+
+    try {
+        const p = await Data.exec('select * from panneau as p left join lieu as l on l.lieu_id = p.lieu_id limit 5')
+        return res.send({status:true,panels:p})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
 module.exports = router

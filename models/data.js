@@ -82,6 +82,15 @@ class Data{
             })
         })
     }
+
+    static exec(sql){
+        return new Promise((resolve,reject)=>{
+            connection.query(sql,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
 }
 
 module.exports = Data
