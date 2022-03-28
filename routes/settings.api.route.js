@@ -292,15 +292,15 @@ router.put('/media/set-info-dim',async (req,res)=>{
         let sql = '',dim = ''
 
         for(let i=0;i<ims.length;i++){
-            path = ims[i].path_file+''+ims[i].name_file+'.'+ims[i].extension_file
-            //info = await sharp(path).metadata()
-            //dim = info.width+','+info.height
-            //sql += `update file set dimension_file = '${dim}' where file_id = ${ims[i].file_id};`
+            path = ims[i].path_file+''+ims[i].name_file
+            info = await sharp(path).metadata()
+            dim = info.width+','+info.height
+            sql += `update file set dimension_file = '${dim}' where file_id = ${ims[i].file_id};`
         }
 
-        // const t = await Data.exec(sql)
+        const t = await Data.exec(sql)
 
-        return res.send({status:true,path})
+        return res.send({status:true,t})
 
     } catch (e) {
         console.error(e)
