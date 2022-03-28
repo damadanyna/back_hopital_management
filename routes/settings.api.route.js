@@ -259,4 +259,23 @@ router.get('/ref/example-pan',async (req,res)=>{
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
 })
+
+//Gestion des médias .........................
+router.get('/media/stats',async (req,res)=>{
+    let Data = require('../models/data')
+    try {
+        const nb_im_no_dim = (await Data.exec('select count(*) as nb from file where dimension_file is null'))[0].nb
+        const nb_im = (await Data.exec('select count(*) as nb from file'))[0].nb
+        let stats = {
+            nb_im_no_dim:nb_im_no_dim,
+            nb_im:nb_im
+        }
+
+        return res.send({status:true,stats:stats})
+        
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
 module.exports = router
