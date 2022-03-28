@@ -299,11 +299,11 @@ router.put('/media/set-info-dim',async (req,res)=>{
         }
 
         const t = await Data.exec(sql)
-        return res.send({status:true,indo:t})
+        return res.send({status:true,info:t})
 
     } catch (e) {
         console.error(e)
-        return res.send({status:false,message:"Erreur dans la base de donnée",e})
+        return res.send({status:false,message:"Erreur dans la base de donnée",e:e})
     }
 })
 module.exports = router
