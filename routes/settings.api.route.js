@@ -287,7 +287,7 @@ router.put('/media/set-info-dim',async (req,res)=>{
     try {
         const ims = await Data.exec('select * from file where dimension_file is null')
 
-        let path = '', info ={}
+        let path = '', info = {}
 
         let sql = '',dim = ''
 
@@ -299,7 +299,8 @@ router.put('/media/set-info-dim',async (req,res)=>{
         }
 
         const t = await Data.exec(sql)
-        return res.send({status:true,info:t})
+        
+        return res.send({status:true,t})
 
     } catch (e) {
         console.error(e)
