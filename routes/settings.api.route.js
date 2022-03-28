@@ -303,7 +303,7 @@ router.put('/media/set-info-dim',async (req,res)=>{
 
     } catch (e) {
         console.error(e)
-        return res.send({status:false,message:"Erreur dans la base de donnée",e})
+        return res.send({status:false,message:"Erreur dans la base de donnée",e,sql})
     }
 })
 module.exports = router
