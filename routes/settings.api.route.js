@@ -2,6 +2,8 @@ let router = require('express').Router()
 const { resolveSoa } = require('dns');
 let fs = require('fs')
 
+const sharp = require("sharp")
+
 
 //midlware spécifique pour la route
 router.use((req, res, next) => {
@@ -272,7 +274,33 @@ router.get('/media/stats',async (req,res)=>{
         }
 
         return res.send({status:true,stats:stats})
-        
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+router.put('/media/set-info-dim',async (req,res)=>{
+    let Data = require('../models/data')
+
+    try {
+        const ims = await Data.exec('select * from file where dimension_file is null')
+
+        let path = '', info ={}
+
+        let sql = '',dim = ''
+
+        for(let i=0;i<ims.length;i++){
+            path = ims[i].path_file+''+ims[i].name_file+'.'+ims[i].extension_file
+            info = await sharp(path).metadata()
+            dim = info.width+','+info.height
+            sql += `update file set dimension_file = '${dim}' where file_id = ${ims[i].file_id};`
+        }
+
+        const t = await Data.exec(sql)
+        return res.send({status:true,indo:t})
+
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
