@@ -161,7 +161,9 @@ router.put('/:id',async (req,res)=>{
 
     let c = {
         cat_label:d_brut.cat_label,
-        parent_cat_id:d_brut.parent_cat_id
+        parent_cat_id:d_brut.parent_cat_id,
+        cat_color:d_brut.cat_color,
+        cat_icon:d_brut.cat_icon
     }
 
     try {
