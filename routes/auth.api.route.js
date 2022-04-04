@@ -55,6 +55,9 @@ router.use('/ad',require('./ad.api.route'))
 //Commentaire
 router.use('/com',require('./com.api.route'))
 
+//Gestion des administratifs
+router.use('/cu',require('./cu.api.route'))
+
 //Deconnexion
 router.get('/deconnect',(req,res)=>{
     let options = {

@@ -14,6 +14,16 @@ class Data{
         })
     }
 
+    static getById(table,w){
+        return new Promise((resolve,reject)=>{
+            let sql = `select * from ${table} where ? `
+            connection.query(sql,w,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
+        })
+    }
+
     static set(table,s){
         return new Promise((resolve,reject)=>{
             let sql = `insert into ${table} set ? `

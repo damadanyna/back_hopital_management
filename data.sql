@@ -25,6 +25,7 @@ create table if not exists panneau (
     pan_modifiable int null default 1,
     pan_publoc_ref varchar(100) null,
     pan_visible int null default 1,
+    pan_num_auth_cu varchar(255) null,
     PRIMARY KEY (pan_id)
 )ENGINE=InnoDB;
 
