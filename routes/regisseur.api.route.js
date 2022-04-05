@@ -394,7 +394,7 @@ router.post('/panel',async(req,res)=>{
     }
 
     let d = req.body
-    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_num_quittance','pan_description','pan_support','pan_lumineux']
+    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_num_quittance','pan_description','pan_support','pan_lumineux','pan_cu_id','pan_num_auth_cu']
     let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_region','lieu_label','lieu_lat','lieu_lng']
 
     if(d.pan_ref == ''){
@@ -412,14 +412,17 @@ router.post('/panel',async(req,res)=>{
     }
 
     let l = {}
-    //Inertion Lieu
+    //Insertion Lieu
     for(let i = 0;i<lieu.length;i++){
         if(d[lieu[i]] === undefined){
             return res.send({status:false,message:"Erreur des données entrées",data:lieu[i]})
         }
 
         if(d[lieu[i]] == ''){
-            return res.send({status:false,message:"La partie lieu est obligatoire. Vous pouvez l'ajouter par carte.",data:lieu[i]})
+            if(lieu[i] == 'lieu_lat' || lieu[i] == 'lieu_lng'){
+                return res.send({status:false,message:"Les coordonnées sont obligatoire.",data:lieu[i]})
+            }
+            
         }
 
         l[lieu[i]] = (d[lieu[i]] == '')?null:d[lieu[i]] 
@@ -691,6 +694,25 @@ router.get('/:id',async (req,res)=>{
     try {
         const r = await Regisseur.getById(id)
         return res.send({status:true,regisseur:r[0]})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Récupérer la liste des choses utils lors de l'ajout de panneau côté régisseur
+router.get('/panel/add/util',async (req,res)=>{
+    let D = require('../models/data')
+    try {
+
+        //Pour la récupération des catégories parentes
+        const c = await require('../models/category').getAllParents()
+
+        //Récupération de la liste des comunes urbaines
+        const cu = await D.exec(`select * from commune_urbaine`)
+
+        return res.send({status:true,cat_parent:c,cu})
+        
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})

@@ -16,7 +16,7 @@ router.get('/ad/all',async (req,res)=>{
     let D = require('../models/data')
 
     try {
-        const cu = await D.exec(`select * from commune_urbaine as cu 
+        const cu = await D.exec(`select cu.*,pr.*, (select count(*) from panneau as pan where pan.pan_cu_id = cu.cu_id ) as nb_panel from commune_urbaine as cu 
         left join profil as pr on cu.pr_id = pr.pr_id`)
 
         return res.send({status:true,cu})
