@@ -307,4 +307,25 @@ router.put('/media/set-info-dim',async (req,res)=>{
         return res.send({status:false,message:"Erreur dans la base de donnée",e:e})
     }
 })
+
+
+//Suppression de toutes les références d'images dans la base de donnée
+router.delete('/media/all/refs',async (req,res)=>{
+    let Data = require('../models/data')
+    try {
+        //Suppression de la base image
+        await Data.exec('delete from file')
+
+        //Modification des images dans panneau
+        await Data.exec('update panneau set image_id = null, pan_list_photo = null ')
+
+        //Modification des profils
+        await Data.exec('update profil set file_profil = null ')
+
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée",e:e})
+    }
+})
 module.exports = router
