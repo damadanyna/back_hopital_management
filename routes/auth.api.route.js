@@ -74,6 +74,7 @@ router.get('/deconnect',(req,res)=>{
 //Détection de connexion
 router.get('/status',async (req,res)=>{
     let Notif = require('../models/notif')
+    let D = require('../models/data')
 
 
     try {
@@ -92,7 +93,33 @@ router.get('/status',async (req,res)=>{
             return res.send({status:true,pr:pr,nbNotif:t[0].nb})
         }else{
             const t = await Notif.countNotifByDestProfil(req.user.pr_id)
-            return res.send({status:true,pr:pr,nbNotif:t[0].nb})
+
+            if(req.user.pr_type == 'ann'){
+                //ici on va récupérer toutes les données de l'annonceur
+                const ann = (await require('../models/annonceur').getByIdProfil(u.pr_id) )[0]
+
+                let soc_pr = {
+                    soc_pr_nif:ann.soc_pr_nif,
+                    soc_pr_stat:ann.soc_pr_stat,
+                    soc_sub:ann.soc_sub
+                }
+
+                //Pour l'agence de communication
+                pr.ann_is_agence_com = ann.ann_is_agence_com
+
+                return res.send({status:true,pr,nbNotif:t[0].nb,soc_pr})
+            }else if(req.user.pr_type == 'reg'){ 
+                //ici on va récupérer toutes les données du régisseur
+                const reg = (await require('../models/regisseur').getByIdProfil(u.pr_id) )[0]
+
+                let soc_pr = {
+                    soc_pr_nif:reg.soc_pr_nif,
+                    soc_pr_stat:reg.soc_pr_stat,
+                    soc_sub:reg.soc_sub
+                }
+
+                return res.send({status:true,pr,nbNotif:t[0].nb,soc_pr})
+            }
         }
     } catch (e) {
         console.log(e)

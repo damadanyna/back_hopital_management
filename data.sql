@@ -50,6 +50,7 @@ create table if not exists pan_location(
     pan_loc_reject int null default 0,
     pan_loc_month int null,
     pan_loc_desc text null,
+    pan_loc_ann_label varchar(255) null,
     PRIMARY KEY (pan_loc_id)
 )ENGINE=InnoDB;
 

@@ -104,7 +104,7 @@ class Annonceur{
 
     static getByIdProfil(id){
         return new Promise((resolve,reject)=>{
-            let sql = "select *,f.name_file,f.name_min_file,(select count(*) from panneau as pan where pan.ann_id = ann.ann_id ) as nb_panel,'' as pr_pass "
+            let sql = `select *,f.name_file,f.name_min_file,(select count(*) from panneau as pan where pan.ann_id = ann.ann_id ) as nb_panel,'' as pr_pass `
             sql+='from annonceur as ann '
             sql+="left join soc_profil as sp on sp.soc_pr_id = ann.soc_pr_id "
             sql+="left join profil as p on p.pr_id = ann.pr_id "

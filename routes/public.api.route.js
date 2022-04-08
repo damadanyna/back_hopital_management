@@ -236,7 +236,7 @@ router.post('/inscription',async (req,res)=>{
         
         
     } catch (e) {
-        console.log(e)
+        console.error(e)
         return res.send({status:false,message:"Erreur de la base de donnée"}) 
     }
 })

@@ -47,7 +47,8 @@ router.post('/location',async (req,res)=>{
         let loc = {
             pan_loc_by_reg:1,
             reg_id:reg[0].reg_id,
-            ann_id:null,
+            ann_id:p.ann_id,
+            pan_loc_ann_label:(p.ann_id)?null:p.pan_loc_ann_label,
             pan_id:p.pan_id,
             pan_loc_date_debut:p.pan_loc_date_debut,
             pan_loc_month:p.pan_loc_month

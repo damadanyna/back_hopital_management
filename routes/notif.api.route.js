@@ -87,5 +87,4 @@ router.put('/vu/:id_pr/all',async (req,res)=>{
     }
 })
 
-
 module.exports = router

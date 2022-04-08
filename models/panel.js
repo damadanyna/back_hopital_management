@@ -372,7 +372,7 @@ class Panneau{
 
     static changeCatToNull(tab_id_cat){
         return new Promise((resolve,reject)=>{
-            connection.query('update panneau set cat_id = null where cat_id in (?)',tab_id_cat,(err,res)=>{
+            connection.query('update panneau set cat_id = null where cat_id in (?)',[tab_id_cat],(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })
@@ -399,7 +399,8 @@ class Panneau{
 
     static getListByReg(id_reg){
         return new Promise((resolve,reject)=>{
-            let sql = "select panneau.*,l.*,f.name_file,f.name_min_file,pl.pan_loc_id,pl.pan_loc_date_debut, pl.pan_loc_month,pl.pan_loc_by_reg from panneau "
+            let sql = `select panneau.*,l.*,f.name_file,f.name_min_file,pl.pan_loc_id,pl.pan_loc_date_debut, 
+            pl.pan_loc_month,pl.pan_loc_by_reg,pl.pan_loc_ann_label from panneau `
             sql+="left join lieu as l on l.lieu_id = panneau.lieu_id "
             sql+="left join file as f on f.file_id = panneau.image_id "
             sql+="left join pan_location as pl on pl.pan_id = panneau.pan_id "

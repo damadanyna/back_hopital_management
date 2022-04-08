@@ -50,3 +50,6 @@ alter table pan_location add pan_loc_reject int null default 0;
 
 -- New  04-avril-2022
 alter table panneau add pan_num_auth_cu varchar(255) null;
+
+-- New 07-avril-2022
+alter table pan_location add pan_loc_ann_label varchar(255) null;

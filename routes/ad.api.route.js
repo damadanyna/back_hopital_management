@@ -10,6 +10,52 @@ router.use((req, res, next) => {
     next();
 });
 
+
+//Suppresion d'une catégorie
+router.delete('/cat/:id/:id_parent',async(req,res) => {
+    let Panel = require('../models/panel')
+    let Category = require('../models/category')
+    try {
+        //Récupération des informations sur la catégorie
+        if(req.params.id_parent == null){
+            //C'est une catégorie parente
+
+            //On change tous les panneaux si il y en a
+            await Panel.changeCatToNull([req.params.id])
+
+            const s_cat = await Category.getAllChilds(req.params.id)
+
+            //Concatenation des ids dans un tableau
+            let ids_sub_cat = []
+
+            for(let i = 0; i< s_cat.length;i++){
+                ids_sub_cat.push(s_cat[i].cat_id)
+            }
+
+            //On change tous les panneaux si il y en a pour les sous-cats
+            await Panel.changeCatToNull([ids_sub_cat])
+
+            //Suppression des sous catégory
+            await Category.deleteAllSousCat(req.params.id)
+
+            //Suppresion de la catégorie
+            await require('../models/data').del('category',{cat_id:req.params.id})
+
+            return res.send({status:true})
+        }else{
+            //On change tous les panneaux si il y en a
+            await Panel.changeCatToNull([req.params.id])
+
+            //Suppresion de la catégorie
+            await require('../models/data').del('category',{cat_id:req.params.id})
+            return res.send({status:true})
+        }
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //Changement abonnement d'un régisseur
 router.put('/reg/sub/:id',async (req,res)=>{
     let id  = parseInt(req.params.id)

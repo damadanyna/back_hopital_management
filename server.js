@@ -20,6 +20,7 @@ const myLogger = new Console({
 
 let app = express()
 
+
 //Utilisation de socket.io
 let http = require('http').Server(app)
 let io = require('socket.io')(http,{path:"/api/ws",cors:{origin:'*',methods:['GET','POST','PUT','DELETE']}})
@@ -66,11 +67,16 @@ io.on('connection',(socket)=>{
 
 app.use('/api',require('./routes/api.route'))
 
-
-
-
-
 http.listen(4040)
+
+
+/*
+--- Leture d'un fichier xls
+XLSX = require('xlsx');
+
+const workBook = XLSX.readFile(inputFilename);
+XLSX.writeFile(workBook, outputFilename, { bookType: "csv" });
+*/
 
 
 
