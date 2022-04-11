@@ -347,7 +347,7 @@ router.get('/panel',async (req,res)=>{
         return res.send({status:true,panels:p})
         
     } catch (e) {
-        console.log(e)
+        console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
 })
