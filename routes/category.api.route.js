@@ -69,20 +69,22 @@ router.get('/',async (req,res)=>{
 })
 
 
-router.get('/:id',(req,res)=>{
+
+
+router.get('/:id',async (req,res)=>{
     let Category = require('../models/category')
     let id = parseInt(req.params.id)
     if(id.toString == 'NaN'){
         return res.send({status:false,message:"Erreur de donnée entrée"})
     }
 
-    Category.getById(id,(err,result)=>{
-        if(err){
-            return res.send({status:false,message:"Erreur dans la base de donnée"})
-        }else{
-            return res.send({status:true,cat:result[0]})
-        }
-    })
+    try {
+        const c = (await Category.getById(id) )[0]
+        return res.send({status:true,cat:c})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
 })
 
 router.post('/',(req,res)=>{

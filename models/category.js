@@ -96,16 +96,19 @@ class Category{
         })
     }
 
-    static getById(id,cb){
-        let sql = "select *,(select count(*) from panneau where panneau.cat_id=category.cat_id) as nb_panel, "
-        sql+="(select count(*) from category where parent_cat_id = "+id+") as nb_sous_cat, "
-        sql+="(select c.cat_label from category as c where c.cat_id = category.parent_cat_id ) as parent_cat_label "
-        sql+="from category "
-        sql+="where cat_id = ?"
-        connection.query(sql,id,(err,res)=>{
-            console.log(err)
-            cb(err,res)
+    static getById(id){
+        return new Promise((resolve,reject)=>{
+            let sql = `select *,(select count(*) from panneau where panneau.cat_id=category.cat_id ) as nb_panel, `
+            sql+="(select count(*) from category where parent_cat_id = "+id+") as nb_sous_cat, "
+            sql+="(select c.cat_label from category as c where c.cat_id = category.parent_cat_id ) as parent_cat_label "
+            sql+="from category "
+            sql+="where cat_id = ? "
+            connection.query(sql,id,(err,res)=>{
+                if(err) return reject(err)
+                resolve(res)
+            })
         })
+        
     }
 
     static getRegByIdProfil(id_pr){
