@@ -11,6 +11,7 @@ router.use((req, res, next) => {
 
 //Suppression de location par le régisseur
 router.delete('/location/:id',async (req,res)=>{
+    let Data = require('../models/data')
     let id = parseInt(req.params.id)
     if(id.toString() == 'NaN'){
         return res.send({status:false,message:"Erreur de donnée en entrée"})
@@ -20,15 +21,41 @@ router.delete('/location/:id',async (req,res)=>{
         const Loc = require('../models/location')
         const pl = await Loc.getPanLocationById(id)
         let tmp_pl = pl[0]
+        //Suppresion de la location
+        await Loc.deleteLocationBy({pan_loc_id:id})
 
-        if(tmp_pl.pan_loc_by_reg){
-            await Loc.deleteLocationBy({pan_loc_id:id})
-            await require('../models/data').updateWhere('panneau',{pan_state:1},{pan_id:tmp_pl.pan_id})
+        //Modification du panneau en mode disponnible et suppression des références
+        await require('../models/data').updateWhere('panneau',{pan_state:1,ann_id:null},{pan_id:tmp_pl.pan_id})
 
-            return res.send({status:true})
-        }else{
-            return res.send({status:false,message:"Vous n'avez pas l'autorisation de supprimer la location"})
+        //Envoie de notification chez l'annonceur
+
+        //Création de notification
+        const ann_pr = (await Data.exec(`select * from annonceur as a 
+        left join profil as p on p.pr_id = a.pr_id where a.ann_id = ${tmp_pl.ann_id}`))[0]
+
+        const panel = (await Data.exec(`select * from panneau where pan_id = ${tmp_pl.pan_id} `) )[0]
+
+        //Envoi  de notification côté annonceur
+        let n = {
+            notif_type:'ann',
+            notif_desc:`<div> Votre Location sur le panneau 
+            <nuxt-link class="hover:underline text-indigo-600" to="/panneau/${panel.pan_id}" > ${panel.pan_publoc_ref} </nuxt-link> a été annulé par le régisseur.
+            </div>`,
+            notif_dest_pr_id:ann_pr.pr_id,
+            notif_motif:'del-location',
+            notif_title:'Annuation de location par le Régisseur',
         }
+
+        await Data.set('notification',n)
+
+        //Notification push
+        req.io.emit('new-notif-'+ann_pr.pr_id,{
+            t:"Annuation de location",
+            c:"Une location a été annulé par le Régisseur",
+            e:false
+        })
+
+        return res.send({status:true})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur de la base de donnée."})

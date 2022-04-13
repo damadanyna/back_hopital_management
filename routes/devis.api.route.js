@@ -26,6 +26,48 @@ router.get('/',async (req,res)=>{
     }    
 })
 
+router.put('/response',async (req,res)=>{
+    let Data  = require('../models/data')
+
+    try {
+        let dr = req.body
+
+        //Modification du devis correspindant
+        await Data.updateWhere('devis_request',{d_devis_response:dr.d_devis_response},{d_devis_id:dr.d_devis_id})
+
+        //Création de notification
+        const ann_pr = (await Data.exec(`select * from annonceur as a 
+        left join profil as p on p.pr_id = a.pr_id where a.ann_id = ${dr.d_devis_ann_id}`))[0]
+
+        //Envoi  de notification côté annonceur
+        let n = {
+            notif_type:'ann',
+            notif_desc:`<div> Vous avez reçu une réponse pour votre demande de devis sur le panneau <nuxt-link class="hover:underline text-indigo-600" 
+            to="/panneau/${dr.pan_id}" > ${dr.pan_publoc_ref} </nuxt-link>.
+            <nuxt-link class="hover:underline text-indigo-600" to="/a/devis/${dr.d_devis_id}" > Voir </nuxt-link>
+            </div>`,
+            notif_dest_pr_id:ann_pr.pr_id,
+            notif_motif:'devis-response',
+            notif_title:'Réponse de demande de devis',
+        }
+
+        await Data.set('notification',n)
+
+        //Notification push
+        req.io.emit('new-notif-'+ann_pr.pr_id,{
+            t:"Réponse demande de devis",
+            c:"Vous avez réçu une réponse de demande de devis",
+            e:false
+        })
+
+        return res.send({status:true})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 
 //Exportation
 module.exports = router

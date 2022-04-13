@@ -399,13 +399,14 @@ class Panneau{
 
     static getListByReg(id_reg,w){
         return new Promise((resolve,reject)=>{
-            let sql = `select panneau.*,l.*,f.name_file,f.name_min_file,pl.pan_loc_id,pl.pan_loc_date_debut, 
-            pl.pan_loc_month,pl.pan_loc_by_reg,pl.pan_loc_ann_label from panneau `
-            sql+="left join lieu as l on l.lieu_id = panneau.lieu_id "
-            sql+="left join file as f on f.file_id = panneau.image_id "
-            sql+="left join pan_location as pl on pl.pan_id = panneau.pan_id "
-            sql+="where panneau.reg_id = ? "
-            sql+=(w)?`and panneau.pan_state = ${w.pan_state} `:''
+            let sql = `select a.ann_label,p.*,l.*,f.name_file,f.name_min_file,pl.pan_loc_id,pl.pan_loc_date_debut, 
+            pl.pan_loc_month,pl.pan_loc_by_reg,pl.pan_loc_ann_label from panneau as p `
+            sql+="left join lieu as l on l.lieu_id = p.lieu_id "
+            sql+="left join file as f on f.file_id = p.image_id "
+            sql+="left join annonceur as a on a.ann_id = p.ann_id "
+            sql+="left join pan_location as pl on pl.pan_id = p.pan_id "
+            sql+="where p.reg_id = ? "
+            sql+=(w)?`and p.pan_state = ${w.pan_state} `:''
             connection.query(sql,id_reg,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
