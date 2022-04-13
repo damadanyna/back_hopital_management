@@ -328,4 +328,34 @@ router.delete('/media/all/refs',async (req,res)=>{
         return res.send({status:false,message:"Erreur dans la base de donnée",e:e})
     }
 })
+
+//Settings pour les panneaux
+router.get('/pan-ref-not-null/count',async (req,res)=>{
+    let Data = require('../models/data')
+
+    try {
+        const nb = (await Data.exec('select count(*) as nb from panneau as p where p.ann_id is not null and p.pan_state <> 3 '))[0].nb
+
+        return res.send({status:true,nb})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée",e:e})
+    }
+})
+
+//Suppression des références annonceurs dans le panneau 
+router.delete('/pan-ref-not-null',async (req,res)=>{
+    let Data = require('../models/data')
+
+    try {
+        await Data.exec(`update panneau set ann_id = null where ann_id is not null and pan_state <> 3`)
+
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée",e:e})
+    }
+})
 module.exports = router
+
+
