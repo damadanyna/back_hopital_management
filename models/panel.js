@@ -397,14 +397,15 @@ class Panneau{
         })
     }
 
-    static getListByReg(id_reg){
+    static getListByReg(id_reg,w){
         return new Promise((resolve,reject)=>{
             let sql = `select panneau.*,l.*,f.name_file,f.name_min_file,pl.pan_loc_id,pl.pan_loc_date_debut, 
             pl.pan_loc_month,pl.pan_loc_by_reg,pl.pan_loc_ann_label from panneau `
             sql+="left join lieu as l on l.lieu_id = panneau.lieu_id "
             sql+="left join file as f on f.file_id = panneau.image_id "
             sql+="left join pan_location as pl on pl.pan_id = panneau.pan_id "
-            sql+="where panneau.reg_id = ?"
+            sql+="where panneau.reg_id = ? "
+            sql+=(w)?`and panneau.pan_state = ${w.pan_state} `:''
             connection.query(sql,id_reg,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
@@ -524,6 +525,7 @@ class Panneau{
             })
         })
     }
+    //Récupération des locations validées
     static getAllLocationsBy(v){
         return new Promise((resolve,reject)=>{
             let sql = `select pl.pan_loc_id,pan.pan_ref,pan.pan_id, ann.ann_label,pl.pan_loc_reservation_date,

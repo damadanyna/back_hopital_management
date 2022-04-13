@@ -8,6 +8,53 @@ router.use((req, res, next) => {
     next();
 });
 
+//Poste de devis
+router.post('/devis',async (req,res)=>{
+
+    let d = req.body
+    try {
+        const ann = (await require('../models/annonceur').getByIdProfil(req.user.pr_id))[0]
+        let devis = {
+            d_devis_pan_id:d.pan_id,
+            d_devis_ann_id:ann.ann_id,
+            d_devis_month:d.month,
+            d_devis_date_debut:new Date(d.date_debut)
+        }
+
+        await require('../models/data').set('devis_request',devis)
+
+
+        //Gestion des notifications
+        req.io.emit('new-notif-ad',{
+            t:"Demande de devis",
+            c:"Un annonceur vient de faire une demande de devis",
+            e:false
+        })
+
+        //Récupération de infos pour la notification
+        const p  = (await require('../models/panel').getById(d.pan_id))[0]
+
+        //Insertion de notifications
+        let n = {
+            notif_desc:`<div> L'annonceur <nuxt-link class="text-indigo-600" to="/admin/annonceur/${ann.ann_id}"> ${ann.ann_label} </nuxt-link> vient de faire une demande de devis sur le panneau
+              <nuxt-link class="text-indigo-600" to="/admin/panneau/${p.pan_id}" > ${p.pan_ref} </nuxt-link>. </div>`,
+           
+            notif_type:'a',
+            notif_motif:'demande-devis',
+            notif_title:"Demande de devis"
+        }
+
+        //Insertion de la notification
+        await require('../models/notif').set(n)
+
+        //-------------------------------
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 router.get('/count',(req,res)=> {
     let Annonceur = require('../models/annonceur')
 
@@ -706,7 +753,7 @@ router.delete('/notifs/:id',async(req,res)=>{
         return res.send({status:true})
 
     } catch (e) {
-        console.log(e)
+        console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
 })

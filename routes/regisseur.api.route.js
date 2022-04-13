@@ -334,6 +334,15 @@ router.get('/panel',async (req,res)=>{
         return res.send({status:false,message:"Autorisation non suffisante"})
     }
 
+    //Etat de panneau
+    let st = {
+        'dispo':1,
+        'location':3,
+        'indispo':4
+    }
+
+    let w = (req.query.state == 'tous')?null:{'pan_state':st[req.query.state]}
+
     try {
         //Récupération du régisseur actuel 
         let Profil = require ('../models/profil')
@@ -342,7 +351,7 @@ router.get('/panel',async (req,res)=>{
             return res.send({status:false,message:"Aucun profil trouver. Il est possible que votre compte a été supprimeé ou bloqué"})
         }
 
-        const p = await Panel.getListByReg(reg[0].reg_id)
+        const p = await Panel.getListByReg(reg[0].reg_id,w)
 
         return res.send({status:true,panels:p})
         
@@ -352,7 +361,7 @@ router.get('/panel',async (req,res)=>{
     }
 })
 
-//Récupération d'un seul panneau pour la visulaisation côté régisseur
+//Récupération d'un seul panneau pour la visualisation côté régisseur
 //Récupération d'un panneau pour la viewPanel
 router.get('/panel/:id',async (req,res)=>{
     let Panel = require('./../models/panel')

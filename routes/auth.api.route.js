@@ -58,6 +58,9 @@ router.use('/com',require('./com.api.route'))
 //Gestion des administratifs
 router.use('/cu',require('./cu.api.route'))
 
+//Pour la gestion de devis
+router.use('/devis',require('./devis.api.route'))
+
 //Deconnexion
 router.get('/deconnect',(req,res)=>{
     let options = {
@@ -90,7 +93,10 @@ router.get('/status',async (req,res)=>{
         }
         if(req.user.pr_type == 'a'){
             const t = await Notif.countNotifByAdmin()
-            return res.send({status:true,pr:pr,nbNotif:t[0].nb})
+
+            //On va rechercher les devis non répondu par l'admin
+            const nbDevis = (await D.exec('select count(*) as nbDevis from devis_request where d_devis_response is null') )[0].nbDevis
+            return res.send({status:true,pr:pr,nbNotif:t[0].nb,nbDevis})
         }else{
             const t = await Notif.countNotifByDestProfil(req.user.pr_id)
 
@@ -125,8 +131,6 @@ router.get('/status',async (req,res)=>{
         console.log(e)
         return res.send({status:false})
     }
-    
-    
 })
 
 

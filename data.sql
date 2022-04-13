@@ -152,7 +152,6 @@ create table if not exists pan_visited(
     PRIMARY KEY (id)
 )ENGINE=InnoDB;
 
-
 create table if not exists commune_urbaine (
     cu_id INT NOT NULL AUTO_INCREMENT,
     cu_label varchar(255) null,
@@ -344,6 +343,18 @@ create table if not exists gros_plan(
     gp_rang int null,
     gp_style text null,
     PRIMARY KEY (gp_id)
+)ENGINE=InnoDB;
+
+-- pour demande de devis
+create table if not exists devis_request(
+    d_devis_id int not null auto_increment,
+    d_devis_pan_id int null,
+    d_devis_ann_id int null,
+    d_devis_lu int null default 0,
+    d_devis_month int null,
+    d_devis_date_debut datetime null,
+    d_devis_response text null,
+    PRIMARY KEY (d_devis_id)
 )ENGINE=InnoDB;
 
 
