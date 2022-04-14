@@ -192,12 +192,49 @@ router.get('/:id',async (req,res)=>{
             const ims = await require('../models/File').getIn(p_res[0].pan_list_photo.split(',').map(x => parseInt(x)) )
             image_list = ims
         }
+
+        
         return res.send({status:true,panel:p_res[0],image_list:image_list})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:'Erreur dans la base de donnée'})
     }
+})
 
+//Récupération d'un panneau pour la modification
+router.get('/:id/edit',async (req,res)=>{
+    let Panel = require('./../models/panel')
+    let Data = require('../models/data')
+    let id = parseInt(req.params.id)
+    if(id.toString() == 'NaN'){
+        return res.send({status:false,message:'Erreur de donnée en Entrée.'})
+    }
+
+    try {
+        const p_res = await Panel.getById(id)
+        let image_list = []
+        if(p_res[0].pan_list_photo != null){
+            const ims = await require('../models/File').getIn(p_res[0].pan_list_photo.split(',').map(x => parseInt(x)) )
+            image_list = ims
+        }
+
+        //R2cupération des annonceurs
+        const ann = await Data.exec('select a.ann_id, a.ann_label from annonceur a')
+
+        //Récupération des catégories
+        const cat = await Data.exec('select * from category where parent_cat_id is null')
+
+        //Récupération de formats
+        const format = await Data.exec(`select * from category where parent_cat_id = ${p_res[0].parent_cat_id } `)
+
+        //Récupération des régisseurs
+        const reg = await Data.exec('select r.reg_id, r.reg_label from regisseur r ')
+        
+        return res.send({status:true,panel:p_res[0],image_list:image_list,ann,cat,format,reg})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée'})
+    }
 })
 
 //Récupération panneau avec limit

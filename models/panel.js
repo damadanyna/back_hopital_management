@@ -329,7 +329,8 @@ class Panneau{
 
     static getById(id){
         return new Promise((resolve,reject)=>{
-            let sql = "select panneau.*,lieu.*,category.*,reg.*,ann.*,file.name_file,reg.pr_id as reg_pr_id from panneau "
+            let sql = `select panneau.*,lieu.*,category.*,reg.*,ann.*,file.name_file,reg.pr_id as reg_pr_id,
+            (select cat_label from category c where c.cat_id = category.parent_cat_id ) as parent_cat_label from panneau `
             sql+="left join lieu on panneau.lieu_id = lieu.lieu_id "
             sql+="left join category on panneau.cat_id = category.cat_id "
             sql+="left join regisseur as reg on panneau.reg_id = reg.reg_id "

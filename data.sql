@@ -358,7 +358,16 @@ create table if not exists devis_request(
     PRIMARY KEY (d_devis_id)
 )ENGINE=InnoDB;
 
--- Pour les fichiers (les vrais) 
+-- Pour les fichiers (les vrais)
+create table if not exists fic (
+    fic_id int not null auto_increment,
+    fic_type varchar(255) null,
+    fic_size varchar(255) null,
+    fic_path varchar(255) null,
+    fic_origin_name varchar(255) null,
+    fic_name varchar(255) null,
+    PRIMARY KEY (fic_id)
+)ENGINE=InnoDB;
 
 
 

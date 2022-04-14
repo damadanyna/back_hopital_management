@@ -30,30 +30,34 @@ router.delete('/location/:id',async (req,res)=>{
         //Envoie de notification chez l'annonceur
 
         //Création de notification
-        const ann_pr = (await Data.exec(`select * from annonceur as a 
-        left join profil as p on p.pr_id = a.pr_id where a.ann_id = ${tmp_pl.ann_id}`))[0]
+        
 
         const panel = (await Data.exec(`select * from panneau where pan_id = ${tmp_pl.pan_id} `) )[0]
 
         //Envoi  de notification côté annonceur
-        let n = {
-            notif_type:'ann',
-            notif_desc:`<div> Votre Location sur le panneau 
-            <nuxt-link class="hover:underline text-indigo-600" to="/panneau/${panel.pan_id}" > ${panel.pan_publoc_ref} </nuxt-link> a été annulé par le régisseur.
-            </div>`,
-            notif_dest_pr_id:ann_pr.pr_id,
-            notif_motif:'del-location',
-            notif_title:'Annuation de location par le Régisseur',
+        if(tmp_pl.ann_id  != undefined){
+            const ann_pr = (await Data.exec(`select * from annonceur as a 
+            left join profil as p on p.pr_id = a.pr_id where a.ann_id = ${tmp_pl.ann_id}`))[0]
+            let n = {
+                notif_type:'ann',
+                notif_desc:`<div> Votre Location sur le panneau 
+                <nuxt-link class="hover:underline text-indigo-600" to="/panneau/${panel.pan_id}" > ${panel.pan_publoc_ref} </nuxt-link> a été annulé par le régisseur.
+                </div>`,
+                notif_dest_pr_id:ann_pr.pr_id,
+                notif_motif:'del-location',
+                notif_title:'Annuation de location par le Régisseur',
+            }
+    
+            await Data.set('notification',n)
+            //Notification push
+            req.io.emit('new-notif-'+ann_pr.pr_id,{
+                t:"Annuation de location",
+                c:"Une location a été annulé par le Régisseur",
+                e:false
+            })
         }
 
-        await Data.set('notification',n)
-
-        //Notification push
-        req.io.emit('new-notif-'+ann_pr.pr_id,{
-            t:"Annuation de location",
-            c:"Une location a été annulé par le Régisseur",
-            e:false
-        })
+        
 
         return res.send({status:true})
     } catch (e) {

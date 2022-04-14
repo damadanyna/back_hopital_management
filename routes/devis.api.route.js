@@ -44,7 +44,7 @@ router.put('/response',async (req,res)=>{
             notif_type:'ann',
             notif_desc:`<div> Vous avez reçu une réponse pour votre demande de devis sur le panneau <nuxt-link class="hover:underline text-indigo-600" 
             to="/panneau/${dr.pan_id}" > ${dr.pan_publoc_ref} </nuxt-link>.
-            <nuxt-link class="hover:underline text-indigo-600" to="/a/devis/${dr.d_devis_id}" > Voir </nuxt-link>
+            <nuxt-link class="hover:underline text-indigo-600" to="/a/devis?view=${dr.d_devis_id}" > Voir </nuxt-link>
             </div>`,
             notif_dest_pr_id:ann_pr.pr_id,
             notif_motif:'devis-response',
@@ -54,6 +54,7 @@ router.put('/response',async (req,res)=>{
 
         await Data.set('notification',n)
 
+        
         //Notification push
         req.io.emit('new-notif-'+ann_pr.pr_id,{
             t:"Réponse demande de devis",
