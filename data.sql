@@ -354,8 +354,11 @@ create table if not exists devis_request(
     d_devis_month int null,
     d_devis_date_debut datetime null,
     d_devis_response text null,
+    d_devis_date datetime null default NOW(),
     PRIMARY KEY (d_devis_id)
 )ENGINE=InnoDB;
+
+-- Pour les fichiers (les vrais) 
 
 
 

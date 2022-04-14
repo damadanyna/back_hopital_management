@@ -21,7 +21,7 @@ router.post('/devis',async (req,res)=>{
             d_devis_date_debut:new Date(d.date_debut)
         }
 
-        await require('../models/data').set('devis_request',devis)
+        let d_id = (await require('../models/data').set('devis_request',devis)).insertId
 
 
         //Gestion des notifications
@@ -41,7 +41,8 @@ router.post('/devis',async (req,res)=>{
            
             notif_type:'a',
             notif_motif:'demande-devis',
-            notif_title:"Demande de devis"
+            notif_title:"Demande de devis",
+            notif_id_object:d_id
         }
 
         //Insertion de la notification
