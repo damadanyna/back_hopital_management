@@ -8,12 +8,27 @@ router.use((req, res, next) => {
     next();
 });
 
+//Mettre en dispo les panneaux sur la liste et ce qui n'est pas sur la liste sera en indisponnible
+router.put('/dispo',async (req,res)=>{
+    let Data = require('../models/data')
+    try {
+        let sql = `update panneau set pan_state = 1 where pan_id in (?) and reg_id = ? `
+        const dispo_modif = await Data.exec_params(sql,[req.body.ids,req.body.reg_id])
+        sql = `update panneau set pan_state = 4 where pan_id not in (?) and reg_id = ? `
+        const indispo_modif = await Data.exec_params(sql,[req.body.ids,req.body.reg_id])
+
+        return res.send({status:true,dispo_modif,indispo_modif})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //Recherche de panneau par ref
 router.get('/search/:ref/ref',async (req,res)=>{
     let Data = require('../models/data')
     try {
-        const panels = await Data.exec(`select * from panneau where pan_ref like '%${req.params.ref}%' `)
-
+        const panels = await Data.exec(`select * from panneau where pan_ref like '%${req.params.ref}%' and reg_id = ${req.query.reg} and pan_state in (1,2,4) `)
         return res.send({status:true,panels})
     } catch (e) {
         console.error(e)
