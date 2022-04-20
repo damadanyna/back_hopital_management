@@ -8,12 +8,37 @@ router.use((req, res, next) => {
     next();
 });
 
+//Recherche de panneau par ref
+router.get('/search/:ref/ref',async (req,res)=>{
+    let Data = require('../models/data')
+    try {
+        const panels = await Data.exec(`select * from panneau where pan_ref like '%${req.params.ref}%' `)
+
+        return res.send({status:true,panels})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //Récupération de panneaux à afficher dans les boîtes de dialogue
 router.get('/by',async (req,res)=>{
     try {
         console.log(req.query)
         const p = await require('../models/panel').getWhere(req.query)
         return res.send({status:true,panels:p})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Modification d'image pricipale de panneau
+router.put('/:id/im-main',async (req,res)=>{
+    try {
+        await require('../models/data').updateWhere('panneau',{image_id:req.body.image_id},{pan_id:req.params.id})
+
+        return res.send({status:true})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
