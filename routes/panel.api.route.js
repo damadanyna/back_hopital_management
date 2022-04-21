@@ -94,6 +94,66 @@ router.get('/',async (req,res)=>{
     }
 })
 
+//Get normal
+router.get('/admin/filters',async (req,res)=>{
+    let Panel = require('./../models/panel')
+
+    let w = '',t_w= []
+    let d = req.query
+
+    //Pour la recherche
+    if(d.filter_by == 'pan_ref'){
+        w+=`p.pan_ref like ?`
+    }else if(d.filter_by == 'lieu_ville' || d.filter_by == 'lieu_quartier' || d.filter_by == 'lieu_region' ){
+        w+=`l.${d.filter_by} like ?`
+    }else if(d.filter_by == 'ann_label'){
+        w+=`a.ann_label like ?`
+    }else if(d.filter_by == 'reg_label'){
+        w+=`r.ann_label like ?`
+    }
+
+    t_w.push(`%${d.input}%`)
+
+    //Etat du panneau
+    if(d.state){
+        w+=` and p.pan_state = ?`
+        t_w.push(d.state)
+    }
+
+    if(d.validation){
+        w+=' and p.pan_validation = ?'
+        t_w.push(d.validation)
+    }
+
+    //Les offsets
+    let limit = ` limit ${d.limit} offset ${d.limit * (d.page-1)} `
+
+
+    //Ceci possède des filtres
+    let sql_request = `select * from panneau p
+    left join lieu l on l.lieu_id = p.lieu_id 
+    left join annonceur a on p.ann_id = a.ann_id
+    left join regisseur r on r.reg_id = p.reg_id
+    where ${w} ${limit}`
+
+    let sql_count = `select count(*) as nb from panneau p
+    left join lieu l on l.lieu_id = p.lieu_id 
+    left join annonceur a on p.ann_id = a.ann_id
+    left join regisseur r on r.reg_id = p.reg_id
+    where ${w}`
+
+    try {
+        const panels = await require('../models/data').exec_params(sql_request,t_w)
+        const countPanel = (await require('../models/data').exec_params(sql_count,t_w))[0].nb
+
+        return res.send({status:true,panels,countPanel,sql_request,sql_count,d})
+
+    } catch (e) {
+        console.log(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.',d})
+    }
+})
+
 
 //Insertion d'un panneau
 router.post('/',async (req,res)=>{
