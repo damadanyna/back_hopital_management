@@ -109,7 +109,7 @@ router.get('/admin/filters',async (req,res)=>{
     }else if(d.filter_by == 'ann_label'){
         w+=`a.ann_label like ?`
     }else if(d.filter_by == 'reg_label'){
-        w+=`r.ann_label like ?`
+        w+=`r.reg_label like ?`
     }
 
     t_w.push(`%${d.input}%`)
