@@ -373,6 +373,7 @@ router.get('/panel',async (req,res)=>{
     }
 
     let w = (req.query.state == 'tous')?null:{'pan_state':st[req.query.state]}
+    let input = `%${req.query.input.trim()}%`
 
     try {
         //Récupération du régisseur actuel 
@@ -382,7 +383,7 @@ router.get('/panel',async (req,res)=>{
             return res.send({status:false,message:"Aucun profil trouver. Il est possible que votre compte a été supprimeé ou bloqué"})
         }
 
-        const p = await Panel.getListByReg(reg[0].reg_id,w)
+        const p = await Panel.getListByReg(reg[0].reg_id,w,input)
 
         return res.send({status:true,panels:p})
         

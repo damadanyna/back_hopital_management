@@ -6,12 +6,32 @@ const bcrypt = require('bcrypt')
 const sharp = require("sharp")
 
 let fs = require('fs')
-
+const AuthApp = require("../models/app_auth");
 require('dotenv').config()
 const config = process.env
 
+//Middleware spécifique pour le truc ----------------------
+router.use((req, res, next)=>{
+    let token = req.cookies['x-access-token']
+    if(token){
+        try {
+            const decoded = jwt.verify(token, config.TOKEN_KEY)
+            req.user = decoded
+            return next()
+        } catch (err) {
+            return next()
+        }
+    }else{
+        return next()
+    }
+
+})
+
+//---------------------------------------------------
+//----------------------
+
 router.get('/test',(req,res)=>{
-    res.send({message:"API Fonctionnel"})
+    return res.status(200).send({message:"API Fonctionnel"})
 })
 
 //index api
@@ -22,6 +42,8 @@ router.get('/',(req,res)=>{
 
 router.post('/auth',(req,res)=>{
     let User = require('../models/user')
+
+    console.error('salut eto am auth zao')
 
     if(req.body.id == undefined){
         return res.send({status:false,message:"Mauvaise donnée envoyée",data:req.body})
@@ -58,6 +80,8 @@ router.post('/auth',(req,res)=>{
                             sameSite:true,
                             httpOnly: true, // The cookie only accessible by the web server
                         }
+
+                        
                         
                         res.cookie('x-access-token',token, options)
                         return res.send({status:true,message:"Connexion réussie.",u:u_save})

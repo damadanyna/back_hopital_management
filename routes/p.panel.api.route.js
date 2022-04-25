@@ -288,6 +288,7 @@ router.get('/:id_pan/serv',async (req,res)=>{
 //Récupération pour un visionnage public d'un panneau
 router.get('/:id',async (req,res)=>{
     let Panel = require('../models/panel')
+    let Data = require('../models/data')
     let id = parseInt(req.params.id)
 
     if(id.toString() == 'NaN'){
@@ -308,9 +309,21 @@ router.get('/:id',async (req,res)=>{
             panel:p_res[0],
             images:ims
         }
+
+        let ann = null,info = null
+
+        //Rcupération des informatioins sur l'annonceur, si connecté
+        //Pour récupérer les infos à afficher dans la vue
+        if(req.user && req.user.pr_type == 'a'){
+            let sql = `select * from annonceur a where a.pr_id = ${req.user.pr_id} `
+            ann = await (Data.exec(sql))[0]
+
+            if(ann.ann_is_agence_com){
+                
+            }
+        }
         
         return res.send({status:true,panel:pan})
-
     } catch (e) {
         console.log(e)
         return res.send({status:false,message:"Erreur de base de donnée"})

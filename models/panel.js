@@ -398,7 +398,7 @@ class Panneau{
         })
     }
 
-    static getListByReg(id_reg,w){
+    static getListByReg(id_reg,w,i){
         return new Promise((resolve,reject)=>{
             let sql = `select a.ann_label,p.*,l.*,f.name_file,f.name_min_file,pl.pan_loc_id,pl.pan_loc_date_debut, 
             pl.pan_loc_month,pl.pan_loc_by_reg,pl.pan_loc_ann_label from panneau as p `
@@ -408,7 +408,8 @@ class Panneau{
             sql+="left join pan_location as pl on pl.pan_id = p.pan_id "
             sql+="where p.reg_id = ? "
             sql+=(w)?`and p.pan_state = ${w.pan_state} `:''
-            connection.query(sql,id_reg,(err,res)=>{
+            sql+=(i)?` and p.pan_ref like ? `:''
+            connection.query(sql,[id_reg,i],(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
             })

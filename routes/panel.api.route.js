@@ -294,7 +294,8 @@ router.get('/:id',async (req,res)=>{
         }
 
         
-        return res.send({status:true,panel:p_res[0],image_list:image_list})
+        
+        return res.send({status:true,panel:p_res[0],image_list})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:'Erreur dans la base de donnée'})
