@@ -325,8 +325,11 @@ router.get('/:id',async (req,res)=>{
                     reg_label:reg.reg_label,
                     soc_pr_adresse:reg.soc_pr_adresse,
                     soc_pr_tel:reg.soc_pr_tel,
-                    soc_pr_email:reg.soc_pr_email
+                    soc_pr_email:reg.soc_pr_email,
+                    name_file:reg.name_file
                 }
+
+                console.log(reg)
 
 
             }else{

@@ -47,6 +47,7 @@ class Regisseur{
             sql+='from regisseur as reg '
             sql+="left join soc_profil as sp on sp.soc_pr_id = reg.soc_pr_id "
             sql+="left join profil as p on p.pr_id = reg.pr_id "
+            sql+="left join file as f on f.file_id = p.file_profil "
             // sql+="left join pan_location as pl on pl.reg_id = reg.reg_id "
             sql+="where reg.reg_id = ?"
 
