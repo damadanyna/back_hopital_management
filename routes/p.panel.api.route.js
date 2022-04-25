@@ -329,7 +329,7 @@ router.get('/:id',async (req,res)=>{
                     name_file:reg.name_file
                 }
 
-                console.log(reg)
+                // console.log(reg)
 
 
             }else{
