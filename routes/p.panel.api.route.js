@@ -314,16 +314,33 @@ router.get('/:id',async (req,res)=>{
 
         //Rcupération des informatioins sur l'annonceur, si connecté
         //Pour récupérer les infos à afficher dans la vue
-        if(req.user && req.user.pr_type == 'a'){
+        if(req.user && req.user.pr_type == 'ann'){
             let sql = `select * from annonceur a where a.pr_id = ${req.user.pr_id} `
-            ann = await (Data.exec(sql))[0]
+            ann = (await Data.exec(sql))[0]
 
             if(ann.ann_is_agence_com){
-                
+                let reg = (await require('../models/regisseur').getById(pan.panel.reg_id))[0]
+
+                info = {
+                    reg_label:reg.reg_label,
+                    soc_pr_adresse:reg.soc_pr_adresse,
+                    soc_pr_tel:reg.soc_pr_tel,
+                    soc_pr_email:reg.soc_pr_email
+                }
+
+
+            }else{
+                delete pan.panel.reg_id
+                delete pan.panel.pan_ref
             }
+        }else{
+            delete pan.panel.reg_id
+            delete pan.panel.pan_ref
         }
+
+        console.log(req.user)
         
-        return res.send({status:true,panel:pan})
+        return res.send({status:true,panel:pan,info})
     } catch (e) {
         console.log(e)
         return res.send({status:false,message:"Erreur de base de donnée"})

@@ -14,7 +14,7 @@ router.put('/dispo',async (req,res)=>{
     try {
         let sql = `update panneau set pan_state = 1 where pan_id in (?) and reg_id = ? `
         const dispo_modif = await Data.exec_params(sql,[req.body.ids,req.body.reg_id])
-        sql = `update panneau set pan_state = 4 where pan_id not in (?) and reg_id = ? `
+        sql = `update panneau set pan_state = 4 where pan_id not in (?) and reg_id = ? and pan_state not in (3) `
         const indispo_modif = await Data.exec_params(sql,[req.body.ids,req.body.reg_id])
 
         return res.send({status:true,dispo_modif,indispo_modif})

@@ -356,6 +356,24 @@ router.delete('/pan-ref-not-null',async (req,res)=>{
         return res.send({status:false,message:"Erreur dans la base de donnée",e:e})
     }
 })
+
+
+//Récupération des panneaux indispo mais en location
+router.get('/pan-indispo-with-loc/count',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        let nb = (await D.exec(`select count(*) as nb from panneau where pan_state = 4 and ann_id is not null`))[0].nb
+
+        return res.send({status:true,nb})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée",e:e})
+    }
+})
+
+
 module.exports = router
 
 
