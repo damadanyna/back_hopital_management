@@ -373,6 +373,19 @@ router.get('/pan-indispo-with-loc/count',async (req,res)=>{
     }
 })
 
+//changement en dispo des panneau de dessus
+router.put('/pan-indispo-with-loc',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        await D.exec('update panneau set pan_state = 3 where pan_state = 4 and ann_id is not null')
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée",e:e})
+    }
+})
+
 
 module.exports = router
 
