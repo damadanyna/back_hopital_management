@@ -68,11 +68,12 @@ router.delete('/location/:id',async (req,res)=>{
 
 //Validation de location pour un régisseur
 router.post('/location',async (req,res)=>{
-    //console.log(req.body)
+    // console.log(req.body)
     let p = req.body
 
-    try {
 
+
+    try {
         const reg = await require('../models/regisseur').getByIdProfil(req.user.pr_id)
 
         let loc = {
@@ -91,6 +92,9 @@ router.post('/location',async (req,res)=>{
         if(pl.length > 0){
             let pl_t = pl[0]
             await require('../models/data').updateWhere('pan_location',loc,{pan_loc_id:pl_t.pan_loc_id})
+
+            //S'il y a un annonceur
+            
         }else{
             await require('../models/annonceur').insertPanLocation(loc)
         }
