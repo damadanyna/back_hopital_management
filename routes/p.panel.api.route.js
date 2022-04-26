@@ -311,37 +311,39 @@ router.get('/:id',async (req,res)=>{
         }
 
         let ann = null,info = null
+        
+        //Récupération des informations du régisseur
+        let reg = (await require('../models/regisseur').getById(pan.panel.reg_id))[0]
+
+        let info_tmp = {
+            reg_label:reg.reg_label,
+            soc_pr_adresse:reg.soc_pr_adresse,
+            soc_pr_tel:reg.soc_pr_tel,
+            soc_pr_email:reg.soc_pr_email,
+            name_file:reg.name_file
+        }
+
 
         //Rcupération des informatioins sur l'annonceur, si connecté
         //Pour récupérer les infos à afficher dans la vue
+
+        info = (reg.soc_sub)?info_tmp:null
+        
         if(req.user && req.user.pr_type == 'ann'){
             let sql = `select * from annonceur a where a.pr_id = ${req.user.pr_id} `
             ann = (await Data.exec(sql))[0]
 
-            if(ann.ann_is_agence_com){
-                let reg = (await require('../models/regisseur').getById(pan.panel.reg_id))[0]
+            info = (ann.ann_is_agence_com)?info_tmp:null
+        }
 
-                info = {
-                    reg_label:reg.reg_label,
-                    soc_pr_adresse:reg.soc_pr_adresse,
-                    soc_pr_tel:reg.soc_pr_tel,
-                    soc_pr_email:reg.soc_pr_email,
-                    name_file:reg.name_file
-                }
-
-                // console.log(reg)
-
-
-            }else{
-                delete pan.panel.reg_id
-                delete pan.panel.pan_ref
-            }
-        }else{
+        if(!info){
             delete pan.panel.reg_id
             delete pan.panel.pan_ref
         }
 
-        console.log(req.user)
+        // console.log({label:reg.reg_label,sub:reg.soc_sub})
+
+        // console.log(req.user)
         
         return res.send({status:true,panel:pan,info})
     } catch (e) {
