@@ -156,6 +156,9 @@ create table if not exists pan_visited(
 create table if not exists commune_urbaine (
     cu_id INT NOT NULL AUTO_INCREMENT,
     cu_label varchar(255) null,
+    cu_label_2 varchar(255) null,
+    cu_desc text null,
+    cu_ville varchar(255),
     pr_id int null,
     ville_id int null,
     PRIMARY KEY (cu_id)

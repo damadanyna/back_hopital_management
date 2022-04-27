@@ -259,6 +259,9 @@ router.put('/:id',async (req,res)=>{
         //Modification de la date de dérnière modification
         p.pan_update_at = new Date()
         //--------------------------
+        //Insertion de la commune urbaine
+        p.pan_cu_id = d.pan_cu_id
+        p.pan_num_auth_cu = d.pan_num_auth_cu
 
         const p_res = await Panel.update(d.pan_id,p) 
         return res.send({status:true})
@@ -335,8 +338,11 @@ router.get('/:id/edit',async (req,res)=>{
 
         //Récupération des régisseurs
         const reg = await Data.exec('select r.reg_id, r.reg_label from regisseur r ')
+
+        //Récupération des listes de cu
+        const cu = await Data.exec('select cu.cu_id, cu_label,cu_label_2 from commune_urbaine cu')
         
-        return res.send({status:true,panel:p_res[0],image_list:image_list,ann,cat,format,reg})
+        return res.send({status:true,panel:p_res[0],image_list:image_list,ann,cat,format,reg,cu})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:'Erreur dans la base de donnée'})

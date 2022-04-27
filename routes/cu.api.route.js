@@ -10,6 +10,30 @@ router.use((req, res, next) => {
     next();
 });
 
+//Récupération des panneaux rattaché au CU
+router.get('/panel',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        //Récupération des informations du CU à partir de son id de profil
+        
+        let cu = (await D.exec(`select * from commune_urbaine where pr_id = ${req.user.pr_id}`))[0]
+
+        //Récupération des panneaux rattachés
+        let sql = `select p.*,r.reg_label,f.name_file,f.name_min_file,l.* from panneau p 
+        left join lieu l on l.lieu_id = p.lieu_id
+        left join regisseur r on r.reg_id = p.reg_id
+        left join file f on f.file_id = p.image_id 
+        where p.pan_cu_id = ${cu.cu_id} `
+        let panels = await D.exec(sql)
+
+        return res.send({status:true,panels})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.',e})
+    }
+})
+
 
 //Pour la récupération des communes urabaines côtés admin
 router.get('/ad/all',async (req,res)=>{
@@ -60,7 +84,9 @@ router.post('/',async (req,res)=>{
         //Insertion de la commune urbaine
         let cu_post = {
             cu_label:d.cu_label,
-            pr_id:pr_a.insertId
+            pr_id:pr_a.insertId,
+            cu_label_2:(d.cu_label_2)?d.cu_label_2:null,
+            cu_ville:(d.cu_ville)?d.cu_ville:null
         }
         await D.insert('commune_urbaine',cu_post)
 

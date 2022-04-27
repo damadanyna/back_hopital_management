@@ -125,6 +125,10 @@ router.get('/status',async (req,res)=>{
                 }
 
                 return res.send({status:true,pr,nbNotif:t[0].nb,soc_pr})
+            }else if(req.user.pr_type == 'cu'){
+                const cu = (await require('../models/data').exec(`select * from commune_urbaine where pr_id = ${u.pr_id} `))[0]
+
+                return res.send({status:true,pr,soc_pr:cu})
             }
         }
     } catch (e) {

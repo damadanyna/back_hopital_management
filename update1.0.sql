@@ -60,3 +60,7 @@ alter table devis_request add d_devis_date datetime null default NOW();
 
 -- New 27 Avril 2022
 alter table panneau add pan_update_at datetime null default NOW();
+-- next
+alter table commune_urbaine add cu_label_2 varchar(255) null;
+alter table commune_urbaine add cu_desc text null;
+alter table commune_urbaine add cu_ville varchar(255);
