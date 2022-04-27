@@ -329,13 +329,14 @@ class Panneau{
 
     static getById(id){
         return new Promise((resolve,reject)=>{
-            let sql = `select panneau.*,lieu.*,category.*,reg.*,ann.*,file.name_file,reg.pr_id as reg_pr_id,
+            let sql = `select cu.*,panneau.*,lieu.*,category.*,reg.*,ann.*,file.name_file,reg.pr_id as reg_pr_id,
             (select cat_label from category c where c.cat_id = category.parent_cat_id ) as parent_cat_label from panneau `
             sql+="left join lieu on panneau.lieu_id = lieu.lieu_id "
             sql+="left join category on panneau.cat_id = category.cat_id "
             sql+="left join regisseur as reg on panneau.reg_id = reg.reg_id "
             sql+="left join annonceur as ann on panneau.ann_id = ann.ann_id "
             sql+="left join file on panneau.image_id = file.file_id "
+            sql+="left join commune_urbaine cu on cu.cu_id = panneau.pan_cu_id "
             sql+="where pan_id = ?"
             connection.query(sql,id,(err,res)=>{
                 if(err) return reject(err)
@@ -346,7 +347,7 @@ class Panneau{
 
     static getByIdP(id){
         return new Promise((resolve,reject)=>{
-            let sql = "select p.pan_ref,p.pan_publoc_ref,p.reg_id,p.image_id,cat.cat_label, p.pan_description,p.pan_verified_by_publoc,p.pan_list_photo, p.pan_surface,file.name_file, "
+            let sql = "select p.pan_update_at,p.pan_ref,p.pan_publoc_ref,p.reg_id,p.image_id,cat.cat_label, p.pan_description,p.pan_verified_by_publoc,p.pan_list_photo, p.pan_surface,file.name_file, "
             sql+="(select cat_label from category as p_cat where p_cat.cat_id = cat.parent_cat_id limit 1 ) as parent_cat_label, "
             sql+="l.lieu_ville,l.lieu_region,l.lieu_quartier,l.lieu_pays,l.lieu_commune,l.lieu_lat,l.lieu_lng,l.lieu_label "
             sql+="from panneau as p "

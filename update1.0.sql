@@ -57,3 +57,6 @@ alter table pan_location add pan_loc_ann_label varchar(255) null;
 
 -- New 14 Avril 2022
 alter table devis_request add d_devis_date datetime null default NOW();
+
+-- New 27 Avril 2022
+alter table panneau add pan_update_at datetime null default NOW();

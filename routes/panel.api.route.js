@@ -12,9 +12,9 @@ router.use((req, res, next) => {
 router.put('/dispo',async (req,res)=>{
     let Data = require('../models/data')
     try {
-        let sql = `update panneau set pan_state = 1 where pan_id in (?) and reg_id = ? `
+        let sql = `update panneau set pan_state = 1, pan_update_at = now() where pan_id in (?) and reg_id = ? `
         const dispo_modif = await Data.exec_params(sql,[req.body.ids,req.body.reg_id])
-        sql = `update panneau set pan_state = 4 where pan_id not in (?) and reg_id = ? and pan_state not in (3) `
+        sql = `update panneau set pan_state = 4, pan_update_at = now() where pan_id not in (?) and reg_id = ? and pan_state not in (3) `
         const indispo_modif = await Data.exec_params(sql,[req.body.ids,req.body.reg_id])
 
         return res.send({status:true,dispo_modif,indispo_modif})
@@ -255,6 +255,11 @@ router.put('/:id',async (req,res)=>{
 
     try {
         const l_res = await Panel.updateLieu(d.lieu_id,l)
+
+        //Modification de la date de dérnière modification
+        p.pan_update_at = new Date()
+        //--------------------------
+
         const p_res = await Panel.update(d.pan_id,p) 
         return res.send({status:true})
 

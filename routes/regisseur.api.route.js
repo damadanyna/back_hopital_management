@@ -94,7 +94,7 @@ router.post('/location',async (req,res)=>{
             await require('../models/data').updateWhere('pan_location',loc,{pan_loc_id:pl_t.pan_loc_id})
 
             //S'il y a un annonceur
-            
+
         }else{
             await require('../models/annonceur').insertPanLocation(loc)
         }
@@ -398,7 +398,6 @@ router.get('/panel',async (req,res)=>{
 })
 
 //Récupération d'un seul panneau pour la visualisation côté régisseur
-//Récupération d'un panneau pour la viewPanel
 router.get('/panel/:id',async (req,res)=>{
     let Panel = require('./../models/panel')
     let id = parseInt(req.params.id)
@@ -413,6 +412,7 @@ router.get('/panel/:id',async (req,res)=>{
             const ims = await require('../models/File').getInP(p_res[0].pan_list_photo.split(',').map(x => parseInt(x)) )
             image_list = ims
         }
+        //Ajout des inforations si le panneau est loué
         return res.send({status:true,panel:p_res[0],image_list:image_list})
     } catch (e) {
         console.log(e)
