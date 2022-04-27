@@ -64,3 +64,5 @@ alter table panneau add pan_update_at datetime null default NOW();
 alter table commune_urbaine add cu_label_2 varchar(255) null;
 alter table commune_urbaine add cu_desc text null;
 alter table commune_urbaine add cu_ville varchar(255);
+-- next
+alter table panneau add pan_date_auth_cu datetime null;

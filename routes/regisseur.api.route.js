@@ -440,7 +440,8 @@ router.post('/panel',async(req,res)=>{
     }
 
     let d = req.body
-    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_num_quittance','pan_description','pan_support','pan_lumineux','pan_cu_id','pan_num_auth_cu']
+    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref',
+    'pan_description','pan_support','pan_lumineux','pan_cu_id','pan_num_auth_cu','pan_date_auth_cu']
     let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_region','lieu_label','lieu_lat','lieu_lng']
 
     if(d.pan_ref == ''){

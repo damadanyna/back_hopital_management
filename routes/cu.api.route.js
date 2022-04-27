@@ -50,6 +50,51 @@ router.get('/ad/all',async (req,res)=>{
     }
 })
 
+//Modification d'une commune urbaine
+router.put('/',async (req,res)=>{
+    let D = require('../models/data')
+    let d = req.body
+    try {
+        let pass = ''
+
+        if(d.cu_pass){
+            //Encryption du mot de passe
+            pass = await new Promise((resolve,reject)=>{
+                bcrypt.hash(d.cu_pass, 10, (err, hash)=>{
+                    resolve(hash)
+                }) 
+            })
+        }
+
+        let pr = {
+            pr_login:d.cu_login,
+            pr_pass:pass
+        }
+
+        if(!d.cu_pass){
+            delete pr.pr_pass
+        }
+
+        //Modification profil
+        await D.updateWhere('profil',pr,{pr_id:d.pr_id})
+
+        let cu = {
+            cu_label:d.cu_label,
+            cu_label_2:d.cu_label_2,
+            cu_ville:d.cu_ville
+        }
+
+        //Modufication commune urbaine
+        await D.updateWhere('commune_urbaine',cu,{cu_id:d.cu_id}) 
+        return res.send({status:true})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.',e})
+    }
+    // return res.send({status:true})
+})
+
 //Post de la commune urbaine côté admin
 router.post('/',async (req,res)=>{
     let D = require('../models/data')

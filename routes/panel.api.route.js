@@ -159,7 +159,8 @@ router.get('/admin/filters',async (req,res)=>{
 router.post('/',async (req,res)=>{
     let Panel = require('./../models/panel')
     let d = req.body
-    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_num_quittance','pan_description','pan_support','pan_lumineux']
+    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref'
+    ,'pan_description','pan_support','pan_lumineux','pan_cu_id','pan_date_auth_cu','pan_num_auth_cu']
     let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_region','lieu_label','lieu_lat','lieu_lng']
 
     
@@ -262,6 +263,7 @@ router.put('/:id',async (req,res)=>{
         //Insertion de la commune urbaine
         p.pan_cu_id = d.pan_cu_id
         p.pan_num_auth_cu = d.pan_num_auth_cu
+        p.pan_date_auth_cu = new Date(d.pan_date_auth_cu)
 
         const p_res = await Panel.update(d.pan_id,p) 
         return res.send({status:true})
