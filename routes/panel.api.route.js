@@ -282,7 +282,7 @@ router.put('/:id',async (req,res)=>{
         if(d[pan[i]] === undefined){
             return res.send({status:false,message:"Erreur des données entrées",data:pan[i]})
         }
-        p[pan[i]] = (d[pan[i]])?null:d[pan[i]] 
+        p[pan[i]] = (!d[pan[i]])?null:d[pan[i]] 
     }
 
     let l = {}
@@ -291,7 +291,7 @@ router.put('/:id',async (req,res)=>{
         if(d[lieu[i]] === undefined){
             return res.send({status:false,message:"Erreur des données entrées",data:lieu[i]})
         }
-        l[lieu[i]] = (d[lieu[i]])?null:d[lieu[i]] 
+        l[lieu[i]] = (!d[lieu[i]])?null:d[lieu[i]] 
     }
 
     if(d.pan_list_photo.length > 0){
