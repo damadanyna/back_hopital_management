@@ -66,3 +66,7 @@ alter table commune_urbaine add cu_desc text null;
 alter table commune_urbaine add cu_ville varchar(255);
 -- next
 alter table panneau add pan_date_auth_cu datetime null;
+
+-- New 28 Avriil 2022
+alter table panneau add pan_list_photo_pose varchar(100) null;
+alter table panneau add pan_list_photo_solarpro varchar(100) null;

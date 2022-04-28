@@ -8,6 +8,12 @@ router.use((req, res, next) => {
     next();
 });
 
+//Upload et suppressioin d'image selon les modes
+router.put('/ims/other',async (req,res)=>{
+    console.log(req.body)
+    return res.send({status:false,message:"Vraiment cool"})
+})
+
 //Mettre en dispo les panneaux sur la liste et ce qui n'est pas sur la liste sera en indisponnible
 router.put('/dispo',async (req,res)=>{
     let Data = require('../models/data')
@@ -160,7 +166,7 @@ router.post('/',async (req,res)=>{
     let Panel = require('./../models/panel')
     let d = req.body
     let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref'
-    ,'pan_description','pan_support','pan_lumineux','pan_cu_id','pan_date_auth_cu','pan_num_auth_cu']
+    ,'pan_description','pan_support','pan_lumineux']
     let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_region','lieu_label','lieu_lat','lieu_lng']
 
     
@@ -210,6 +216,13 @@ router.post('/',async (req,res)=>{
             p.pan_publoc_ref = 'PBLC-000'+(nbp+1)
         }
         const pan_res = await Panel.add(p)
+
+        //Insertion  de la commune urbaine si existe
+        'pan_date_auth_cu','pan_num_auth_cu','pan_id_cu'
+        d.pan_date_auth_cu = (d.pan_date_auth_cu)?d.pan_date_auth_cu:null
+        d.pan_num_auth_cu = (d.pan_num_auth_cu)?d.pan_num_auth_cu:null
+        d.pan_cu_id = (d.pan_cu_id)?d.pan_cu_id:null
+        
 
         return res.send({status:true,id:pan_res.insertId})
 

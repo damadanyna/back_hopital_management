@@ -407,13 +407,30 @@ router.get('/panel/:id',async (req,res)=>{
 
     try {
         const p_res = await Panel.getById(id)
+        let panel = p_res[0]
+        //Les images dispo
         let image_list = []
-        if(p_res[0].pan_list_photo != null){
-            const ims = await require('../models/File').getInP(p_res[0].pan_list_photo.split(',').map(x => parseInt(x)) )
+        if(panel.pan_list_photo != null){
+            const ims = await require('../models/File').getInP(panel.pan_list_photo.split(',').map(x => parseInt(x)) )
             image_list = ims
         }
-        //Ajout des inforations si le panneau est loué
-        return res.send({status:true,panel:p_res[0],image_list:image_list})
+
+        //Les images de poses, disponible que quand il y a location
+        let image_list_pose = []
+        if(panel.pan_list_photo_pose){
+            image_list_pose = await require('../models/File').getInP( panel.pan_list_photo_pose.split(',').map(x => parseInt(x)) )
+        }
+
+        //Les images de solapro, disponible que quand il y a location
+        let image_list_solarpro = []
+        if(panel.pan_list_photo_solarpro){
+            image_list_solarpro = await require('../models/File').getInP( panel.pan_list_photo_solarpro.split(',').map(x => parseInt(x)) )
+        }
+
+
+
+        //Ajout des informations si le panneau est loué
+        return res.send({status:true,panel,image_list,image_list_pose,image_list_solarpro})
     } catch (e) {
         console.log(e)
         return res.send({status:false,message:'Erreur dans la base de donnée'})

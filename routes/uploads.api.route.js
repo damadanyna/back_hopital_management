@@ -73,10 +73,13 @@ router.post('/',upload.single('file'),async (req,res)=>{
         })
 
         const i = await File.post(f)
+
         res.send({status:true,file_id:i.insertId,opt:{
             width:m.width,
             height:m.height,
-            name:f.name_file
+            name:f.name_file,
+            dim_file:f.dimension_file,
+            dim_min_file:f.dimension_min_file
         }})
         } catch (e) {
             console.log(e)

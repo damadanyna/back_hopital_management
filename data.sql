@@ -19,7 +19,9 @@ create table if not exists panneau (
     pan_verified_by_publoc int null default 0,
     pan_auth_cu int null default 1,
     pan_cu_id int null,
-    pan_list_photo varchar(255) null,
+    pan_list_photo varchar(255) null, -- Juste pour les photos en dispo
+    pan_list_photo_pose varchar(100) null,
+    pan_list_photo_solarpro varchar(100) null,
     sous_ann_id int null,
     pan_add_by_reg int null default 0,
     pan_modifiable int null default 1,
