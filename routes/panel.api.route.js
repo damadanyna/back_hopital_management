@@ -28,7 +28,9 @@ router.put('/ims/other',async (req,res)=>{
         //Modification du panneau pour insérer les listes des ids des images
         await D.exec(`update panneau set ${mode_set[req.body.mode]} = '${ ids.join(',')}' where pan_id = ${req.body.pan_id}`)
         //insertion de la première image si en mode dispo en tant que image principale
-        await D.exec(`update panneau set image_id = ${ (ids[0])?ids[0]:null }  where pan_id = ${req.body.pan_id} `)
+        if(req.body.mode == 'dispo'){
+            await D.exec(`update panneau set image_id = ${ (ids[0])?ids[0]:null }  where pan_id = ${req.body.pan_id} `)
+        }
 
         //Modification de l'image pour mettre en use
         if(ids.length > 0){
@@ -271,7 +273,7 @@ router.post('/',async (req,res)=>{
 router.put('/:id',async (req,res)=>{
     let Panel = require('./../models/panel')
     let d = req.body
-    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_num_quittance','pan_description','pan_lumineux']
+    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_description','pan_lumineux']
     let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_commune','lieu_region','lieu_label','lieu_lat','lieu_lng']
 
     let p = {}
@@ -280,7 +282,7 @@ router.put('/:id',async (req,res)=>{
         if(d[pan[i]] === undefined){
             return res.send({status:false,message:"Erreur des données entrées",data:pan[i]})
         }
-        p[pan[i]] = (d[pan[i]] == '')?null:d[pan[i]] 
+        p[pan[i]] = (d[pan[i]])?null:d[pan[i]] 
     }
 
     let l = {}
@@ -289,7 +291,7 @@ router.put('/:id',async (req,res)=>{
         if(d[lieu[i]] === undefined){
             return res.send({status:false,message:"Erreur des données entrées",data:lieu[i]})
         }
-        l[lieu[i]] = (d[lieu[i]] == '')?null:d[lieu[i]] 
+        l[lieu[i]] = (d[lieu[i]])?null:d[lieu[i]] 
     }
 
     if(d.pan_list_photo.length > 0){
@@ -311,6 +313,9 @@ router.put('/:id',async (req,res)=>{
         p.pan_cu_id = d.pan_cu_id
         p.pan_num_auth_cu = d.pan_num_auth_cu
         p.pan_date_auth_cu = new Date(d.pan_date_auth_cu)
+
+        //Insertion de catégorie si besoin
+        p.cat_id = d.cat_id
 
         const p_res = await Panel.update(d.pan_id,p) 
         return res.send({status:true})

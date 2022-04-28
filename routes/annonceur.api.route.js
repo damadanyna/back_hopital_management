@@ -449,7 +449,23 @@ router.get('/p/panel/:id',async (req,res)=>{
             console.log('Vide')
             return res.send({status:false,message:"Panneau inexistant"})
         }
-        return res.send({status:true,panel:r[0]})
+        let panel = r[0]
+
+        //Les images dispo
+        let image_list = []
+        if(panel.pan_list_photo){
+            const ims = await require('../models/File').getInP(panel.pan_list_photo.split(',').map(x => parseInt(x)) )
+            image_list = ims
+        }
+
+        //Les images de poses, disponible que quand il y a location
+        let image_list_pose = []
+        if(panel.pan_list_photo_pose){
+            image_list_pose = await require('../models/File').getInP( panel.pan_list_photo_pose.split(',').map(x => parseInt(x)) )
+        }
+
+
+        return res.send({status:true,panel:r[0],image_list,image_list_pose})
     } catch (e) {
         console.log(e)
         return res.send({status:false,message:"Erreur pendant l'Affichage de cette page"})
