@@ -410,7 +410,7 @@ router.get('/panel/:id',async (req,res)=>{
         let panel = p_res[0]
         //Les images dispo
         let image_list = []
-        if(panel.pan_list_photo != null){
+        if(panel.pan_list_photo){
             const ims = await require('../models/File').getInP(panel.pan_list_photo.split(',').map(x => parseInt(x)) )
             image_list = ims
         }

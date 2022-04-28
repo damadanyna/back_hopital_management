@@ -10,8 +10,42 @@ router.use((req, res, next) => {
 
 //Upload et suppressioin d'image selon les modes
 router.put('/ims/other',async (req,res)=>{
-    console.log(req.body)
-    return res.send({status:false,message:"Vraiment cool"})
+    let D = require('../models/data')
+    try {
+        //Les images à ajouter
+        let mode = req.body.mode
+
+        let ids = req.body.ims.map( (x)=>{
+            return x.file_id
+        })
+
+        let mode_set = {
+            dispo:'pan_list_photo',
+            pose:'pan_list_photo_pose',
+            solarpro:'pan_list_photo_solarpro'
+        }
+        
+        //Modification du panneau pour insérer les listes des ids des images
+        await D.exec(`update panneau set ${mode_set[req.body.mode]} = '${ ids.join(',')}' where pan_id = ${req.body.pan_id}`)
+        //insertion de la première image si en mode dispo en tant que image principale
+        await D.exec(`update panneau set image_id = ${ (ids[0])?ids[0]:null }  where pan_id = ${req.body.pan_id} `)
+
+        //Modification de l'image pour mettre en use
+        if(ids.length > 0){
+            await require('../models/File').setUseFile(ids)
+        }
+
+        //Suppresion des images supprimés
+        if(req.body.ims_del.length > 0){
+            await require('../controller/file').deleteMultipleFile(req.body.ims_del)
+        }
+
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+    
 })
 
 //Mettre en dispo les panneaux sur la liste et ce qui n'est pas sur la liste sera en indisponnible
