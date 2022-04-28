@@ -304,6 +304,9 @@ router.put('/:id',async (req,res)=>{
     }
 
     console.error(p)
+    console.error(l)
+
+    console.error(d)
 
     try {
         const l_res = await Panel.updateLieu(d.lieu_id,l)
