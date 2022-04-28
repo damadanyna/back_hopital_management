@@ -303,6 +303,8 @@ router.put('/:id',async (req,res)=>{
         p.pan_list_photo = null
     }
 
+    console.error(p)
+
     try {
         const l_res = await Panel.updateLieu(d.lieu_id,l)
 
