@@ -218,11 +218,11 @@ router.post('/',async (req,res)=>{
         const pan_res = await Panel.add(p)
 
         //Insertion  de la commune urbaine si existe
-        'pan_date_auth_cu','pan_num_auth_cu','pan_id_cu'
+        //'pan_date_auth_cu','pan_num_auth_cu','pan_id_cu'
         d.pan_date_auth_cu = (d.pan_date_auth_cu)?d.pan_date_auth_cu:null
         d.pan_num_auth_cu = (d.pan_num_auth_cu)?d.pan_num_auth_cu:null
         d.pan_cu_id = (d.pan_cu_id)?d.pan_cu_id:null
-        
+
 
         return res.send({status:true,id:pan_res.insertId})
 
