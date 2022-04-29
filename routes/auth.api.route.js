@@ -61,6 +61,9 @@ router.use('/cu',require('./cu.api.route'))
 //Pour la gestion de devis
 router.use('/devis',require('./devis.api.route'))
 
+//Pour solarpro
+router.use('/solarpro',require('./solarpro.api.route'))
+
 //Deconnexion
 router.get('/deconnect',(req,res)=>{
     let options = {
@@ -132,7 +135,7 @@ router.get('/status',async (req,res)=>{
             }
         }
     } catch (e) {
-        console.log(e)
+        console.error(e)
         return res.send({status:false})
     }
 })
