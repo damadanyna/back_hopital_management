@@ -126,8 +126,20 @@ router.delete('/:id',async (req,res)=>{
         return res.send({status:true})
 
     } catch (e) {
-        console.log(e)
+        console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée .... Il est possible que le profil n'existe plus"})
+    }
+})
+
+//Donner accès à solarpro
+router.put('/access-panel',async (req,res)=>{
+    let D =require('../models/data')
+
+    try {
+        // await D.
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée ..."})
     }
 })
 

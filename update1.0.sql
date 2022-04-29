@@ -70,3 +70,6 @@ alter table panneau add pan_date_auth_cu datetime null;
 -- New 28 Avriil 2022
 alter table panneau add pan_list_photo_pose varchar(100) null;
 alter table panneau add pan_list_photo_solarpro varchar(100) null;
+
+-- New 29 Avril 2022
+alter table panneau add pan_solarpro_access int null default 0;

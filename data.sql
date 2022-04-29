@@ -29,6 +29,7 @@ create table if not exists panneau (
     pan_visible int null default 1,
     pan_num_auth_cu varchar(255) null,
     pan_date_auth_cu datetime null,
+    pan_solarpro_access int null default 0,
     pan_update_at datetime null default NOW(),
     PRIMARY KEY (pan_id)
 )ENGINE=InnoDB;
@@ -383,6 +384,8 @@ create table if not exists solarpro (
     -- sp_type varchar(100) null default 'admin'
     PRIMARY KEY (sp_id)
 )ENGINE=InnoDB;
+
+
 
 
 

@@ -45,7 +45,7 @@ router.put('/ims/other',async (req,res)=>{
         return res.send({status:true})
     } catch (e) {
         console.error(e)
-        return res.send({status:false,message:"Erreur dans la base de donnée"})
+        return res.send({status:false,message:"Erreur dans la base de donnée",e})
     }
     
 })
