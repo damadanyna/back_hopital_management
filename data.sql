@@ -113,7 +113,7 @@ create table if not exists profil (
     pr_prenom varchar (255) null,
     pr_login varchar (255) null,
     pr_pass varchar (255) null,
-    pr_type varchar (5) default 'a',
+    pr_type varchar(5) default 'a',
     pr_change_pass int default 0,
     pr_active int null default 1,
     pr_validate int null default 1,

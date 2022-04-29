@@ -132,6 +132,9 @@ router.get('/status',async (req,res)=>{
                 const cu = (await require('../models/data').exec(`select * from commune_urbaine where pr_id = ${u.pr_id} `))[0]
 
                 return res.send({status:true,pr,soc_pr:cu})
+            }else if(req.user.pr_type == 'spro'){
+                const sp = (await require('../models/data').exec(`select * from solarpro where sp_pr_id = ${u.pr_id} `))[0]
+                return res.send({status:true,pr,soc_pr:sp})
             }
         }
     } catch (e) {

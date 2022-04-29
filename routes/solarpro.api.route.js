@@ -52,7 +52,7 @@ router.post('/',async (req,res)=>{
         let pr = {
             pr_login:d.login,
             pr_pass:pass,
-            pr_type:'solarpro'
+            pr_type:'spro'
         }
 
         let id_pr = (await D.set('profil',pr)).insertId
@@ -136,7 +136,28 @@ router.put('/access-panel',async (req,res)=>{
     let D =require('../models/data')
 
     try {
-        // await D.
+        await D.updateWhere('panneau',{pan_solarpro_access:(req.body.b)?1:0},{pan_id:req.body.id_p})
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée ..."})
+    }
+})
+
+//récupération des panneaux qui ont accès solarpro
+router.get('/panel',async (req,res)=>{
+    let D =require('../models/data')
+
+    try {
+        //Récupération des panneau qui ont accès à solarpro
+        let sql = `select p.pan_ref,p.pan_publoc_ref,p.pan_lumineux,p.pan_list_photo,p.pan_list_photo_solarpro,l.*,f.name_file,f.name_min_file,r.reg_label
+        from panneau p
+        left join file f on f.file_id = p.image_id
+        left join lieu l on l.lieu_id = p.lieu_id
+        left join regisseur r on r.reg_id = p.reg_id
+        where p.pan_solarpro_access = 1`
+        let panels = await D.exec(sql)
+        return res.send({status:true,panels})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée ..."})
