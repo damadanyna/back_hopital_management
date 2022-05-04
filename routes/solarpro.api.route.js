@@ -150,11 +150,13 @@ router.get('/panel',async (req,res)=>{
 
     try {
         //Récupération des panneau qui ont accès à solarpro
-        let sql = `select spp.*,p.pan_id,p.pan_ref,p.pan_publoc_ref,p.pan_lumineux,p.pan_list_photo,p.pan_list_photo_solarpro,l.*,f.name_file,f.name_min_file,r.reg_label
+        let sql = `select spp.*,p.pan_id,p.pan_ref,p.pan_publoc_ref,p.pan_lumineux,p.pan_list_photo,
+        p.pan_list_photo_solarpro,l.*,f.name_file,f.name_min_file,r.reg_label,a.ann_label
         from panneau p
         left join file f on f.file_id = p.image_id
         left join lieu l on l.lieu_id = p.lieu_id
         left join regisseur r on r.reg_id = p.reg_id
+        left join annonceur a on a.ann_id = p.ann_id
         left join solarpro_pan spp on p.pan_id = spp.spp_pan_id
         where p.pan_solarpro_access = 1`
         let panels = await D.exec(sql)
@@ -171,10 +173,12 @@ router.get('/panel/:id',async (req,res)=>{
 
     try {
         //Récupération des panneau qui ont accès à solarpro
-        let sql = `select spp.*,p.pan_id,p.pan_ref,p.pan_publoc_ref,p.pan_lumineux,p.pan_list_photo,p.pan_list_photo_solarpro,l.*,f.name_file,f.name_min_file,r.reg_label
+        let sql = `select spp.*,p.pan_id,p.pan_ref,p.pan_publoc_ref,
+        p.pan_lumineux,p.pan_list_photo,p.pan_list_photo_solarpro,l.*,f.name_file,f.name_min_file,r.reg_label,a.ann_label
         from panneau p
         left join file f on f.file_id = p.image_id
         left join lieu l on l.lieu_id = p.lieu_id
+        left join annonceur a on a.ann_id = p.ann_id
         left join regisseur r on r.reg_id = p.reg_id
         left join solarpro_pan spp on p.pan_id = spp.spp_pan_id
         where p.pan_id = ? and p.pan_solarpro_access = 1`
@@ -214,7 +218,9 @@ router.put('/panel/:id/date',async (req,res)=>{
             spp_pan_id:id_pan,
             spp_date_debut:(d.debut)? new Date(d.debut) :null,
             spp_date_fin:(d.fin)? new Date(d.fin) :null,
-            spp_date_control:(d.control)? new Date(d.control) :null
+            spp_date_control:(d.control)? new Date(d.control) :null,
+            spp_type:d.type,
+            spp_nb_light:d.nb_light
         }
 
         if(parseInt(id_pan).toString()  == 'NaN'){

@@ -73,3 +73,8 @@ alter table panneau add pan_list_photo_solarpro varchar(100) null;
 
 -- New 29 Avril 2022
 alter table panneau add pan_solarpro_access int null default 0;
+
+-- New 04 Mai 2022
+alter table solarpro_pan add spp_nb_light int null;
+alter table solarpro_pan add spp_type varchar(100) null;
+alter table solarpro_pan add spp_assurance int null;
