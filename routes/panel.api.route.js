@@ -355,14 +355,27 @@ router.get('/:id',async (req,res)=>{
     try {
         const p_res = await Panel.getById(id)
         let image_list = []
-        if(p_res[0].pan_list_photo != null){
-            const ims = await require('../models/File').getIn(p_res[0].pan_list_photo.split(',').map(x => parseInt(x)) )
+        let panel = p_res[0]
+        if(panel.pan_list_photo != null){
+            const ims = await require('../models/File').getIn(panel.pan_list_photo.split(',').map(x => parseInt(x)) )
             image_list = ims
+        }
+
+        //Les images de poses, disponible que quand il y a location
+        let image_list_pose = []
+        if(panel.pan_list_photo_pose){
+            image_list_pose = await require('../models/File').getInP( panel.pan_list_photo_pose.split(',').map(x => parseInt(x)) )
+        }
+
+        //Les images de solapro, disponible que quand il y a location
+        let image_list_solarpro = []
+        if(panel.pan_list_photo_solarpro){
+            image_list_solarpro = await require('../models/File').getInP( panel.pan_list_photo_solarpro.split(',').map(x => parseInt(x)) )
         }
 
         
         
-        return res.send({status:true,panel:p_res[0],image_list})
+        return res.send({status:true,panel:p_res[0],image_list,image_list_pose,image_list_solarpro})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:'Erreur dans la base de donnée'})
