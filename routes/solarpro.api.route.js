@@ -150,14 +150,87 @@ router.get('/panel',async (req,res)=>{
 
     try {
         //Récupération des panneau qui ont accès à solarpro
-        let sql = `select p.pan_ref,p.pan_publoc_ref,p.pan_lumineux,p.pan_list_photo,p.pan_list_photo_solarpro,l.*,f.name_file,f.name_min_file,r.reg_label
+        let sql = `select spp.*,p.pan_id,p.pan_ref,p.pan_publoc_ref,p.pan_lumineux,p.pan_list_photo,p.pan_list_photo_solarpro,l.*,f.name_file,f.name_min_file,r.reg_label
         from panneau p
         left join file f on f.file_id = p.image_id
         left join lieu l on l.lieu_id = p.lieu_id
         left join regisseur r on r.reg_id = p.reg_id
+        left join solarpro_pan spp on p.pan_id = spp.spp_pan_id
         where p.pan_solarpro_access = 1`
         let panels = await D.exec(sql)
         return res.send({status:true,panels})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée ..."})
+    }
+})
+
+//R2cupération d'un seul panneau
+router.get('/panel/:id',async (req,res)=>{
+    let D =require('../models/data')
+
+    try {
+        //Récupération des panneau qui ont accès à solarpro
+        let sql = `select spp.*,p.pan_id,p.pan_ref,p.pan_publoc_ref,p.pan_lumineux,p.pan_list_photo,p.pan_list_photo_solarpro,l.*,f.name_file,f.name_min_file,r.reg_label
+        from panneau p
+        left join file f on f.file_id = p.image_id
+        left join lieu l on l.lieu_id = p.lieu_id
+        left join regisseur r on r.reg_id = p.reg_id
+        left join solarpro_pan spp on p.pan_id = spp.spp_pan_id
+        where p.pan_id = ? and p.pan_solarpro_access = 1`
+        let panel = (await D.exec_params(sql,req.params.id))[0]
+
+        //Récupération des photos solarpros
+        //Les images dispo
+        let image_list = []
+        if(panel.pan_list_photo){
+            const ims = await require('../models/File').getInP(panel.pan_list_photo.split(',').map(x => parseInt(x)) )
+            image_list = ims
+        }
+
+        //Les images de solapro, disponible que quand il y a location
+        let image_list_solarpro = []
+        if(panel.pan_list_photo_solarpro){
+            image_list_solarpro = await require('../models/File').getInP( panel.pan_list_photo_solarpro.split(',').map(x => parseInt(x)) )
+        }
+
+        return res.send({status:true,panel,image_list_solarpro,image_list})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée ..."})
+    }
+})
+
+//Modification de date de contrôle de solarpro
+router.put('/panel/:id/date',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        let d = req.body
+
+        let id_pan = req.params.id
+
+        let spp = {
+            spp_pan_id:id_pan,
+            spp_date_debut:(d.debut)? new Date(d.debut) :null,
+            spp_date_fin:(d.fin)? new Date(d.fin) :null,
+            spp_date_control:(d.control)? new Date(d.control) :null
+        }
+
+        if(parseInt(id_pan).toString()  == 'NaN'){
+            return res.send({status:false,message:`Erreur de donnée en entrée.`})
+        }
+
+        //On vérifie d'abord si le lien existe déjà
+        const lpan = await D.exec_params(`select spp_id from solarpro_pan where spp_pan_id = ?`,id_pan)
+
+        if( lpan.length > 0){
+            await D.updateWhere('solarpro_pan',spp,{spp_pan_id:id_pan})
+        }else{
+            await D.set('solarpro_pan',spp)
+        }
+
+        return res.send({status:true})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée ..."})

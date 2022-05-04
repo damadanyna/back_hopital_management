@@ -385,7 +385,12 @@ create table if not exists solarpro (
     PRIMARY KEY (sp_id)
 )ENGINE=InnoDB;
 
-
-
-
-
+-- solarpro_pan
+create table if not exists solarpro_pan (
+    spp_id int not null auto_increment,
+    spp_date_debut datetime null,
+    spp_pan_id int null,
+    spp_date_fin datetime null,
+    spp_date_control datetime null,
+    PRIMARY KEY (spp_id)
+)ENGINE=InnoDB;
