@@ -10,6 +10,27 @@ router.use((req, res, next) => {
     next();
 });
 
+//Récupération des villes
+router.put('/panel/make',async (req,res)=>{
+    let D = require('../models/data')
+    let cu = req.body
+    try {
+        // let d = await D.updateWhere('panneau',{pan_cu_id:cu.cu_ic},{})
+
+        let sql = `update panneau p
+        left join lieu l on l.lieu_id = p.lieu_id
+        set p.pan_cu_id = ${cu.cu_id}
+        where l.lieu_ville = '${cu.cu_ville}' `
+
+        let d = await D.exec(sql)
+
+        return res.send({status:true,d})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée.',e})
+    }
+})
+
 //Récupération des panneaux rattaché au CU
 router.get('/panel',async (req,res)=>{
     let D = require('../models/data')
@@ -40,7 +61,10 @@ router.get('/ad/all',async (req,res)=>{
     let D = require('../models/data')
 
     try {
-        const cu = await D.exec(`select cu.*,pr.*, (select count(*) from panneau as pan where pan.pan_cu_id = cu.cu_id ) as nb_panel from commune_urbaine as cu 
+        const cu = await D.exec(`select cu.*,pr.*, 
+        (select count(*) from panneau as pan where pan.pan_cu_id = cu.cu_id ) as nb_panel,
+        (select count(*) from panneau p left join lieu l on l.lieu_id = p.lieu_id where cu.cu_ville = l.lieu_ville and p.pan_cu_id <> cu.cu_id) as nb_pan_ville
+        from commune_urbaine as cu 
         left join profil as pr on cu.pr_id = pr.pr_id`)
 
         return res.send({status:true,cu})
