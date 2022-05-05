@@ -37,18 +37,30 @@ router.get('/panel',async (req,res)=>{
 
     try {
         //Récupération des informations du CU à partir de son id de profil
+        let s = `%${req.query.search}%`
         
         let cu = (await D.exec(`select * from commune_urbaine where pr_id = ${req.user.pr_id}`))[0]
 
         //Récupération des panneaux rattachés
-        let sql = `select p.*,r.reg_label,f.name_file,f.name_min_file,l.* from panneau p 
+        let sql = `select p.*,r.reg_label,f.name_file,f.name_min_file,l.*, c.cat_label, 
+        (select cat_label from category cat where cat.cat_id = c.parent_cat_id) as parent_cat_label
+        from panneau p 
+        left join lieu l on l.lieu_id = p.lieu_id
+        left join regisseur r on r.reg_id = p.reg_id
+        left join category c on c.cat_id = p.cat_id
+        left join file f on f.file_id = p.image_id 
+        where p.pan_cu_id = ${cu.cu_id} && (r.reg_label like ? or p.pan_num_auth_cu like ? )`
+        let panels = await D.exec_params(sql,[s,s])
+
+        //la somme des surfaces
+        sql = `select sum(p.pan_surface) as sum from panneau p 
         left join lieu l on l.lieu_id = p.lieu_id
         left join regisseur r on r.reg_id = p.reg_id
         left join file f on f.file_id = p.image_id 
-        where p.pan_cu_id = ${cu.cu_id} `
-        let panels = await D.exec(sql)
+        where p.pan_cu_id = ${cu.cu_id} && (r.reg_label like ? or p.pan_num_auth_cu like ? )`
+        let sum = (await D.exec_params(sql,[s,s]) )[0].sum
 
-        return res.send({status:true,panels})
+        return res.send({status:true,panels,sum})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:'Erreur dans la base de donnée.',e})
