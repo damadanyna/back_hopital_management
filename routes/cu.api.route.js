@@ -63,7 +63,7 @@ router.get('/ad/all',async (req,res)=>{
     try {
         const cu = await D.exec(`select cu.*,pr.*, 
         (select count(*) from panneau as pan where pan.pan_cu_id = cu.cu_id ) as nb_panel,
-        (select count(*) from panneau p left join lieu l on l.lieu_id = p.lieu_id where cu.cu_ville = l.lieu_ville and p.pan_cu_id <> cu.cu_id) as nb_pan_ville
+        (select count(*) from panneau p left join lieu l on l.lieu_id = p.lieu_id where cu.cu_ville = l.lieu_ville and p.pan_cu_id = cu.cu_id) as nb_pan_ville
         from commune_urbaine as cu 
         left join profil as pr on cu.pr_id = pr.pr_id`)
 
