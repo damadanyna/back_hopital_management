@@ -464,8 +464,20 @@ router.get('/p/panel/:id',async (req,res)=>{
             image_list_pose = await require('../models/File').getInP( panel.pan_list_photo_pose.split(',').map(x => parseInt(x)) )
         }
 
+        //Les images de solapro, disponible que quand il y a location
+        let image_list_solarpro = []
+        if(panel.pan_list_photo_solarpro){
+            image_list_solarpro = await require('../models/File').getInP( panel.pan_list_photo_solarpro.split(',').map(x => parseInt(x)) )
+        }
 
-        return res.send({status:true,panel:r[0],image_list,image_list_pose})
+        //Récupération des informations solarpro si illuminé
+        //On va vérifier si le panneau a un lien avec solarpro
+        let spp = await require('../models/data').exec_params(`select spp_date_debut,spp_date_fin,spp_date_control,spp_nb_light
+        from solarpro_pan where spp_pan_id = ?`,id)
+
+        spp = (spp[0])?spp[0]:null
+
+        return res.send({status:true,panel,image_list,image_list_pose,image_list_solarpro,spp})
     } catch (e) {
         console.log(e)
         return res.send({status:false,message:"Erreur pendant l'Affichage de cette page"})
