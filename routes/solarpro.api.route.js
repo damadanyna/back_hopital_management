@@ -178,9 +178,23 @@ router.get('/panel',async (req,res)=>{
         left join category c on c.cat_id = p.cat_id
         left join solarpro_pan spp on p.pan_id = spp.spp_pan_id
         where p.pan_solarpro_access = 1 ${w.s}`
-        
+
         let panels = await D.exec_params(sql,w.t)
-        return res.send({status:true,panels})
+
+        //Compter le nombre de lumière
+        sql = `select sum(spp_nb_light) as nb from panneau p
+        left join file f on f.file_id = p.image_id
+        left join lieu l on l.lieu_id = p.lieu_id
+        left join regisseur r on r.reg_id = p.reg_id
+        left join annonceur a on a.ann_id = p.ann_id
+        left join category c on c.cat_id = p.cat_id
+        left join solarpro_pan spp on p.pan_id = spp.spp_pan_id
+        where p.pan_solarpro_access = 1 ${w.s}`
+
+        let nb_light_total = (await D.exec_params(sql,w.t))[0].nb
+        
+        
+        return res.send({status:true,panels,nb_light_total})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée ..."})
