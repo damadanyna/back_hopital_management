@@ -78,3 +78,6 @@ alter table panneau add pan_solarpro_access int null default 0;
 alter table solarpro_pan add spp_nb_light int null;
 alter table solarpro_pan add spp_type varchar(100) null;
 alter table solarpro_pan add spp_assurance int null;
+
+-- new 05 Mai 2022
+alter table solarpro_pan add spp_long_pan int null;

@@ -394,6 +394,7 @@ create table if not exists solarpro_pan (
     spp_date_control datetime null,
     spp_nb_light int null,
     spp_type varchar(100) null,
+    spp_long_pan int null,
     spp_assurance int null,
     PRIMARY KEY (spp_id)
 )ENGINE=InnoDB;

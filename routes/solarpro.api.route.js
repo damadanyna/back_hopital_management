@@ -150,6 +150,23 @@ router.get('/panel',async (req,res)=>{
 
     try {
         //Récupération des panneau qui ont accès à solarpro
+        let w = {
+            s:'',
+            t:''
+        }
+        let d = req.query
+
+        if(d.by == 'pan_ref'){
+            w.s+=' and p.pan_ref like  ? '
+            w.t = `%${d.search}%`
+        }else if(d.by == 'reg_label'){
+            w.s+=' and r.reg_label like ? '
+            w.t = `%${d.search}%`
+        }else if (d.by == 'ann_label'){
+            w.s+=' and a.ann_label like ? '
+            w.t = `%${d.search}%`
+        }
+
         let sql = `select spp.*,p.pan_id,p.pan_ref,p.pan_publoc_ref,p.pan_lumineux,p.pan_list_photo,
         p.pan_list_photo_solarpro,l.*,f.name_file,f.name_min_file,r.reg_label,a.ann_label,c.cat_label, 
         (select cat_label from category where cat_id = c.parent_cat_id  ) as parent_cat_label
@@ -160,8 +177,9 @@ router.get('/panel',async (req,res)=>{
         left join annonceur a on a.ann_id = p.ann_id
         left join category c on c.cat_id = p.cat_id
         left join solarpro_pan spp on p.pan_id = spp.spp_pan_id
-        where p.pan_solarpro_access = 1`
-        let panels = await D.exec(sql)
+        where p.pan_solarpro_access = 1 ${w.s}`
+        
+        let panels = await D.exec_params(sql,w.t)
         return res.send({status:true,panels})
     } catch (e) {
         console.error(e)
@@ -224,7 +242,8 @@ router.put('/panel/:id/date',async (req,res)=>{
             spp_date_fin:(d.fin)? new Date(d.fin) :null,
             spp_date_control:(d.control)? new Date(d.control) :null,
             spp_type:d.type,
-            spp_nb_light:d.nb_light
+            spp_nb_light:d.nb_light,
+            spp_long_pan:d.long_pan
         }
 
         if(parseInt(id_pan).toString()  == 'NaN'){
