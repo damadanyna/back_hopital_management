@@ -422,8 +422,31 @@ router.get('/p/panel',async (req,res)=>{
         return res.send({status:false,message:"Autorisation non suffisante."})
     }
 
+
+
     try {
+
+        let d = req.query
+
+        let w = {
+            s:'',
+            t:''
+        }
+
+
+        
+
         const ann = await Annonceur.getByIdProfil(req.user.pr_id)
+        let sql = `select p.pan_id, p.pan_publoc_ref, p.sous_ann_id,p.ann_id as panel_ann_id,
+            pl.pan_loc_validate,pl.pan_loc_id,pl.pan_loc_date_debut, pl.pan_loc_month,pl.pan_loc_date_fin,
+            sal.*
+            ,l.*,f.name_file,f.name_min_file from panneau  p 
+            left join pan_location as pl on pl.pan_id = p.pan_id 
+            left join lieu as l on l.lieu_id = p.lieu_id 
+            left join file as f on f.file_id = p.image_id 
+            left join sous_ann_location as sal on p.pan_id = sal.saloc_pan_id 
+            where p.ann_id = ? or p.sous_ann_id = ? `
+
         const r = await require('../models/panel').getListByAnn(ann[0].ann_id)
         return res.send({status:true,panels:r,ann_id:ann[0].ann_id})
     } catch (e) {
