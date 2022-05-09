@@ -433,8 +433,14 @@ router.get('/p/panel',async (req,res)=>{
             t:''
         }
 
-
-        
+        //LEs querys
+        if(d.by == 'lieu'){
+            w.s = 'l.lieu_label like ? '
+            w.t = `%${d.search}%`
+        }else if(d.by == 'ref'){
+            w.s = 'p.pan_publoc_ref like ?'
+            w.t = `%${d.search}%`
+        }
 
         const ann = await Annonceur.getByIdProfil(req.user.pr_id)
         let sql = `select p.pan_id, p.pan_publoc_ref, p.sous_ann_id,p.ann_id as panel_ann_id,
@@ -445,10 +451,13 @@ router.get('/p/panel',async (req,res)=>{
             left join lieu as l on l.lieu_id = p.lieu_id 
             left join file as f on f.file_id = p.image_id 
             left join sous_ann_location as sal on p.pan_id = sal.saloc_pan_id 
-            where p.ann_id = ? or p.sous_ann_id = ? `
+            where (p.ann_id = ? or p.sous_ann_id = ?) and ${w.s} `
 
-        const r = await require('../models/panel').getListByAnn(ann[0].ann_id)
-        return res.send({status:true,panels:r,ann_id:ann[0].ann_id})
+        // const r = await require('../models/panel').getListByAnn(ann[0].ann_id)
+        let ann_id = ann[0].ann_id
+        let panels = await require('../models/data').exec_params(sql,[ann_id,ann_id,w.t])
+
+        return res.send({status:true,panels,ann_id:ann[0].ann_id})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur pendant l'Affichage de cette page"})
@@ -584,7 +593,7 @@ router.post('/reservation',async (req,res)=>{
         const res_pl = await Annonceur.insertPanLocation(pan_loc)
 
         state = "update-panneau"
-        await require('../models/data').updateWhere('panneau',{pan_state:3},{pan_id:d.pan_id})
+        await require('../models/data').updateWhere('panneau',{pan_state:2},{pan_id:d.pan_id})
 
         
         //Insertion de la notification
