@@ -81,3 +81,6 @@ alter table solarpro_pan add spp_assurance int null;
 
 -- new 05 Mai 2022
 alter table solarpro_pan add spp_long_pan int null;
+
+-- new 11 Mai 2022
+alter table solarpro add sp_assurance int null default 0;

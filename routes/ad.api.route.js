@@ -74,10 +74,19 @@ router.put('/reg/sub/:id',async (req,res)=>{
 
 //changement de status Commercial d'un annonceur
 router.put('/ann/status_com/:id/:status',async(req,res)=>{
+    let D = require('../models/data')
     try {
-        const d = await require('../models/data').updateWhere('annonceur',{
+        //Changement de status
+        const d = await D.updateWhere('annonceur',{
             ann_is_agence_com:(parseInt(req.params.status))?0:1
         },{ann_id:req.params.id})
+
+        //Supprimer toutes les références du sous-annonceur du panneau
+        await D.updateWhere('panneau',{sous_ann_id:null},{ann_id:req.params.id})
+
+        //suppression de la table sous-location
+        await D.del('sous_ann_location',{saloc_ann_id:req.params.id})
+        
         return res.send({status:true})
     } catch (e) {
         console.error(e)

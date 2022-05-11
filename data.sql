@@ -382,6 +382,7 @@ create table if not exists solarpro (
     sp_id int not null auto_increment,
     sp_pr_id varchar(255) null,
     -- sp_type varchar(100) null default 'admin'
+    sp_assurance int null default 0,
     PRIMARY KEY (sp_id)
 )ENGINE=InnoDB;
 
