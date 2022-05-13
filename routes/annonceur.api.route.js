@@ -479,6 +479,8 @@ router.get('/p/panel',async (req,res)=>{
 
 router.get('/p/panel/:id',async (req,res)=>{
     let Annonceur = require('../models/annonceur')
+    let D =  require('../models/data')
+
     if(req.user.pr_type != 'ann'){
         return res.send({status:false,message:"Autorisation non suffisante."})
     }
@@ -521,6 +523,23 @@ router.get('/p/panel/:id',async (req,res)=>{
         from solarpro_pan where spp_pan_id = ?`,id)
 
         spp = (spp[0])?spp[0]:null
+
+        //Gestion sous location
+        if(panel.sous_ann_id){
+            panel.reg_label = panel.ann_label
+            //récupération d'information de sous-location
+            let d = await D.exec_params('select * from sous_ann_location where saloc_sous_ann_id = ?',panel.sous_ann_id)
+
+            if(d.length > 0){
+                d = d[0]
+
+                panel.pan_loc_date_debut = d.saloc_date_debut
+                panel.pan_loc_month = d.saloc_month
+            }
+
+        }
+
+
 
         return res.send({status:true,panel,image_list,image_list_pose,image_list_solarpro,spp})
     } catch (e) {

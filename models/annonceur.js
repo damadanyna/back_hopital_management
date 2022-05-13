@@ -199,12 +199,13 @@ class Annonceur{
     static getPanel(id){
         return new Promise((resolve,reject)=>{
             let sql = `select pan.pan_list_photo,pan.pan_list_photo_pose,pan.pan_list_photo_solarpro,pan.pan_solarpro_access,
-            pan.pan_publoc_ref,pan.pan_surface,pan.pan_state,pan.pan_lumineux,r.reg_label,
-            pl.pan_loc_month,pl.pan_loc_date_debut,pl.pan_loc_date_fin,
+            pan.pan_publoc_ref,pan.pan_surface,pan.pan_state,pan.pan_lumineux,r.reg_label,pan.sous_ann_id,
+            pl.pan_loc_month,pl.pan_loc_date_debut,pl.pan_loc_date_fin,ap.ann_label,
             pan.pan_verified_by_publoc,l.*,cat.*,file.name_file from panneau as pan `
             sql+="left join pan_location pl on pl.pan_id = pan.pan_id "
             sql+="left join lieu as l on pan.lieu_id = l.lieu_id "
             sql+="left join regisseur r on r.reg_id = pan.reg_id "
+            sql+="left join annonceur ap on ap.ann_id = pan.ann_id "
             sql+="left join category as cat on pan.cat_id = cat.cat_id "
             sql+="left join file on pan.image_id = file.file_id "
             sql+="where pan.pan_id = ?"
