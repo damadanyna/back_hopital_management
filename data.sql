@@ -399,3 +399,11 @@ create table if not exists solarpro_pan (
     spp_assurance int null,
     PRIMARY KEY (spp_id)
 )ENGINE=InnoDB;
+
+-- Pub 
+create table if not exists pub_im (
+    pub_id int not null auto_increment,
+    pub_im_list text null,
+    pub_type varchar(255) null,
+    PRIMARY KEY (pub_id)
+)ENGINE=InnoDB;

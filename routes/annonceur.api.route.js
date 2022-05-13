@@ -405,6 +405,7 @@ router.put('/:id',async (req,res)=>{
 // Manipulation côté espace annonceur
 router.get('/p/reservation',async (req,res)=>{
     let Annonceur = require('../models/annonceur')
+    
 
     try {
         const r = await Annonceur.getListReservation(req.user.pr_id)
@@ -417,6 +418,7 @@ router.get('/p/reservation',async (req,res)=>{
 
 router.get('/p/panel',async (req,res)=>{
     let Annonceur = require('../models/annonceur')
+    let D = require('../models/data')
 
     if(req.user.pr_type != 'ann'){
         return res.send({status:false,message:"Autorisation non suffisante."})
@@ -457,7 +459,18 @@ router.get('/p/panel',async (req,res)=>{
         let ann_id = ann[0].ann_id
         let panels = await require('../models/data').exec_params(sql,[ann_id,ann_id,w.t])
 
-        return res.send({status:true,panels,ann_id:ann[0].ann_id})
+        //Récupération du pub verrtical dans l'annonceur
+        
+        let pub = await D.exec_params(`select * from pub_im where pub_type = ? `,'ann_vert')
+        let p_im_list = []
+        if(pub.length > 0){
+            pub = pub[0]
+
+            p_im_list = await D.exec_params(`select dimension_file,dimension_min_file,
+            name_min_file,name_file from file where file_id in (?)`,[pub.pub_im_list.split(',')])
+        }
+
+        return res.send({status:true,panels,ann_id:ann[0].ann_id,p_im_list})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur pendant l'Affichage de cette page"})
