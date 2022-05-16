@@ -8,6 +8,23 @@ router.use((req, res, next) => {
     next();
 });
 
+//Récupéraion des catégories qui sont à l'annonceur actuel
+router.get('/cat/:id_ann',async (req,res)=>{
+    let D = require('../models/data')
+    try {
+        let sql = `select c.cat_id,c.cat_label from category c
+        left join panneau p on p.cat_id = c.cat_id where parent_cat_id is null`
+
+        let cat_list = await D.exec_params(sql,req.params.id_ann)
+
+        return res.send({status:true,cat_list})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //Poste de devis
 router.post('/devis',async (req,res)=>{
 
