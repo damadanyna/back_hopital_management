@@ -125,6 +125,23 @@ router.get('/search/criteria',async (req,res)=>{
     }
 })
 
+//Récupéraion des formats selon les catégories sélectionées
+router.get('/search/sub-cat',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        let sql = `select c.cat_label,c.cat_id from category c 
+        left join category cat on cat.cat_id = c.parent_cat_id where cat.cat_label in (?) `
+
+        let formats = await D.exec_params(sql,[req.query.cats])
+        // console.log(req.query.cats)
+        return res.send({status:true,formats})    
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 
 //Réupérer les catégoriers et sous catégories 
 router.get('/cat/all',async (req,res)=>{
