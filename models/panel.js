@@ -40,7 +40,9 @@ class Panneau{
     //On récupère les panneaux avec seulement les limitations de pagination
     static getPanelByLimitAndParams(s,data,l){
         return new Promise((resolve,reject)=>{
-            let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_publoc_ref,p.pan_surface,p.pan_id from panneau as p 
+            let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_description,p.pan_publoc_ref,p.pan_surface,p.pan_id,
+            s_cat.cat_label, (select c.cat_label from category c where c.cat_id = s_cat.parent_cat_id) as parent_cat_label
+            from panneau as p 
             left join file as f on f.file_id = p.image_id 
             left join lieu as l on l.lieu_id = p.lieu_id 
             left join category as s_cat on s_cat.cat_id = p.cat_id 
@@ -76,7 +78,9 @@ class Panneau{
     //On récupère les panneaux sans limite et sans paramètres
     static getPanelByLimit(l){
         return new Promise((resolve,reject)=>{
-            let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_publoc_ref,p.pan_surface,p.pan_id from panneau as p 
+            let sql = `select f.name_min_file,f.name_file,l.*,p.pan_ref,p.pan_description,p.pan_publoc_ref,p.pan_surface,p.pan_id,
+            s_cat.cat_label, (select c.cat_label from category c where c.cat_id = s_cat.parent_cat_id) as parent_cat_label
+            from panneau as p 
             left join file as f on f.file_id = p.image_id 
             left join lieu as l on l.lieu_id = p.lieu_id 
             left join category as s_cat on s_cat.cat_id = p.cat_id 
@@ -504,7 +508,7 @@ class Panneau{
     static getAllVillePanneau(){
         return new Promise((resolve,reject)=>{
             let sql = "select distinct l.lieu_ville from panneau as p "
-            sql+="left join lieu as l on l.lieu_id = p.lieu_id"
+            sql+="left join lieu as l on l.lieu_id = p.lieu_id order by l.lieu_ville asc "
             connection.query(sql,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)

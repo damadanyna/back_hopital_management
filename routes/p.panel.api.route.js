@@ -67,17 +67,16 @@ router.get('/search/all',async (req,res)=>{
     // console.log(l)
 
     try {
+        let p = [],c=0
         if(tab.length != 0){
-            const p = await Panel.getPanelByLimitAndParams(sql,tab,l)
-            const c = await Panel.countPanelByLimitAndParams(sql,tab)
-
-            return res.send({status:true,panels:p,count:c[0].nb})
+            p = await Panel.getPanelByLimitAndParams(sql,tab,l)
+            c = await Panel.countPanelByLimitAndParams(sql,tab)
         }else{
-
-            const p = await Panel.getPanelByLimit(l)
-            const c = await Panel.countPanelByLimit()
-            return res.send({status:true,panels:p,count:c[0].nb})
+            p = await Panel.getPanelByLimit(l)
+            c = await Panel.countPanelByLimit()
+            
         }
+        return res.send({status:true,panels:p,count:c[0].nb})
 
         //return res.send({status:false,message:"Fonctionnalités en cours de développement"})
 
