@@ -192,7 +192,8 @@ class Panneau{
     static getQuartierByVilleList(v_list){
         return new Promise((resolve,reject)=>{
             let sql = `select distinct l.lieu_quartier from panneau as p 
-            left join lieu as l on l.lieu_id = p.lieu_id where l.lieu_ville in (?)`
+            left join lieu as l on l.lieu_id = p.lieu_id where l.lieu_ville in (?)
+            order by l.lieu_quartier asc`
 
             connection.query(sql,[v_list],(err,res)=>{
                 if(err) return reject(err)
