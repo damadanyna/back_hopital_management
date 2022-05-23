@@ -490,6 +490,66 @@ router.put('/panel/valid/:id',async (req,res)=>{
     }
 })
 
+//Récupération des nombre utiles dans admin
+router.get('/count/things',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        //Countage de notificatio -- peut attendre
+
+        //Comptage des queryplace
+        let r = {}
+
+        r.nb_qplace = (await D.exec(`select count(*) as nb from query_place where qplace_vu = 0`) )[0].nb 
+
+        return res.send({status:true,r})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Gestion query place côté admin
+router.get('/qplace/all',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        //Récupération des données de query place
+        let sql = `select * from query_place qp
+        left join lieu l on l.lieu_id = qp.qplace_lieu_id `
+        let qplaces = await D.exec(sql)
+
+        return res.send({status:true,qplaces})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+router.get('/qplace/:id',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        let qplace = (await D.exec_params(`select * from query_place qp
+        left join lieu l on l.lieu_id = qp.qplace_lieu_id where qplace_id = ?`,req.params.id))[0]
+
+        //Récupération des images
+        let im_list = []
+        if(qplace.qplace_list_photo){
+            im_list = await D.exec_params(`select file_id,dimension_file,dimension_min_file,name_file,name_min_file from file 
+            where file_id in (?)`,[ qplace.qplace_list_photo.split(',') ])
+        }
+
+        return res.send({status:true,qplace,im_list})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+
 
 
 module.exports = router

@@ -34,6 +34,21 @@ create table if not exists panneau (
     PRIMARY KEY (pan_id)
 )ENGINE=InnoDB;
 
+create table if not exists query_place (
+    qplace_id INT NOT NULL AUTO_INCREMENT,
+    qplace_lieu_id int null,
+    qplace_ann_id int null,
+    qplace_reg_id int null,
+    qplace_desc text null,
+    qplace_list_photo varchar(255) null,
+    qplace_created_at datetime default NOW(),
+    qplace_validate int null,
+    qplace_vu int null default 0,
+    qplace_lu int null default 0,
+    qplace_pan_id int null,
+    PRIMARY KEY (qplace_id)
+)ENGINE=InnoDB;
+
 create table if not exists pan_location(
     pan_loc_id int not null auto_increment,
     pr_id int null,

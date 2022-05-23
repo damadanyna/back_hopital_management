@@ -363,11 +363,100 @@ router.get('/:id',async (req,res)=>{
         
         return res.send({status:true,panel:pan,info})
     } catch (e) {
-        console.log(e)
+        console.error(e)
         return res.send({status:false,message:"Erreur de base de donnée"})
     }
 })
 
+//Gestion de demande d'emplacement d'un annonceur
+router.post('/qplace/param',async (req,res)=>{
+    let D = require('../models/data')
+    let d = req.body
 
+    try {
+        //Récupération des informations sur l'annonceur
+        let ann = (await require('../models/annonceur').getByIdProfil(req.user.pr_id))[0]
+
+        
+
+        let lieu = {
+            lieu_pays:d.qplace.lieu_pays || null ,
+            lieu_region:d.qplace.lieu_region || null,
+            lieu_quartier:d.qplace.lieu_quartier || null,
+            lieu_ville:d.qplace.lieu_ville || null,
+            lieu_lat:d.qplace.lieu_lat || null,
+            lieu_lng:d.qplace.lieu_lng || null,
+            lieu_label:d.qplace.lieu_label || null
+        }
+
+        if(!lieu.lieu_label) return res.send({status:false,message:`Vous devez remplir le "Lieu dit". `})
+
+        //Insertion du lieu
+        let l_r = await D.set('lieu',lieu)
+
+        let qplace = {
+            qplace_desc:d.qplace.desc || null,
+            qplace_ann_id:ann.ann_id,
+            qplace_validate:0,
+            qplace_list_photo:(d.ims.length > 0)?d.ims.join(','):null,
+            qplace_lieu_id:l_r.insertId
+        }
+
+        //Insertion  qplace
+        let qp_r = await D.set('query_place',qplace)
+
+        //Insertion des notifications -- pas pour le moment
+
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur de base de donnée"})
+    }
+})
+
+//Récupération des query place
+router.get('/qplace/all',async (req,res)=>{
+    let D = require('../models/data')
+    try {
+        let qplaces = await D.exec(`select * from query_place qp 
+        left join lieu l on l.lieu_id = qp.qplace_lieu_id`)
+
+
+        return res.send({status:true,qplaces})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur de base de donnée"})
+    }
+})
+
+//Suppression d'un qplace
+router.delete('/qplace/:id',async (req,res)=>{
+    let D = require('../models/data')
+
+    let id = parseInt(req.params.id)
+    if(id.toString() == 'NaN') return res.send({status:false,message:"Erreur de donnée."})
+
+    try {
+        //Récupération du query place
+        let qp = (await D.exec(`select * from query_place where qplace_id = ${id}`))[0]
+
+        //Suppression du lieu
+        await D.del('lieu',{lieu_id:qp.qplace_lieu_id})
+
+        //Suppression des images
+        if( qp.qplace_list_photo ){
+            await require('../controller/file').deleteMultipleFile(qp.qplace_list_photo.split(','))
+        }
+
+        //Suppression du query place
+        await D.del('query_place',{qplace_id:id})
+
+        return res.send({status:true})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur de base de donnée"})
+    }
+})
 
 module.exports = router

@@ -67,6 +67,9 @@ router.use('/solarpro',require('./solarpro.api.route'))
 //Pour la gestion de pub
 router.use('/pub',require('./pub.api.route'))
 
+//Pour le traitement des images
+router.use('/image',require('./image.api.route'))
+
 //Deconnexion
 router.get('/deconnect',(req,res)=>{
     let options = {
