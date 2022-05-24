@@ -41,6 +41,7 @@ create table if not exists query_place (
     qplace_reg_id int null,
     qplace_desc text null,
     qplace_list_photo varchar(255) null,
+    qplace_desc_lieu text null,
     qplace_created_at datetime default NOW(),
     qplace_validate int null,
     qplace_vu int null default 0,

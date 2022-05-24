@@ -84,3 +84,6 @@ alter table solarpro_pan add spp_long_pan int null;
 
 -- new 11 Mai 2022
 alter table solarpro add sp_assurance int null default 0;
+
+-- new 24 Mai 2022
+alter table query_place add qplace_desc_lieu text null;

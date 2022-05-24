@@ -376,30 +376,18 @@ router.post('/qplace/param',async (req,res)=>{
     try {
         //Récupération des informations sur l'annonceur
         let ann = (await require('../models/annonceur').getByIdProfil(req.user.pr_id))[0]
-
         
-
-        let lieu = {
-            lieu_pays:d.qplace.lieu_pays || null ,
-            lieu_region:d.qplace.lieu_region || null,
-            lieu_quartier:d.qplace.lieu_quartier || null,
-            lieu_ville:d.qplace.lieu_ville || null,
-            lieu_lat:d.qplace.lieu_lat || null,
-            lieu_lng:d.qplace.lieu_lng || null,
-            lieu_label:d.qplace.lieu_label || null
-        }
-
-        if(!lieu.lieu_label) return res.send({status:false,message:`Vous devez remplir le "Lieu dit". `})
-
-        //Insertion du lieu
-        let l_r = await D.set('lieu',lieu)
-
+        
+        //Gestion d'erreur
+        if(!d.qplace.desc_lieu) return res.send({status:false,message:"Vous devez nous décrire le lieu."})
+        if(d.ims.length <= 0) return res.send({status:false,message:"Vous devez insérez au moins une image."})
+        
         let qplace = {
             qplace_desc:d.qplace.desc || null,
             qplace_ann_id:ann.ann_id,
             qplace_validate:0,
+            qplace_desc_lieu:d.qplace.desc_lieu,
             qplace_list_photo:(d.ims.length > 0)?d.ims.join(','):null,
-            qplace_lieu_id:l_r.insertId
         }
 
         //Insertion  qplace
@@ -418,10 +406,7 @@ router.post('/qplace/param',async (req,res)=>{
 router.get('/qplace/all',async (req,res)=>{
     let D = require('../models/data')
     try {
-        let qplaces = await D.exec(`select * from query_place qp 
-        left join lieu l on l.lieu_id = qp.qplace_lieu_id`)
-
-
+        let qplaces = await D.exec(`select * from query_place qp`)
         return res.send({status:true,qplaces})
     } catch (e) {
         console.error(e)

@@ -510,14 +510,15 @@ router.get('/count/things',async (req,res)=>{
     }
 })
 
-//Gestion query place côté admin
+//Gestion query place côté admin -- QUERY PLACE
 router.get('/qplace/all',async (req,res)=>{
     let D = require('../models/data')
 
     try {
         //Récupération des données de query place
         let sql = `select * from query_place qp
-        left join lieu l on l.lieu_id = qp.qplace_lieu_id `
+        left join annonceur a on a.ann_id = qp.qplace_ann_id
+        left join panneau p on qp.qplace_pan_id = p.pan_id`
         let qplaces = await D.exec(sql)
 
         return res.send({status:true,qplaces})
@@ -533,7 +534,8 @@ router.get('/qplace/:id',async (req,res)=>{
 
     try {
         let qplace = (await D.exec_params(`select * from query_place qp
-        left join lieu l on l.lieu_id = qp.qplace_lieu_id where qplace_id = ?`,req.params.id))[0]
+        left join annonceur a on a.ann_id = qp.qplace_ann_id
+        where qplace_id = ?`,req.params.id))[0]
 
         //Récupération des images
         let im_list = []
@@ -543,6 +545,40 @@ router.get('/qplace/:id',async (req,res)=>{
         }
 
         return res.send({status:true,qplace,im_list})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Recherche de panneau pour l'assignation dans query_place côté admin
+router.get('/panel/qplace',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        let search = req.query.search
+        let sql = `select p.*,f.* from panneau p
+        left join file f on f.file_id = p.image_id
+        where p.pan_publoc_ref like ? `
+
+        let panels = await D.exec_params(sql,`%${search}%`)
+
+        return res.send({status:true,panels})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+router.put('/panel/qplace/assign-pan',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        let d = req.body
+
+        await D.updateWhere('query_place',{qplace_pan_id:d.pan_id},{qplace_id:d.qplace_id})
+
+        return res.send({status:true})
     } catch (e) {
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
