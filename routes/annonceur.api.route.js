@@ -463,7 +463,7 @@ router.get('/p/panel',async (req,res)=>{
 
         const ann = await Annonceur.getByIdProfil(req.user.pr_id)
         let sql = `select p.pan_id, p.pan_publoc_ref, p.sous_ann_id,p.ann_id as panel_ann_id, p.pan_solarpro_access,
-            pl.pan_loc_validate,pl.pan_loc_id,pl.pan_loc_date_debut, pl.pan_loc_month,pl.pan_loc_date_fin,
+            pl.pan_loc_validate,pl.pan_loc_id,pl.pan_loc_date_debut, pl.pan_loc_month,pl.pan_loc_date_fin,p.pan_tag,
             sal.*
             ,l.*,f.name_file,f.name_min_file from panneau  p 
             left join pan_location as pl on pl.pan_id = p.pan_id 
