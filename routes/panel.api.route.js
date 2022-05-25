@@ -8,6 +8,19 @@ router.use((req, res, next) => {
     next();
 });
 
+//changement de tag pour un panneau
+router.put('/ann/tag',async (req,res)=>{
+    let D = require('../models/data')
+    try {
+        let d = req.body
+        await D.updateWhere('panneau',{pan_tag:d.tag},{pan_id:d.pan_id})
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée",e})
+    }
+})
+
 //Upload et suppressioin d'image selon les modes
 router.put('/ims/other',async (req,res)=>{
     let D = require('../models/data')

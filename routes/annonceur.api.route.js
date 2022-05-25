@@ -556,7 +556,8 @@ router.get('/p/panel/:id',async (req,res)=>{
 
         }
 
-
+        //Provisoirement
+        panel.reg_label = null
 
         return res.send({status:true,panel,image_list,image_list_pose,image_list_solarpro,spp})
     } catch (e) {

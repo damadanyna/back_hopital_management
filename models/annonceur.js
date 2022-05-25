@@ -200,7 +200,7 @@ class Annonceur{
         return new Promise((resolve,reject)=>{
             let sql = `select pan.pan_list_photo,pan.pan_list_photo_pose,pan.pan_list_photo_solarpro,pan.pan_solarpro_access,
             pan.pan_publoc_ref,pan.pan_surface,pan.pan_state,pan.pan_lumineux,r.reg_label,pan.sous_ann_id,
-            pl.pan_loc_month,pl.pan_loc_date_debut,pl.pan_loc_date_fin,ap.ann_label,
+            pl.pan_loc_month,pl.pan_loc_date_debut,pl.pan_loc_date_fin,ap.ann_label,pan.pan_tag,
             (select cat_label from category c where c.cat_id = cat.parent_cat_id ) as parent_cat_label,
             pan.pan_verified_by_publoc,l.*,cat.cat_label,file.name_file from panneau as pan `
             sql+="left join pan_location pl on pl.pan_id = pan.pan_id "
