@@ -165,7 +165,10 @@ router.get('/admin/filters',async (req,res)=>{
         w+=`a.ann_label like ?`
     }else if(d.filter_by == 'reg_label'){
         w+=`r.reg_label like ?`
+    }else if(d.filter_by == 'pan_publoc_ref'){
+        w+=`p.pan_publoc_ref like ?`
     }
+
 
     t_w.push(`%${d.input}%`)
 
