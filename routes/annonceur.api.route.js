@@ -506,7 +506,7 @@ router.get('/p/panel',async (req,res)=>{
         }else if(d.by == 'ref'){
             w.s = 'p.pan_publoc_ref like ?'
             w.t = `%${d.search}%`
-        }else if(d.by = 'cat'){
+        }else if(d.by == 'cat'){
             w.s = 'c.parent_cat_id = ?'
             w.t = d.cat
 
@@ -519,6 +519,9 @@ router.get('/p/panel',async (req,res)=>{
                 w.s = 'l.lieu_label like ? '
                 w.t = `%%`
             }
+        }else if(d.by == 'tag'){
+            w.s = 'p.pan_tag like ?'
+            w.t = `%${d.search}%`
         }
 
         const ann = await Annonceur.getByIdProfil(req.user.pr_id)
