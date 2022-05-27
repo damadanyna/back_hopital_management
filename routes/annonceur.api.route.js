@@ -8,16 +8,63 @@ router.use((req, res, next) => {
     next();
 });
 
+//suppression d'un location côté annonceur
+router.put('/location/pan/:id_pan',async (req,res)=>{
+    let D = require('../modesl/data')
+
+    try {
+        let id_pan = parseInt(req.params.id_pan)
+
+        if(id_pan.toString() == 'NaN') return res.send({status:false,message:'Erreur de donnée en entrée'})
+
+        //Ici gestion d'erreur du panneau mais pas pour l'instant
+
+
+        //Suppression de la location
+        await D.exec_params(`delete from pan_location where pan_id = ?`,id_pan)
+
+        //Modification de l'etat du panneau
+        await D.updateWhere('panneau',{pan_state:1,ann_id:null,sous_ann_id:null},{pan_id:id_pan})
+
+        //Suppression de sous-location
+        await D.del('sous_ann_location',{saloc_pan_id:id_pan})
+
+
+
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //Récupéraion des catégories qui sont à l'annonceur actuel
 router.get('/cat/:id_ann',async (req,res)=>{
     let D = require('../models/data')
     try {
-        let sql = `select c.cat_id,c.cat_label from category c
-        left join panneau p on p.cat_id = c.cat_id where parent_cat_id is null`
+        let sql = `select distinct c.cat_id,c.cat_label from category c
+        where parent_cat_id is null`
 
         let cat_list = await D.exec_params(sql,req.params.id_ann)
 
         return res.send({status:true,cat_list})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Récupération des formats du catégories actuel
+router.get('/formats/:id_cat',async (req,res)=>{
+    let D = require('../models/data')
+    try {
+        let sql = `select c.cat_id,c.cat_label from category c
+        where parent_cat_id = ?`
+
+        let format_list = await D.exec_params(sql,req.params.id_cat)
+
+        return res.send({status:true,format_list})
 
     } catch (e) {
         console.error(e)
@@ -459,6 +506,19 @@ router.get('/p/panel',async (req,res)=>{
         }else if(d.by == 'ref'){
             w.s = 'p.pan_publoc_ref like ?'
             w.t = `%${d.search}%`
+        }else if(d.by = 'cat'){
+            w.s = 'c.parent_cat_id = ?'
+            w.t = d.cat
+
+            if(d.format){
+                w.s = 'c.cat_id = ?'
+                w.t = d.format
+            }
+
+            if(!d.cat){
+                w.s = 'l.lieu_label like ? '
+                w.t = `%%`
+            }
         }
 
         const ann = await Annonceur.getByIdProfil(req.user.pr_id)
@@ -469,6 +529,7 @@ router.get('/p/panel',async (req,res)=>{
             left join pan_location as pl on pl.pan_id = p.pan_id 
             left join lieu as l on l.lieu_id = p.lieu_id 
             left join file as f on f.file_id = p.image_id 
+            left join category c on c.cat_id = p.cat_id
             left join sous_ann_location as sal on p.pan_id = sal.saloc_pan_id 
             where (p.ann_id = ? or p.sous_ann_id = ?) and ${w.s} `
 
