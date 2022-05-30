@@ -524,9 +524,11 @@ router.post('/panel',async(req,res)=>{
 
         //Insertion  de la commune urbaine si existe
         //'pan_date_auth_cu','pan_num_auth_cu','pan_id_cu'
-        d.pan_date_auth_cu = (d.pan_date_auth_cu)?d.pan_date_auth_cu:null
-        d.pan_num_auth_cu = (d.pan_num_auth_cu)?d.pan_num_auth_cu:null
-        d.pan_cu_id = (d.pan_cu_id)?d.pan_cu_id:null
+        p.pan_date_auth_cu = (d.pan_date_auth_cu)?d.pan_date_auth_cu:null
+        p.pan_num_auth_cu = (d.pan_num_auth_cu)?d.pan_num_auth_cu:null
+        p.pan_cu_id = (d.pan_cu_id)?d.pan_cu_id:null
+        p.pan_view_vers = (d.pan_view_vers)?d.pan_view_vers:null
+
 
 
         const pan_res = await Panel.add(p)

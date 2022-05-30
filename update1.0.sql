@@ -90,3 +90,6 @@ alter table query_place add qplace_desc_lieu text null;
 
 -- New 25 Mai 2022
 alter table panneau add pan_tag varchar(255) null;
+
+-- New 30 Mai 2022
+alter table panneau add pan_view_vers text null;

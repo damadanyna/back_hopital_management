@@ -289,7 +289,7 @@ router.post('/',async (req,res)=>{
 router.put('/:id',async (req,res)=>{
     let Panel = require('./../models/panel')
     let d = req.body
-    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_description','pan_lumineux']
+    let pan = ['reg_id','cat_id','image_id','pan_surface','pan_ref','pan_description','pan_lumineux','pan_view_vers']
     let lieu = ['lieu_pays','lieu_ville','lieu_quartier','lieu_commune','lieu_region','lieu_label','lieu_lat','lieu_lng']
 
     let p = {}

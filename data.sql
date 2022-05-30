@@ -30,6 +30,7 @@ create table if not exists panneau (
     pan_num_auth_cu varchar(255) null,
     pan_date_auth_cu datetime null,
     pan_tag varchar(255) null,
+    pan_view_vers text null,
     pan_solarpro_access int null default 0,
     pan_update_at datetime null default NOW(),
     PRIMARY KEY (pan_id)
