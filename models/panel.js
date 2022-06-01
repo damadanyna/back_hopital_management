@@ -537,12 +537,15 @@ class Panneau{
     //Récupération des locations validées
     static getAllLocationsBy(v){
         return new Promise((resolve,reject)=>{
-            let sql = `select pl.pan_loc_id,pan.pan_ref,pan.pan_id, ann.ann_label,pl.pan_loc_reservation_date,
-            pl.pan_loc_validate,pl.pan_loc_archive,pl.pan_loc_reject `
+            let sql = `select pl.pan_loc_id,pan.pan_ref,pan.pan_id, ann.ann_label,reg.reg_label,pl.pan_loc_reservation_date,
+            pl.pan_loc_validate,pl.pan_loc_archive,pl.pan_loc_reject,
+            f.name_min_file, pan.pan_publoc_ref `
             sql+="from pan_location as pl "
             sql+="left join panneau as pan on pan.pan_id = pl.pan_id "
             sql+="left join annonceur as ann on ann.ann_id = pl.ann_id "
+            sql+="left join regisseur as reg on reg.reg_id = pan.reg_id "
             sql+="left join tarif as t on pl.pan_loc_tarif_id = t.tarif_id "
+            sql+="left join file as f on f.file_id = pan.image_id "
             sql+="left join services as srv on pl.pan_loc_service_id = srv.serv_id "
             sql+="where pl.pan_loc_validate = ? "
             connection.query(sql,v,(err,res)=>{
