@@ -10,6 +10,29 @@ router.use((req, res, next) => {
     next();
 });
 
+//Changement d'Etat d'un panneau côté admin
+router.put('/panel/change-state',async (req,res)=>{
+    let st = parseInt(req.body.state)
+    let D = require('../models/data')
+
+    try {
+
+        // console.log(req.body)
+        
+        //changement d'Etat en indisponnible
+        if(st == 4){
+            await D.updateWhere('panneau',{pan_state:st},{pan_id:req.body.pan_id})
+        }else if(st == 1){
+            await D.updateWhere('panneau',{pan_state:st},{pan_id:req.body.pan_id})
+        }
+
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 
 //Suppresion d'une catégorie
 router.delete('/cat/:id/:id_parent',async(req,res) => {
