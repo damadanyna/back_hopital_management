@@ -10,6 +10,49 @@ router.use((req, res, next) => {
     next();
 });
 
+router.post('/panel/location/validate',async (req,res)=>{
+
+    let D = require('../models/data')
+
+    let panel = req.body.panel
+    let location = req.body.location
+
+    if(parseInt(location.month) <1 ){
+        return res.send({status:false,message:"Le nombre de mois doit être supérieur à 1."})
+    }
+
+    if(!location.date_debut){
+        return res.send({status:false,message:"Vous devez entrer une date de début valide."})
+    }
+
+    //Récuperation du détails de l'annonceur
+    let ann = (await require('../models/annonceur').getById(location.ann_id))[0]
+
+    try {
+
+        let p_loc = {
+            pan_id:panel.pan_id,
+            pan_loc_date_debut:location.date_debut,
+            pan_loc_validate:1,
+            ann_id:location.ann_id,
+            pan_loc_month:location.month,
+            reg_id:panel.reg_id,
+            pan_loc_ann_label:ann.ann_label
+        }
+
+        //Insertion de la location
+        await D.set('pan_location',p_loc)
+
+        //Modification du panneau
+        await D.updateWhere('panneau',{ann_id:location.ann_id,pan_state:3},{pan_id:panel.pan_id})
+
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //Changement d'Etat d'un panneau côté admin
 router.put('/panel/change-state',async (req,res)=>{
     let st = parseInt(req.body.state)
@@ -22,8 +65,19 @@ router.put('/panel/change-state',async (req,res)=>{
         //changement d'Etat en indisponnible
         if(st == 4){
             await D.updateWhere('panneau',{pan_state:st},{pan_id:req.body.pan_id})
-        }else if(st == 1){
+        }else if(st == 1 && req.body.state_old == 4 ){ //Mettre en disponible normale
+            //Mettre en disponible quand l'etat d'avant était indisponible
             await D.updateWhere('panneau',{pan_state:st},{pan_id:req.body.pan_id})
+        }else if(st == 1 && req.body.state_old == 3 ){ //Annulation de location
+            //Annulation de location
+            await D.updateWhere('panneau',{pan_state:st,ann_id:null,sous_ann_id:null},{pan_id:req.body.pan_id})
+
+            //Suppression de la location
+            await D.del('pan_location',{pan_id:req.body.pan_id})
+
+            //Suppression de sous location
+            await D.del('sous_ann_location',{saloc_pan_id:req.body.pan_id})
+
         }
 
         return res.send({status:true})
