@@ -189,12 +189,14 @@ router.get('/admin/filters',async (req,res)=>{
 
     //Ceci possède des filtres
     let sql_request = `select * from panneau p
+    left join profil pr on p.pan_pr_id = pr.pr_id
     left join lieu l on l.lieu_id = p.lieu_id 
     left join annonceur a on p.ann_id = a.ann_id
     left join regisseur r on r.reg_id = p.reg_id
     where ${w} ${limit}`
 
     let sql_count = `select count(*) as nb from panneau p
+    left join profil pr on p.pan_pr_id = pr.pr_id
     left join lieu l on l.lieu_id = p.lieu_id 
     left join annonceur a on p.ann_id = a.ann_id
     left join regisseur r on r.reg_id = p.reg_id
@@ -267,13 +269,17 @@ router.post('/',async (req,res)=>{
         }else{
             p.pan_publoc_ref = 'PBLC-000'+(nbp+1)
         }
-        const pan_res = await Panel.add(p)
 
         //Insertion  de la commune urbaine si existe
         //'pan_date_auth_cu','pan_num_auth_cu','pan_id_cu'
-        d.pan_date_auth_cu = (d.pan_date_auth_cu)?d.pan_date_auth_cu:null
-        d.pan_num_auth_cu = (d.pan_num_auth_cu)?d.pan_num_auth_cu:null
-        d.pan_cu_id = (d.pan_cu_id)?d.pan_cu_id:null
+        p.pan_date_auth_cu = (d.pan_date_auth_cu)?d.pan_date_auth_cu:null
+        p.pan_num_auth_cu = (d.pan_num_auth_cu)?d.pan_num_auth_cu:null
+        p.pan_cu_id = (d.pan_cu_id)?d.pan_cu_id:null
+
+        //Insertion de l'utilisateur qui a posté le panneau
+        p.pan_pr_id = req.user.pr_id
+
+        const pan_res = await Panel.add(p)
 
 
         return res.send({status:true,id:pan_res.insertId})

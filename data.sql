@@ -6,6 +6,7 @@ create table if not exists panneau (
     reg_id INT NULL,
     ann_id INT NULL,
     lieu_id int null,
+    pan_pr_id int NULL,
     image_id int null,
     pan_state int null default 1,
     pan_validation int null default 1,

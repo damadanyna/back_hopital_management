@@ -93,3 +93,6 @@ alter table panneau add pan_tag varchar(255) null;
 
 -- New 30 Mai 2022
 alter table panneau add pan_view_vers text null;
+
+-- New 14 Juin 2022
+alter table panneau add pan_pr_id int NULL;
