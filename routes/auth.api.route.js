@@ -70,6 +70,9 @@ router.use('/pub',require('./pub.api.route'))
 //Pour le traitement des images
 router.use('/image',require('./image.api.route'))
 
+//Route pour la gestion de tarification
+router.use('/tr',require('./tarifs.api.route'))
+
 //Deconnexion
 router.get('/deconnect',(req,res)=>{
     let options = {

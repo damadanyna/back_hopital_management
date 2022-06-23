@@ -425,4 +425,44 @@ create table if not exists pub_im (
     pub_im_list text null,
     pub_type varchar(255) null,
     PRIMARY KEY (pub_id)
+)ENGINE=InnoDB; 
+
+
+-- Création de tarif côté admin
+create table if not exists tarifs (
+    tr_id int not null auto_increment,
+    tr_reg_id int null,
+    tr_cat_id int null,
+    tr_format_id int null,
+    tr_pr_id int null,
+    tr_created_at datetime null default NOW(),
+    PRIMARY KEY (tr_id)
+)ENGINE=InnoDB; 
+
+-- collection des tarifs par mois
+create table if not exists tarif_per_month (
+    tpm_id int not null auto_increment,
+    tpm_taxe_communale varchar(255) null, -- prix_taxe_communale
+    tpm_location varchar(255) null, -- prix_location
+    tpm_month int null,
+    tpm_tr_id int null,
+    PRIMARY KEY (tpm_id)
 )ENGINE=InnoDB;
+
+-- collection par service supplémentaire (pas  par mois)
+create table if not exists tarif_per_service (
+    tps_id int not null auto_increment,
+    tps_service_id varchar(255) null,
+    tps_type varchar(255) null,
+    tps_tr_id int null,
+    tps_prix varchar(255) null,
+    PRIMARY KEY (tps_id)
+)ENGINE=InnoDB;
+
+-- Liste des services supplémentaires (pas par mois)
+create table if not exists t_services (
+    t_serv_id int not null auto_increment,
+    t_serv_label varchar(255) null,
+    PRIMARY KEY (t_serv_id)
+)ENGINE=InnoDB;
+
