@@ -126,9 +126,11 @@ router.post('/tpm',async (req,res)=>{
             return res.send({status:false,message:"Le nombre de mois existe déjà."})
         }
 
+        console.log(tpm)
+
         //Insertion de TPM
         let tpm_insert = {
-            tpm_taxe_communale:tpm.tpm_taxe_communale.trim(),
+            tpm_taxe_communale:tpm.tpm_taxe_communale,
             tpm_location:tpm.tpm_location.trim(),
             tpm_month:tpm.tpm_month,
             tpm_tr_id:tr_id
