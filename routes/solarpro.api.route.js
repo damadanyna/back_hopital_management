@@ -280,4 +280,58 @@ router.put('/panel/:id/date',async (req,res)=>{
     }
 })
 
+// ----- Récupération des régisseurs ayant donné accès à solarpro
+router.get('/reg/list',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        let sql = `select r.*,
+        (select count(*) from panneau pan where pan.reg_id = r.reg_id and pan.pan_solarpro_access = 1) as nb_panel,
+        SUM(spp.spp_nb_light) as nb_light
+        from regisseur r
+        left join panneau p on p.reg_id = r.reg_id
+        left join solarpro_pan spp on spp.spp_pan_id = p.pan_id
+        where p.pan_solarpro_access = 1
+        group by r.reg_id`
+        
+        let regs = await D.exec(sql)
+
+        return res.send({status:true,regs})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée ..."})
+    }
+})
+
+//récupération des paneaux d'un seul régisseur
+router.get('/reg/:id',async (req,res)=>{
+    let D = require('../models/data')
+    let reg_id = req.params.id
+    try {
+        let sql = `select *,
+        (select cat_label from category where cat_id = c.parent_cat_id  ) as parent_cat_label
+        from panneau p
+        left join regisseur r on r.reg_id = p.reg_id
+        left join category c on c.cat_id = p.cat_id
+        left join solarpro_pan spp on spp.spp_pan_id = p.pan_id
+
+        where r.reg_id = ? and p.pan_solarpro_access = 1`
+
+        let panels = await D.exec_params(sql,reg_id)
+
+        //Compter le nombre de lumière
+        sql = `select sum(spp_nb_light) as nb from panneau p
+        left join solarpro_pan spp on p.pan_id = spp.spp_pan_id
+        where p.reg_id = ? and p.pan_solarpro_access = 1`
+
+        let nb_light_total = (await D.exec_params(sql,reg_id))[0].nb
+
+        return res.send({status:true,panels,nb_light_total})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée ..."})
+    }
+})
+
 module.exports = router
