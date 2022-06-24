@@ -96,3 +96,6 @@ alter table panneau add pan_view_vers text null;
 
 -- New 14 Juin 2022
 alter table panneau add pan_pr_id int NULL;
+
+-- New 24 Juin 2022
+alter table tarif_per_service add tps_type_id int null;

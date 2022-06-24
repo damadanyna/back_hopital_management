@@ -454,6 +454,7 @@ create table if not exists tarif_per_service (
     tps_id int not null auto_increment,
     tps_service_id varchar(255) null,
     tps_type varchar(255) null,
+    tps_type_id int null,
     tps_tr_id int null,
     tps_prix varchar(255) null,
     PRIMARY KEY (tps_id)
@@ -464,5 +465,12 @@ create table if not exists t_services (
     t_serv_id int not null auto_increment,
     t_serv_label varchar(255) null,
     PRIMARY KEY (t_serv_id)
+)ENGINE=InnoDB;
+
+-- liste des types de panneau
+create table if not exists panel_type (
+    pt_id int not null auto_increment,
+    pt_label varchar(255) null,
+    PRIMARY KEY (pt_id)
 )ENGINE=InnoDB;
 

@@ -120,7 +120,7 @@ router.post('/tpm',async (req,res)=>{
         //On va detecter d'abord s'il existe déja un service par mois avec le meme 
         //mois
 
-        let test_tpm = await D.exec_params(`select * from tarif_per_month where tpm_month = ?`,tpm.tpm_month)
+        let test_tpm = await D.exec_params(`select * from tarif_per_month where tpm_month = ? and tpm_tr_id = ?`,[tpm.tpm_month,tr_id])
 
         if( test_tpm.length > 0 ){
             return res.send({status:false,message:"Le nombre de mois existe déjà."})
@@ -144,13 +144,13 @@ router.post('/tpm',async (req,res)=>{
     }
 })
 
-router.get('/tpm',async (req,res)=>{
+router.get('/tpm/:tr_id',async (req,res)=>{
     let D = require('../models/data')
-
+    let tr_id = req.params.tr_id
     try {
         //Récupération des services par mois (taxe communale et location)
-        let sql = `select * from tarif_per_month tpm`
-        let tpm = await D.exec_params(sql)
+        let sql = `select * from tarif_per_month tpm where tpm_tr_id = ? order by tpm_month asc`
+        let tpm = await D.exec_params(sql,tr_id)
         return res.send({status:true,tpm})
     } catch (e) {
         console.error(e)
