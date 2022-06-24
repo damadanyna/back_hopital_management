@@ -334,4 +334,60 @@ router.get('/reg/:id',async (req,res)=>{
     }
 })
 
+
+// ----- Récupération des annonceur pour solarpro
+router.get('/ann/list',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        let sql = `select a.*,
+        (select count(*) from panneau pan where pan.ann_id = a.ann_id and pan.pan_solarpro_access = 1) as nb_panel,
+        SUM(spp.spp_nb_light) as nb_light
+        from annonceur a
+        left join panneau p on p.ann_id = a.ann_id
+        left join solarpro_pan spp on spp.spp_pan_id = p.pan_id
+        where p.pan_solarpro_access = 1
+        group by a.ann_id`
+        
+        let anns = await D.exec(sql)
+
+        return res.send({status:true,anns})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée ..."})
+    }
+})
+
+//récupération des paneaux d'un seul annonceur
+router.get('/ann/:id',async (req,res)=>{
+    let D = require('../models/data')
+    let ann_id = req.params.id
+    try {
+        let sql = `select *,
+        (select cat_label from category where cat_id = c.parent_cat_id  ) as parent_cat_label
+        from panneau p
+        left join annonceur a on a.ann_id = p.ann_id
+        left join regisseur r on r.reg_id = p.reg_id
+        left join category c on c.cat_id = p.cat_id
+        left join solarpro_pan spp on spp.spp_pan_id = p.pan_id
+
+        where a.ann_id = ? and p.pan_solarpro_access = 1`
+
+        let panels = await D.exec_params(sql,ann_id)
+
+        //Compter le nombre de lumière
+        sql = `select sum(spp_nb_light) as nb from panneau p
+        left join solarpro_pan spp on p.pan_id = spp.spp_pan_id
+        where p.ann_id = ? and p.pan_solarpro_access = 1`
+
+        let nb_light_total = (await D.exec_params(sql,ann_id))[0].nb
+
+        return res.send({status:true,panels,nb_light_total})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée ..."})
+    }
+})
+
 module.exports = router
