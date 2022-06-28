@@ -8,6 +8,84 @@ router.use((req, res, next) => {
     next();
 });
 
+// RECHERCHE DE TARIFICATION
+router.get('/search/filter',async (req,res)=>{
+    let D = require('../models/data')
+
+    let filter = req.query
+
+    let w = {
+        w:'',
+        t:[]
+    }
+    try {
+
+        if(filter.reg_id){
+            w.w+='r.reg_id = ?'
+            w.t.push(filter.reg_id)
+        }
+
+        if(filter.cat_id){
+            w.w+= ((w.w)?' and ':'')+ 'cat.cat_id = ?'
+            w.t.push(filter.cat_id)
+        }
+
+        if(filter.format_id){
+            w.w+=((w.w)?' and ':'')+ 'format.cat_id = ?'
+            w.t.push(filter.format_id)
+        }
+
+        if(filter.serv_id){
+            w.w+=((w.w)?' and ':'')+ 'tps.tps_service_id = ?'
+            w.t.push(filter.serv_id)
+        }
+
+        if(filter.month){
+            w.w+=((w.w)?' and ':'')+ 'tpm.tpm_month = ?'
+            w.t.push(filter.month)
+        }
+
+        let sql = `select *,cat.*,format.cat_id as format_id,format.cat_label as format_label
+        from tarifs t
+        left join regisseur r on r.reg_id = t.tr_reg_id
+        left join category cat on cat.cat_id = t.tr_cat_id
+        left join category format on format.cat_id = t.tr_format_id
+        left join tarif_per_service tps on tps.tps_tr_id = t.tr_id
+        left join tarif_per_month tpm on tpm.tpm_tr_id = t.tr_id
+        left join t_services ts on ts.t_serv_id = tps.tps_service_id
+        where ${w.w}`
+
+        let tarifs = await D.exec_params(sql,w.t)
+
+        return res.send({status:true,tarifs})
+
+            
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//  LIST DES TARIFICATIONS
+router.get('/list/all',async (req,res)=>{
+    let D = require('../models/data')
+    try {
+        //Récupération des tarifs créer
+        let tarifs = await D.exec(`select tr.*,cat.*,r.*,format.cat_id as format_cat_id,format.cat_label as format_label,
+        (select count(*) from tarif_per_month tpm where tpm.tpm_tr_id = tr.tr_id ) as nb_tpm,
+        (select count(*) from tarif_per_service tps where tps.tps_tr_id = tr.tr_id ) as nb_tps
+        from tarifs tr
+        left join category cat on cat.cat_id  = tr.tr_cat_id
+        left join category format on format.cat_id = tr.tr_format_id
+        left join regisseur r on r.reg_id = tr.tr_reg_id`)
+
+        return res.send({status:true,tarifs})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 
 //Récupération des données côté admin pour l'insertion de tarification
 router.get('/ad/data-utils',async (req,res)=>{
@@ -126,7 +204,7 @@ router.post('/tpm',async (req,res)=>{
             return res.send({status:false,message:"Le nombre de mois existe déjà."})
         }
 
-        console.log(tpm)
+        // console.log(tpm)
 
         //Insertion de TPM
         let tpm_insert = {
@@ -187,6 +265,24 @@ router.get('/tps', async (req,res)=>{
         //Récupération de la liste des services
         let services  = await D.exec(`select * from t_services`)
 
+        return res.send({status:true,tps,services})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+router.get('/tps/:tr_id',async (req,res)=>{
+    let D = require('../models/data')
+    let tr_id = req.params.tr_id
+    try {
+        //Récupération des services par mois (taxe communale et location)
+        let sql = `select * from tarif_per_service tps
+        left join t_services ts on ts.t_serv_id = tps.tps_service_id where tps_tr_id = ?`
+
+        //Récupération de la liste des services
+        let services  = await D.exec(`select * from t_services`)
+        let tps = await D.exec_params(sql,tr_id)
         return res.send({status:true,tps,services})
     } catch (e) {
         console.error(e)
