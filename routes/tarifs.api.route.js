@@ -14,48 +14,52 @@ router.get('/search/filter',async (req,res)=>{
 
     let filter = req.query
 
-    let w = {
-        w:'',
-        t:[]
-    }
+    let w = {w:'',t:[]}, w_tpm = {w:'',t:[]} 
+
     try {
+        //Pour la recherche de tarifs
+            if(filter.reg_id){
+                w.w+='r.reg_id = ?'
+                w.t.push(filter.reg_id)
+            }
 
-        if(filter.reg_id){
-            w.w+='r.reg_id = ?'
-            w.t.push(filter.reg_id)
-        }
+            if(filter.cat_id){
+                w.w+= ((w.w)?' and ':'')+ 'cat.cat_id = ?'
+                w.t.push(filter.cat_id)
+            }
 
-        if(filter.cat_id){
-            w.w+= ((w.w)?' and ':'')+ 'cat.cat_id = ?'
-            w.t.push(filter.cat_id)
-        }
+            if(filter.format_id){
+                w.w+=((w.w)?' and ':'')+ 'format.cat_id = ?'
+                w.t.push(filter.format_id)
+            }
 
-        if(filter.format_id){
-            w.w+=((w.w)?' and ':'')+ 'format.cat_id = ?'
-            w.t.push(filter.format_id)
-        }
+            if(filter.month){
+                w.w+=((w.w)?' and ':'')+ 'tpm.tpm_month = ?'
+                w.t.push(filter.month)
+            }
 
-        if(filter.serv_id){
-            w.w+=((w.w)?' and ':'')+ 'tps.tps_service_id = ?'
-            w.t.push(filter.serv_id)
-        }
-
-        if(filter.month){
-            w.w+=((w.w)?' and ':'')+ 'tpm.tpm_month = ?'
-            w.t.push(filter.month)
-        }
-
-        let sql = `select *,cat.*,format.cat_id as format_id,format.cat_label as format_label
-        from tarifs t
-        left join regisseur r on r.reg_id = t.tr_reg_id
-        left join category cat on cat.cat_id = t.tr_cat_id
-        left join category format on format.cat_id = t.tr_format_id
-        left join tarif_per_service tps on tps.tps_tr_id = t.tr_id
-        left join tarif_per_month tpm on tpm.tpm_tr_id = t.tr_id
-        left join t_services ts on ts.t_serv_id = tps.tps_service_id
-        where ${w.w}`
+        //Pour la récupération des données du tarif
+        let sql = `select * from tarifs tr
+        left join regisseur r on r.reg_id = tr.tr_reg_id
+        left join category cat on cat.cat_id = tr.tr_cat_id
+        left join category format on format.cat_id = tr.tr_format_id
+        left join tarif_per_month tpm on tpm.tpm_tr_id = tr.tr_id
+        where ${w.w} `
 
         let tarifs = await D.exec_params(sql,w.t)
+        
+        //Récupération des services 
+        sql = `select * from tarif_per_service tps
+            left join t_services ts on ts.t_serv_id = tps.tps_service_id
+            where ${(filter.type)?'tps.tps_type = ? and':''} tps.tps_tr_id = ?`
+
+        for(let i = 0;i<tarifs.length;i++){
+            tarifs[i].services = await D.exec_params(sql,(filter.type)?[filter.type,tarifs[i].tr_id]:tarifs[i].tr_id)
+        }
+
+
+        // console.log(tarifs.services)
+
 
         return res.send({status:true,tarifs})
 
@@ -315,11 +319,11 @@ router.post('/tps',async (req,res)=>{
         //On regarder si le service et le type n'est pas encore rentré
         let sql = ''
         if(tps_model.service_id){
-            sql = `select * from tarif_per_service where tps_service_id = ? and tps_type = ?`
-            let test_tps = await D.exec_params(sql,[tps_model.service_id,tps_model.type])
+            sql = `select * from tarif_per_service where tps_service_id = ? and tps_type = ? and tps_tr_id = ?`
+            let test_tps = await D.exec_params(sql,[tps_model.service_id,tps_model.type,tr_id])
 
             if(test_tps.length > 0){
-                return res.send({status:false,message:" Ce service associ avec le type est déjà insérer."})
+                return res.send({status:false,d:test_tps[0],message:" Ce service associ avec le type est déjà insérer."})
             }
         }
 
