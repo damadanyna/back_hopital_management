@@ -1,6 +1,7 @@
 let router = require('express').Router()
 let moment = require('moment')
 let fs = require('fs');
+const puppeteer = require('puppeteer');
 
 
 //midlware spécifique pour la route
@@ -379,6 +380,30 @@ router.delete('/tps/:tps_id',async (req,res)=>{
         console.error(e)
         return res.send({status:false,message:"Erreur dans la base de donnée"})
     }
+})
+
+//Création de PDF
+
+router.get('/pdf/generate',async (req,res)=>{
+    
+
+    const d = await (async () => {
+        const browser = await puppeteer.launch();
+        const page = await browser.newPage();
+        await page.goto('http://localhost:3000/#/pdf?ref=pblc-0001', {
+            waitUntil: 'networkidle2',
+        });
+        await page.pdf({
+            path: 'hn.pdf', 
+            format: 'a4',
+            preferCSSPageSize: true,
+            printBackground: true
+        });
+
+        await browser.close();
+    })();
+
+    return res.send({status:true,d})
 })
 
 module.exports = router

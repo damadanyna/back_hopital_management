@@ -73,6 +73,9 @@ router.use('/image',require('./image.api.route'))
 //Route pour la gestion de tarification
 router.use('/tr',require('./tarifs.api.route'))
 
+//Route pour la gestion de tarification
+router.use('/pdf',require('./pdf.api.route'))
+
 //Deconnexion
 router.get('/deconnect',(req,res)=>{
     let options = {

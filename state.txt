@@ -1,1 +1,3 @@
 Etat panneau pour l'attribut pan_state : {1:"Disponible",2:"En réservation",3:"En location",4:"NonDispo/en attente de suppression"}
+
+width:827px;height:1169px; // 100 dpi
