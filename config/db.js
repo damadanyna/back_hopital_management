@@ -3,7 +3,7 @@ let connection = mysql.createConnection({
   host     : 'localhost',
   user     : (process.env.NODE_ENV == 'production')?'publocmg_api':'root',
   password : (process.env.NODE_ENV == 'production')?'Squadron42!!':'',
-  database : (process.env.NODE_ENV == 'production')?'publocmg_api1':'publoc_api',
+  database : (process.env.NODE_ENV == 'production')?'publocmg_api1':'publocmg_api1',
   multipleStatements: true
 });
  

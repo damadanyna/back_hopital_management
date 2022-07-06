@@ -8,6 +8,19 @@ router.use((req, res, next) => {
     next();
 });
 
+//get liste annonceur like
+router.get('/like/:label',  async (req,res)=>{
+    let D = require('../models/data')
+    let ann_label_search = `%${req.params.label}%`
+    try {
+        const anns = await D.exec_params(`select * from annonceur where ann_label like ?`,ann_label_search)
+        return res.send({status:true,anns})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 //suppression d'un location côté annonceur
 router.put('/location/pan/:id_pan',async (req,res)=>{
     let D = require('../modesl/data')

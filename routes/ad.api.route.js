@@ -10,6 +10,56 @@ router.use((req, res, next) => {
     next();
 });
 
+
+//insertion de location multiple côté admin
+router.post('/panel/location/multiple',async (req,res)=>{
+    let D = require('../models/data')
+    let pans = req.body.pans
+    let pans_id = req.body.pans_id
+    let loc = req.body.loc
+    let ann = req.body.ann
+    
+    try {
+
+
+        /*
+        let p_loc = {
+            pan_id:panel.pan_id,
+            pan_loc_date_debut:location.date_debut,
+            pan_loc_validate:1,
+            ann_id:location.ann_id,
+            pan_loc_month:location.month,
+            reg_id:panel.reg_id,
+            pan_loc_ann_label:ann.ann_label
+        }
+        */
+
+        //création de location dans une boucle
+        let loc_tmp = {}
+        for(let i = 0; i<pans.length;i++){
+            loc_tmp = {
+                pan_id:pans[i].pan_id,
+                pan_loc_date_debut:loc.date_debut,
+                pan_loc_validate:1,
+                ann_id:ann.ann_id,
+                pan_loc_month:loc.month,
+                reg_id:pans[i].reg_id,
+                pan_loc_ann_label:ann.ann_label
+            }
+
+            await D.set('pan_location',loc_tmp)
+        }
+
+        //Modification de tous les panneaux
+        await D.exec_params('update panneau set ? where pan_id in (?)',[{ann_id:ann.ann_id,pan_state:3},pans_id])
+
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
 router.post('/panel/location/validate',async (req,res)=>{
 
     let D = require('../models/data')
