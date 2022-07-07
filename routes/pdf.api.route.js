@@ -180,12 +180,12 @@ const createPDF = async (name_pdf,panels)=>{
             //Curent position
         
             doc.lineCap('round')
-            .moveTo(300, doc.page.height / 8 +10)
-            .lineTo(460, doc.page.height / 8 +10)
+            .moveTo(300, doc.page.height / 16 +10)
+            .lineTo(460, doc.page.height / 16 +10)
             .stroke('#BC3230');
 
             doc.fillColor('white')
-            doc.fontSize(14).text(pan.pan_publoc_ref.toUpperCase(),305,doc.page.height / 8)
+            doc.fontSize(14).text(pan.pan_publoc_ref.toUpperCase(),305,doc.page.height / 16)
             
             doc.moveDown()
 
@@ -413,12 +413,12 @@ router.get('/test',async (req,res)=>{
         //Curent position
         
         doc.lineCap('round')
-        .moveTo(300, doc.page.height / 8 +10)
-        .lineTo(460, doc.page.height / 8 +10)
+        .moveTo(300, doc.page.height / 16 +10)
+        .lineTo(460, doc.page.height / 16 +10)
         .stroke('#BC3230');
 
         doc.fillColor('white')
-        doc.fontSize(14).text(pan.pan_publoc_ref.toUpperCase(),305,doc.page.height / 8)
+        doc.fontSize(14).text(pan.pan_publoc_ref.toUpperCase(),305,doc.page.height / 16)
         
         doc.moveDown()
 
