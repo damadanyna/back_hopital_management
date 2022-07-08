@@ -11,6 +11,57 @@ router.use((req, res, next) => {
 });
 
 
+//Modification multiple 
+router.put('/panel/location/multiple',async (req,res) =>{
+    let D = require('../models/data')
+
+    let pans = req.body.pans
+    let pans_id = req.body.pans_id
+    let loc = req.body.loc
+    let ann = req.body.ann
+
+    
+
+    try {
+        //On va d'abord récupérer la liste des locations 
+        let locs_id = await D.exec_params('select pan_loc_id from pan_location where pan_id in (?)',[pans_id])
+        locs_id = locs_id.map( x => x.pan_loc_id )
+        
+        let _tmp = {}
+        //     pan_loc_date_debut:(loc.date_debut)?loc.date_debut:undefined,
+        //     pan_loc_month:(loc.month)?loc.month:undefined,
+        //     ann_id:(ann)?ann.ann_id:undefined,
+        //     pan_loc_ann_label:(ann)?ann.ann_label:undefined
+        // }
+
+        //On vérifie si  les trucs sont à modifier
+
+        if(loc.date_debut) _tmp.pan_loc_date_debut = loc.date_debut
+        if(loc.month) _tmp.pan_loc_month = loc.month
+
+        if(ann){
+            _tmp.ann_id = ann.ann_id
+            _tmp.pan_loc_ann_label = ann.ann_label
+        }
+
+        //Validation de la modification des locations
+        await D.exec_params(`update pan_location set ? where pan_loc_id in (?)`,[_tmp,locs_id])
+
+        
+        //Modification des panneaux si l'annonceur est modifié
+        if(ann){
+            await D.exec_params('update panneau set ? where pan_id in (?)',[{ann_id:ann.ann_id},pans_id])
+        }
+
+        return res.send({status:true})
+
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+
 //insertion de location multiple côté admin
 router.post('/panel/location/multiple',async (req,res)=>{
     let D = require('../models/data')

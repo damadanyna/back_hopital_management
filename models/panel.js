@@ -334,15 +334,16 @@ class Panneau{
 
     static getById(id){
         return new Promise((resolve,reject)=>{
-            let sql = `select cu.*,panneau.*,lieu.*,category.*,reg.*,ann.*,file.name_file,reg.pr_id as reg_pr_id,
+            let sql = `select pl.*,cu.*,panneau.*,lieu.*,category.*,reg.*,ann.*,file.name_file,reg.pr_id as reg_pr_id,
             (select cat_label from category c where c.cat_id = category.parent_cat_id ) as parent_cat_label from panneau `
             sql+="left join lieu on panneau.lieu_id = lieu.lieu_id "
             sql+="left join category on panneau.cat_id = category.cat_id "
+            sql+="left join pan_location pl on panneau.pan_id = pl.pan_id "
             sql+="left join regisseur as reg on panneau.reg_id = reg.reg_id "
             sql+="left join annonceur as ann on panneau.ann_id = ann.ann_id "
             sql+="left join file on panneau.image_id = file.file_id "
             sql+="left join commune_urbaine cu on cu.cu_id = panneau.pan_cu_id "
-            sql+="where pan_id = ?"
+            sql+="where panneau.pan_id = ?"
             connection.query(sql,id,(err,res)=>{
                 if(err) return reject(err)
                 resolve(res)
