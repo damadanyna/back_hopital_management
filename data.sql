@@ -474,3 +474,15 @@ create table if not exists panel_type (
     PRIMARY KEY (pt_id)
 )ENGINE=InnoDB;
 
+-- Système de proposition pour les annonceurs
+create table if not exists props_pan(
+    props_id int not null auto_increment,
+    props_pan_id int  null,
+    props_ann_id int null,
+    props_vu int null default 0,
+    props_lu int null default 0,
+    props_created datetime default NOW(),
+    props_interest int null default 0,
+    PRIMARY KEY (props_id)
+)ENGINE=InnoDB;
+
