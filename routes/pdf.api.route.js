@@ -179,13 +179,31 @@ const createPDF = async (name_pdf,panels)=>{
     
             //Curent position
         
+            // doc.lineCap('round')
+            // .moveTo(300, doc.page.height / 16 +10)
+            // .lineTo(460, doc.page.height / 16 +10)
+            // .stroke('#BC3230');
+
+            // doc.fillColor('white')
+            // doc.fontSize(14).text(pan.pan_publoc_ref.toUpperCase(),305,doc.page.height / 16)
+
+
+            //------------ Pour mettre le text et le fond au milieu
+            let txt_ref = pan.pan_publoc_ref.toUpperCase()
+            let _s_txt = {
+                w: doc.widthOfString(txt_ref),
+                h: doc.heightOfString(txt_ref)
+            }
+            let _x_ref = ((content.w-20) /2 - _s_txt.w/2 )
             doc.lineCap('round')
-            .moveTo(300, doc.page.height / 16 +10)
-            .lineTo(460, doc.page.height / 16 +10)
-            .stroke('#BC3230');
+            .moveTo( _x_ref + side.w + 10, doc.page.height / 16 +10)
+            .lineTo( _x_ref + side.w + 10  + _s_txt.w, doc.page.height / 16 +10)
+            .stroke('#BC3230')
 
             doc.fillColor('white')
-            doc.fontSize(14).text(pan.pan_publoc_ref.toUpperCase(),305,doc.page.height / 16)
+            doc.fontSize(14).text(txt_ref,_x_ref+side.w + 12 ,doc.page.height / 16)
+            
+            //-------------
             
             doc.moveDown()
 
@@ -209,7 +227,7 @@ const createPDF = async (name_pdf,panels)=>{
                 let h_scl = p_dim[1] * scl
                 let w_scl = (300 / p_dim[1]) * p_dim[0] //  si h_scl > 300
 
-                let _x = ( (content.w-20) /2 - w_scl/2 ) + side.w
+                let _x = ( (content.w-20) /2 - w_scl/2 ) + side.w + 10
                 _s = (h_scl > 300)?{height:300,x:_x}:{width:content.w-20}
 
                 doc.image(`uploads/${pan.name_file}.${pan.extension_file}`,_s)
@@ -220,11 +238,28 @@ const createPDF = async (name_pdf,panels)=>{
     
             //titre de la carrte du panneau
             
+            // doc.lineCap('round')
+            // .moveTo(doc.x+5, doc.y+10)
+            // .lineTo(doc.x + doc.widthOfString(`Localisation : ${pan.lieu_label}`.toUpperCase()), doc.y+10)
+            // .stroke('#BC3230');
+            // doc.text(`Localisation : ${pan.lieu_label}`.toUpperCase())
+
+            let txt_lieu = pan.lieu_label.toUpperCase()
+
+            let _s_lieu = {
+                w:doc.widthOfString(txt_lieu),
+                h:doc.heightOfString(txt_lieu)
+            }
+
+            let _x_lieu = ((content.w-20) /2 - _s_lieu.w/2 )
+
             doc.lineCap('round')
-            .moveTo(doc.x+5, doc.y+10)
-            .lineTo(doc.x + doc.widthOfString(`Localisation : ${pan.lieu_label}`.toUpperCase()), doc.y+10)
+            .moveTo(_x_lieu + side.w +10, doc.y+10)
+            .lineTo(_x_lieu + side.w +10 + _s_lieu.w, doc.y+10)
             .stroke('#BC3230');
-            doc.text(`Localisation : ${pan.lieu_label}`.toUpperCase())
+
+            doc.text(txt_lieu,_x_lieu + side.w + 12,doc.y)
+
             doc.moveDown()
     
             const d = await axios.get(`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+2e67ea(${pan.lieu_lng},${pan.lieu_lat})/${pan.lieu_lng},${pan.lieu_lat},16,0/1200x700?access_token=pk.eyJ1IjoiYW5nZWxvMTQyNyIsImEiOiJja3c0aGExMTIwNmp0Mm9udnY2bGNsZnRoIn0.PiJCKKLMoWzmULCaFs2CqA`,
@@ -234,7 +269,7 @@ const createPDF = async (name_pdf,panels)=>{
             const buffer = Buffer.from(d.data, 'binary')//.toString('base64')
             await sharp(buffer).toFile('statics/tmp_carte.png')
             //Insertion d'image du panneau
-            doc.image(`statics/tmp_carte.png`,{width:content.w-20})
+            doc.image(`statics/tmp_carte.png`,{width:content.w-20,x:side.w+10})
     
     
             //Bas de page pour les infos de publoc
