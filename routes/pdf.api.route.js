@@ -244,8 +244,9 @@ const createPDF = async (name_pdf,panels)=>{
             // .stroke('#BC3230');
             // doc.text(`Localisation : ${pan.lieu_label}`.toUpperCase())
 
-            let txt_lieu = pan.lieu_label.toUpperCase()
 
+            doc.fontSize(12)
+            let txt_lieu = pan.lieu_label.toUpperCase()
             let _s_lieu = {
                 w:doc.widthOfString(txt_lieu),
                 h:doc.heightOfString(txt_lieu)
@@ -253,10 +254,15 @@ const createPDF = async (name_pdf,panels)=>{
 
             let _x_lieu = ((content.w-20) /2 - _s_lieu.w/2 )
 
+
+            // console.log({l:_s_lieu.w ,c:content.w})
+
             doc.lineCap('round')
             .moveTo(_x_lieu + side.w +10, doc.y+10)
             .lineTo(_x_lieu + side.w +10 + _s_lieu.w, doc.y+10)
             .stroke('#BC3230');
+
+            
 
             doc.text(txt_lieu,_x_lieu + side.w + 12,doc.y)
 
