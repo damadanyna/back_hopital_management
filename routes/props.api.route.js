@@ -6,6 +6,37 @@ router.use((req, res, next) => {
     next();
 });
 
+router.get('/ann',async (req,res)=>{
+    let D = require('../models/data')
+
+    try {
+        //On récupère l'id de l'annonceur actuel
+        let ann_id = (await D.exec_params('select ann_id from annonceur where pr_id = ?',req.user.pr_id))[0].ann_id
+
+
+        //Puis on récupère les panneaux dans la proposition
+        let sql = `select p.pan_publoc_ref,p.pan_id,c.cat_label as format_label,l.*,f.name_file,f.name_min_file,
+        (select cat_label from category p_cat where p_cat.cat_id = c.parent_cat_id) as cat_label
+        from panneau p
+        left join category c on c.cat_id = p.cat_id
+        left join lieu l on l.lieu_id = p.lieu_id
+        left join file f on f.file_id = p.image_id
+        left join props_pan pp on pp.props_pan_id = p.pan_id
+        where pp.props_ann_id = ?`
+
+        let props = await D.exec_params(sql,ann_id)
+
+    
+
+
+        // console.log(req.user)
+        return res.send({status:true,props})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:'Erreur dans la base de donnée'})
+    }
+})
+
 //Suppresion d'une proposition annonceur
 router.delete('/:id',async (req,res)=>{
     let D = require('../models/data')

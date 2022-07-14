@@ -201,7 +201,18 @@ const createPDF = async (name_pdf,panels)=>{
     
                 pan.dimension_file = [metadata.width,metadata.height].join(',')
             }else{
-                doc.image(`uploads/${pan.name_file}.${pan.extension_file}`,{width:content.w-20})
+                let _s = {}
+                let p_dim = pan.dimension_file.split(',').map(x => parseInt(x))
+
+                let scl = (content.w-20) / p_dim[0] // scale de l'image
+
+                let h_scl = p_dim[1] * scl
+                let w_scl = (300 / p_dim[1]) * p_dim[0] //  si h_scl > 300
+
+                let _x = ( (content.w-20) /2 - w_scl/2 ) + side.w
+                _s = (h_scl > 300)?{height:300,x:_x}:{width:content.w-20}
+
+                doc.image(`uploads/${pan.name_file}.${pan.extension_file}`,_s)
             }
     
             doc.fontSize(14)
