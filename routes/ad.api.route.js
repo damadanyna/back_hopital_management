@@ -11,7 +11,23 @@ router.use((req, res, next) => {
 });
 
 
-//Modification multiple 
+//Validation multiple
+router.put('/panel/validate',async(req,res)=>{
+
+    let D = require('../models/data')
+    let pans_id = req.body.pans_id
+    try {
+        //
+
+        await D.exec_params(`update panneau set pan_validation = 1 where pan_id in (?)`,[pans_id])
+        return res.send({status:true})
+    } catch (e) {
+        console.error(e)
+        return res.send({status:false,message:"Erreur dans la base de donnée"})
+    }
+})
+
+//Modification multiple d'une location de panneau côté admin
 router.put('/panel/location/multiple',async (req,res) =>{
     let D = require('../models/data')
 
