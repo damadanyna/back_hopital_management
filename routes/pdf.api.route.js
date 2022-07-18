@@ -44,6 +44,7 @@ router.post('/generate',async(req,res)=>{
     let D = require('../models/data')
     let name_pdf = req.body.name_pdf
     let pans_id = req.body.pans_id
+    let rapport_ann = req.body.rapport_ann
 
     try {
         let sql = `select *,
@@ -57,7 +58,8 @@ router.post('/generate',async(req,res)=>{
 
         const panels = await D.exec_params(sql,[pans_id])
 
-        await createPDF(name_pdf,panels)
+        await createPDF(name_pdf,panels,rapport_ann)
+        
 
         return res.send({status:true,link_pdf:`/api/a/pdf/view/${name_pdf}`})
         
@@ -69,12 +71,14 @@ router.post('/generate',async(req,res)=>{
 })
 
 
-const createPDF = async (name_pdf,panels)=>{
+const createPDF = async (name_pdf,panels,rapport_ann)=>{
+    let D = require('../models/data')
     try {
         const doc = new PDFDocument({autoFirstPage: false});
         doc.pipe(fs.createWriteStream(`files/${name_pdf}.pdf`))
 
         let pan = {}
+
         for(let i = 0;i<panels.length;i++){
             pan = panels[i]
             doc.addPage({
@@ -209,6 +213,15 @@ const createPDF = async (name_pdf,panels)=>{
 
 
             doc.fontSize(14).text('-',side.w+10,doc.page.height / 8 + 10)
+            
+            if(pan.pan_list_photo_pose && rapport_ann){
+                let id_im_pose = parseInt(pan.pan_list_photo_pose.split(',')[0])
+                let ims = (await D.exec_params(`select * from file where file_id = ?`,id_im_pose))[0]
+
+                pan.name_file = ims.name_file
+                pan.dimension_file = ims.dimension_file
+                pan.extension_file = ims.extension_file
+            }
     
             
             //Insertion d'image du panneau
