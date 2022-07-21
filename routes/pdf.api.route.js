@@ -286,9 +286,12 @@ const createPDF = async (name_pdf,panels,rapport_ann)=>{
                 responseType: 'arraybuffer'
               })
             const buffer = Buffer.from(d.data, 'binary')//.toString('base64')
-            await sharp(buffer).toFile('statics/tmp_carte.png')
+            await sharp(buffer).toFile(`statics/tmp_carte${i}.png`)
             //Insertion d'image du panneau
-            doc.image(`statics/tmp_carte.png`,{width:content.w-20,x:side.w+10})
+            doc.image(`statics/tmp_carte${i}.png`,{width:content.w-20,x:side.w+10})
+
+            await fs.unlinkSync(`statics/tmp_carte${i}.png`)
+
     
     
             //Bas de page pour les infos de publoc
