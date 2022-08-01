@@ -437,7 +437,7 @@ router.get('/:id/edit',async (req,res)=>{
         const reg = await Data.exec('select r.reg_id, r.reg_label from regisseur r ')
 
         //Récupération des listes de cu
-        const cu = await Data.exec('select cu.cu_id, cu_label,cu_label_2 from commune_urbaine cu')
+        const cu = await Data.exec('select cu.cu_id, cu.cu_label,cu.cu_label_2 from commune_urbaine cu')
         
         return res.send({status:true,panel:p_res[0],image_list:image_list,ann,cat,format,reg,cu})
     } catch (e) {

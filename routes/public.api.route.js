@@ -43,7 +43,7 @@ router.get('/',(req,res)=>{
 router.post('/auth',(req,res)=>{
     let User = require('../models/user')
 
-    console.error('salut eto am auth zao')
+    // console.error('salut eto am auth zao')
 
     if(req.body.id == undefined){
         return res.send({status:false,message:"Mauvaise donnée envoyée",data:req.body})
