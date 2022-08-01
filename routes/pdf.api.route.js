@@ -316,7 +316,7 @@ const createPDF = async (name_pdf,panels,rapport_ann)=>{
             doc.text('+261 34 99 329 12')
             w_text = doc.widthOfString('+261 34 99 329 12')
             //Localisation
-            doc.text('Localisation',side.w +20+w_text,doc.page.height-b_to_top)
+            doc.text('Adresse',side.w +20+w_text,doc.page.height-b_to_top)
             doc.text('Immeuble TMT Anosivavala')
             doc.text('101 Antananarivo, Madagascar')
             w_text += doc.widthOfString('101 Antananarivo, Madagascar')+10
