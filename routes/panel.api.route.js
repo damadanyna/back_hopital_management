@@ -419,7 +419,7 @@ router.get('/:id/edit',async (req,res)=>{
     try {
         const p_res = await Panel.getById(id)
         let image_list = []
-        if(p_res[0].pan_list_photo != null){
+        if(p_res[0].pan_list_photo){
             const ims = await require('../models/File').getIn(p_res[0].pan_list_photo.split(',').map(x => parseInt(x)) )
             image_list = ims
         }
