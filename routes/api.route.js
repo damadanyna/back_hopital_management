@@ -1,6 +1,13 @@
 let router = require('express').Router()
 
 
+//Pour la gestion d'authentification 
+let auth = require('./../middleware/auth')
+router.use(auth)
+
+//les requires utils
+
+
 
 //Message de Vérification
 router.get('/',(req,res)=>{
@@ -8,8 +15,15 @@ router.get('/',(req,res)=>{
 })
 
 
-router.use('/a',require('./auth.api.route'))
-router.use('/p',require('./public.api.route'))
+// router.use('/a',require('./auth.api.route'))
+// router.use('/p',require('./public.api.route'))
+
+//API pour l'admin
+router.use('/admin',require('./ad.api.route'))
+
+
+//Gestion de patient
+router.post('/patient',require('../controller/patient.controller').register) //enregistrement d'un patient
 
 
 //------

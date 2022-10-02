@@ -1,9 +1,9 @@
 let mysql      = require('mysql');
 let connection = mysql.createConnection({
   host     : 'localhost',
-  user     : (process.env.NODE_ENV == 'production')?'publocmg_api':'root',
+  user     : (process.env.NODE_ENV == 'production')?'root':'root',
   password : (process.env.NODE_ENV == 'production')?'Squadron42!!':'',
-  database : (process.env.NODE_ENV == 'production')?'publocmg_api1':'publoc_api1',
+  database : (process.env.NODE_ENV == 'production')?'hopital_base':'hopital_base',
   multipleStatements: true
 });
  
