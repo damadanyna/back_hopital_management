@@ -15,15 +15,13 @@ router.get('/',(req,res)=>{
 })
 
 
-// router.use('/a',require('./auth.api.route'))
-// router.use('/p',require('./public.api.route'))
-
-//API pour l'admin
-router.use('/admin',require('./ad.api.route'))
-
 
 //Gestion de patient
 router.post('/patient',require('../controller/patient.controller').register) //enregistrement d'un patient
+
+router.get('/patients',require('../controller/patient.controller').getList)//Récupération de la liste des patiens
+//Récupération des liste de patients
+router.get('/patients',)
 
 
 //------

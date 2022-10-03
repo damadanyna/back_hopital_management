@@ -69,6 +69,45 @@ class Patient{
         }
 
     }
+
+
+
+    //Récupération des listes de patients
+    static async getList(req,res){
+
+
+
+        let filters = req.query
+
+        let _obj_pat = {
+            num:'patient_num',
+            nom_prenom:'patient_name_and_lastname',
+            age:'patient_age',
+        }
+
+        //Tri par defaut des patients
+        let default_sort_by = 'num'
+
+        filters.page = (!filters.page )?1:parseInt(filters.page)
+        filters.limit = (!filters.limit)?100:parseInt(filters.limit)
+        filters.sort_by = (!filters.sort_by)?_obj_pat[default_sort_by]:_obj_pat[filters.sort_by]
+
+        try {
+            //A reserver recherche par nom_prenom
+            let patients = await D.exec_params(`select * from patient order by ${filters.sort_by} limit ? offset ?`,[
+                filters.limit,
+                (filters.page-1)*filters.limit
+            ])
+
+            //Liste total des patients
+            let nb_total_patient = (await D.exec('select count(*) as nb from patient'))[0].nb
+
+            return res.send({status:true,patients,nb_total_patient})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
 }
 
 module.exports = Patient
