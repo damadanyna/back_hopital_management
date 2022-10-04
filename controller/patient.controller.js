@@ -71,12 +71,8 @@ class Patient{
     }
 
 
-
     //Récupération des listes de patients
     static async getList(req,res){
-
-
-
         let filters = req.query
 
         let _obj_pat = {
@@ -107,6 +103,10 @@ class Patient{
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
+    }
+
+    static async delUser(){
+        
     }
 }
 

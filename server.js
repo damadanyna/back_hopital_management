@@ -3,6 +3,8 @@ let session = require('express-session')
 let bodyParser = require('body-parser')
 let cookieParser = require('cookie-parser')
 
+var cors = require('cors')
+
 
 
 let MemoryStore = require('memorystore')(session)
@@ -11,14 +13,9 @@ const { Console } = require("console");
 // get fs module for creating write streams
 const fs = require("fs");
 
-// make a new logger
-const myLogger = new Console({
-  stdout: fs.createWriteStream("nlog.txt"),
-  stderr: fs.createWriteStream("elog.txt"),
-});
-
-
 let app = express()
+
+
 
 
 //Utilisation de socket.io
@@ -29,6 +26,7 @@ let io = require('socket.io')(http,{path:"/api/ws",cors:{origin:'*',methods:['GE
 // cookie parser middleware
 app.use(cookieParser());
 
+app.use(cors())
 app.use(bodyParser.urlencoded({extended:false}))
 app.use(bodyParser.json())
 
@@ -40,7 +38,6 @@ let escape_html = (t)=>{
 app.use((req,res,next)=>{
     req.io = io
     req.escape_html = escape_html
-    req.logger = myLogger
     next()
 })
 
