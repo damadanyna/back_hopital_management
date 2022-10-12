@@ -9,7 +9,7 @@ class Patient{
 
         console.log(_d)
 
-        //liste des éléements utiles à la création du patient
+        //liste des éléments utiles à la création du patient
         let _patient_data = {
             patient_num:{front_name:'num',fac:false,message:''},
             patient_name_and_lastname:{front_name:'nom_prenom',fac:false},

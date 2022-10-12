@@ -5,8 +5,6 @@ let cookieParser = require('cookie-parser')
 
 var cors = require('cors')
 
-
-
 let MemoryStore = require('memorystore')(session)
 
 const { Console } = require("console");

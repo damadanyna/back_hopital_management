@@ -1,4 +1,29 @@
 
+-- Table Utilisateurs
+create table if not exists user(
+    user_id int auto_increment not null,
+    user_login varchar(255) null,
+    user_pass varchar(255) null,
+    user_type varchar(100) null,
+    primary key (patient_id)
+)Engine=InnoDB;
+
+-- Table d'accès au module
+create table if not exists access_user(
+    access_id int auto_increment not null,
+    access_user_id int null,
+    access_module varchar(100) null,
+    access_module_id int null,
+    primary key (access_id)
+)Engine=InnoDB;
+
+-- Liste des modules existants dans l'application
+create table if not exists module(
+    module_id int auto_increment not null,
+    module_label varchar(100) null,
+    module_description text null,
+    primary key (module_id)
+)Engine=InnoDB;
 
 -- Table patient
 create table if not exists patient(
@@ -30,7 +55,7 @@ create table if not exists hospitalisation(
     hosp_montant varchar(255) null,
     hosp_restant varchar(255) null,
     hosp_sortie datetime null,
-    hosp_departement int null,
+    hosp_departement varchar(100) null,
     primary key (hosp_id)
 )Engine=InnoDB;
 
