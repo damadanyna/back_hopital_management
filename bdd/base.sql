@@ -1,6 +1,6 @@
 
 -- Table Utilisateurs
-create table if not exists user(
+create table if not exists m_user(
     user_id int auto_increment not null,
     user_label varchar(255) null, -- Medecin Chef
     user_login varchar(255) null, -- chef
@@ -61,58 +61,3 @@ create table if not exists hospitalisation(
     primary key (hosp_id)
 )Engine=InnoDB;
 
--- Prep encaissement
-create table if not exists prep_encaissement(
-    p_enc_id int auto_increment not null,
-    p_enc_date_mvt datetime null,
-    p_enc_heure datetime null,
-    p_enc_departement varchar(255) null,
-    p_enc_patient_id int null,
-    p_enc_patient_name_and_lastname varchar(255) null,
-    p_enc_type_paiment varchar(255) null,
-    p_enc_designation varchar(255) null,
-    p_enc_montant varchar(255) null,
-    p_enc_total varchar(255) null,
-    primary key (p_enc_id)
-)Engine=InnoDB;
-
--- Table Versement
-create table if not exists versement(
-    vers_id int auto_increment not null,
-    vers_date datetime null,
-    vers_fond_caisse_matin varchar(255) null,
-    vers_recette_espece int null,
-    vers_rembourse int null,
-    vers_departement varchar(255) null,
-    primary key (vers_id)
-)Engine=InnoDB;
-
--- Table billetage_espece
-create table if not exists billetage_espece(
-    b_esp_id int auto_increment not nul,
-    b_esp_nbr int null,
-    b_esp_billet varchar(255) null,
-    b_esp_montant int null,
-    b_esp_total_espece varchar(255),
-    b_esp_fond_caisse_soir varchar(255),
-    b_esp_total_cheque varchar(255),
-    b_esp_total_versement varchar(255),
-    b_esp_observation varchar(255),
-    primary key (b_esp_id)
-)Engine=InnoDB;
-
--- Table recapitulation departemement
-create table if not exists recapitulation_departement (
-    rec_dep_id int auto_increment not null,
-    rec_dep_designation varchar(255) null,
-    rec_dep_chirurgie varchar(255) null,
-    rec_dep_maternite varchar(255) null,
-    rec_dep_nb int null,
-    rec_dep_brm varchar(255) null,
-    rec_dep_brc varchar(255) null,
-    rec_dep_centreclinique varchar(255) null,
-    rec_dep_pf varchar(255) null,
-    rec_dep_dispensaire varchar(255) null,
-    rec_dep_total int null,
-    primary key (rec_dep_id)
-)Engine=InnoDB;

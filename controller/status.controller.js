@@ -30,7 +30,7 @@ class Status{
         }
 
         try {
-            let _c = await D.exec_params('select * from user where user_login = ?','angelo')
+            let _c = await D.exec_params('select * from m_user where user_login = ?','angelo')
             if(_c.length <= 0){
                 await D.set('user',_data_m)
             }
@@ -50,7 +50,7 @@ class Status{
         console.log(_d)
         try {
             //
-            let _u = await D.exec_params('select * from user where user_login = ?',_d.id)
+            let _u = await D.exec_params('select * from m_user where user_login = ?',_d.id)
 
             if(_u.length>0){
                 _u = _u[0]
