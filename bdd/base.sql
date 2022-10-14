@@ -6,7 +6,7 @@ create table if not exists m_user(
     user_login varchar(255) null, -- chef
     user_pass varchar(255) null, -- 1234
     user_type varchar(10) null, -- "a", "c"
-    primary key (patient_id)
+    primary key (user_id)
 )Engine=InnoDB;
 
 -- Table d'accès au module

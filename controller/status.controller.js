@@ -32,7 +32,7 @@ class Status{
         try {
             let _c = await D.exec_params('select * from m_user where user_login = ?','angelo')
             if(_c.length <= 0){
-                await D.set('user',_data_m)
+                await D.set('m_user',_data_m)
             }
 
             return res.send({status:true,message:"_M _created"})
