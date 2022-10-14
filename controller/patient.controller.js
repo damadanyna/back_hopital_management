@@ -14,12 +14,12 @@ class Patient{
             patient_num:{front_name:'patient_num',fac:false,message:''},
             patient_name_and_lastname:{front_name:'patient_name_and_lastname',fac:false},
             patient_date_naiss:{front_name:'patient_date_naiss',fac:false,format:(a)=> new Date(a)},
-            patient_casier:{front_name:'patient_casier',fac:false},
+            patient_dern_visite:{front_name:'patient_dern_visite',fac:false,format:(a)=> new Date(a)},
+            patient_date_retour:{front_name:'patient_date_retour',fac:false,format:(a)=> new Date(a)},
             patient_age:{front_name:'patient_age',fac:false,format:(a)=> parseInt(a)},
             patient_sexe:{front_name:'patient_sexe',fac:false},
             patient_profession:{front_name:'patient_profession',fac:false},
             patient_adresse:{front_name:'patient_adresse',fac:false},
-            patient_note:{front_name:'patient_note',fac:true},
         }
 
         
