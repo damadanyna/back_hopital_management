@@ -12,6 +12,8 @@ let _hosp_data = {
     hosp_departement:{front_name:'departement',fac:true,format:(a) => parseInt(a)},
 }
 
+//['ref','num_patient','nom_prenom_patient','entree':date,'paye','montant':vola,'restant':vola,'sortie':date,'departement']
+
 class Hosp{
     //Insertion d'hospitalisation
     static async create(req,res){
@@ -94,8 +96,6 @@ class Hosp{
 
     static async deleteHosp(req,res){
         let ref = req.params.ref
-        
-        
 
         try {
              await D.del('hospitalisation',{hosp_ref:ref})
@@ -111,4 +111,4 @@ class Hosp{
     }
 }
 
-module.exports = Hops
+module.exports = Hosp

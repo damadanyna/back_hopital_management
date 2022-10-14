@@ -11,15 +11,15 @@ class Patient{
 
         //liste des éléments utiles à la création du patient
         let _patient_data = {
-            patient_num:{front_name:'num',fac:false,message:''},
-            patient_name_and_lastname:{front_name:'nom_prenom',fac:false},
-            patient_date_naiss:{front_name:'date_naissance',fac:false,format:(a)=> new Date(a)},
-            patient_casier:{front_name:'casier',fac:false},
-            patient_age:{front_name:'age',fac:false,format:(a)=> parseInt(a)},
-            patient_sexe:{front_name:'sexe',fac:false},
-            patient_profession:{front_name:'profession',fac:false},
-            patient_adresse:{front_name:'adresse',fac:false},
-            patient_note:{front_name:'note',fac:true},
+            patient_num:{front_name:'patient_num',fac:false,message:''},
+            patient_name_and_lastname:{front_name:'patient_name_and_lastname',fac:false},
+            patient_date_naiss:{front_name:'patient_date_naiss',fac:false,format:(a)=> new Date(a)},
+            patient_casier:{front_name:'patient_casier',fac:false},
+            patient_age:{front_name:'patient_age',fac:false,format:(a)=> parseInt(a)},
+            patient_sexe:{front_name:'patient_sexe',fac:false},
+            patient_profession:{front_name:'patient_profession',fac:false},
+            patient_adresse:{front_name:'patient_adresse',fac:false},
+            patient_note:{front_name:'patient_note',fac:true},
         }
 
         
@@ -76,13 +76,13 @@ class Patient{
         let filters = req.query
 
         let _obj_pat = {
-            num:'patient_num',
-            nom_prenom:'patient_name_and_lastname',
-            age:'patient_age',
+            patient_num:'patient_num',
+            patient_name_and_lastname:'patient_name_and_lastname',
+            patient_age:'patient_age',
         }
 
         //Tri par defaut des patients
-        let default_sort_by = 'num'
+        let default_sort_by = 'patient_num'
 
         filters.page = (!filters.page )?1:parseInt(filters.page)
         filters.limit = (!filters.limit)?100:parseInt(filters.limit)

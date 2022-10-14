@@ -2,9 +2,10 @@
 -- Table Utilisateurs
 create table if not exists user(
     user_id int auto_increment not null,
-    user_login varchar(255) null,
-    user_pass varchar(255) null,
-    user_type varchar(100) null,
+    user_label varchar(255) null, -- Medecin Chef
+    user_login varchar(255) null, -- chef
+    user_pass varchar(255) null, -- 1234
+    user_type varchar(10) null, -- "a", "c"
     primary key (patient_id)
 )Engine=InnoDB;
 
@@ -21,6 +22,7 @@ create table if not exists access_user(
 create table if not exists module(
     module_id int auto_increment not null,
     module_label varchar(100) null,
+    module_icons varchar(255) null,
     module_description text null,
     primary key (module_id)
 )Engine=InnoDB;

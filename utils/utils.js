@@ -12,6 +12,15 @@ class Utils{
         return pass
     }
 
+    static hashCompare(n,cp){
+        return new Promise((resolve,reject)=>{
+            bcrypt.compare(n, cp, function(err, result) {
+                if(err) reject(err)
+                resolve(result)
+            })
+        })
+    }
+
     static isEmail(mail){
         return mail.match(
             /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
