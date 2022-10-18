@@ -5,9 +5,9 @@ class Patient{
     static async register(req,res){
 
         //les données envoyés depuis le front
-        let _d = req.body
+        let _d = req.body;
 
-        console.log(_d)
+        console.log(_d);
 
         //liste des éléments utiles à la création du patient
         let _patient_data = {
