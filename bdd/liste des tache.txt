@@ -1,0 +1,12 @@
+-- creation de l'api de l'Utilisatuer
+-- creation de l'api visite
+-- creation de l'api Patient
+-- creation de l'api Entreprise
+-- creation de l'api Payement
+-- creation de l'api Service
+-- creation de l'api Detail
+-- creation de l'api Tarif
+-- creation de l'api Departement
+-- creation de l'api Versement
+-- creation de l'api Hospitalisation
+-- creation de l'api Caisse

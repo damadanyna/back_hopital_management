@@ -42,10 +42,16 @@ router.delete('/hosp/:ref',require('../controller/hosp.controller').deleteHosp);
 
 
 //Gestion des utilisateur
-router.post('/users',require('../controller/user.controller').register);
-router.delete('/user',require('../controller/user.controller').delete);
-router.get('/users',require('../controller/user.controller').getList);
-router.post('/user',require('../controller/user.controller').update);
+router.post('/users',require('../controller/utilisateur.controller').register);
+router.delete('/user',require('../controller/utilisateur.controller').delete);
+router.get('/users',require('../controller/utilisateur.controller').getList);
+router.post('/user',require('../controller/utilisateur.controller').update);
+
+//Gestion des visite
+router.post('/visites',require('../controller/visite.controller').register);
+router.delete('/visite',require('../controller/visite.controller').delete);
+router.get('/visites',require('../controller/visite.controller').getList);
+router.post('/visite',require('../controller/visite.controller').update);
 
 
 //------
