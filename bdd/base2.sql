@@ -82,7 +82,7 @@ create table if not exists detail(
 -- Table Tarif
 create table if not exists tarif(
     tarif_id int auto_increment not null, 
-    artif_label varchar(50) null, 
+    tarif_label varchar(50) null, 
     tarif_date_enreg datetime null,
     primary key (tarif_id)
 )Engine=InnoDB; 
@@ -104,8 +104,7 @@ create table if not exists hospitalisation(
     dep_id int not null,
     ent_id int not null,
     tarif_id int not null,
-    pat_id int not null,
-    dep_label varchar(50) null, 
+    pat_id int not null, 
     hops_total_payer int null, 
     hops_total_avancer int null, 
     hops_rest_apayer int null, 
@@ -116,8 +115,8 @@ create table if not exists hospitalisation(
 )Engine=InnoDB; 
  
 
--- Table Hospitalisation
-create table if not exists hospitalisation(
+-- Table versement
+create table if not exists versement(
     versmnt_id int auto_increment not null,  
     versmnt_date_versement datetime null,
     dep_id int not null, 
@@ -125,8 +124,8 @@ create table if not exists hospitalisation(
     versmnt_recette_esp int not null,
     versmnt_recette_total int not null,
     versmnt_total_cheque int not null,
-    versmnt_total_versement not null,  
-    versmnt_remborser not null,  
+    versmnt_total_versement int not null,  
+    versmnt_remborser int not null,  
     primary key (versmnt_id)
 )Engine=InnoDB; 
  
