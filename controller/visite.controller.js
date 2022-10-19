@@ -36,8 +36,7 @@ class Visite{
                 _tmp = visite_data[v]
     
                 _d[_tmp.front_name] = (_tmp.format)?_tmp.format(_d[_tmp.front_name]):_d[_tmp.front_name]
-                
-                console.log(_d)
+                 
                 _data[v] = _d[_tmp.front_name]
             })
             
@@ -46,7 +45,7 @@ class Visite{
 
             await D.set('visite',_data)
             //Ici tous les fonctions sur l'enregistrement d'un visite
-            return res.send({status:true,message:"user bien enregistrer."})
+            return res.send({status:true,message:"visite bien enregistrer."})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -59,7 +58,7 @@ class Visite{
         try {   
             await D.del('visite',req.body)
             //Ici tous les fonctions sur l'enregistrement d'un visite
-            return res.send({status:true,message:"user supprimé."})
+            return res.send({status:true,message:"visite supprimé."})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

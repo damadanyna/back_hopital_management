@@ -29,10 +29,10 @@ router.get('/status-connexion',require('../controller/status.controller').status
 router.post('/auth',require('../controller/status.controller').auth);
 
 
-//Gestion de patient
-router.post('/patient',require('../controller/patient.controller').register); //enregistrement d'un patient
-router.get('/patients',require('../controller/patient.controller').getList);//Récupération de la liste des patiens 
-router.delete('/patient/:patient_num',require('../controller/patient.controller').delUser); //Suppression d'un utilisateur
+// //Gestion de patient
+// router.post('/patient',require('../controller/patient.controller').register); //enregistrement d'un patient
+// router.get('/patients',require('../controller/patient.controller').getList);//Récupération de la liste des patiens 
+// router.delete('/patient/:patient_num',require('../controller/patient.controller').delUser); //Suppression d'un utilisateur
 
 
 //Pour la gestion hospitalisation 
@@ -52,6 +52,12 @@ router.post('/visites',require('../controller/visite.controller').register);
 router.delete('/visite',require('../controller/visite.controller').delete);
 router.get('/visites',require('../controller/visite.controller').getList);
 router.post('/visite',require('../controller/visite.controller').update);
+
+//Gestion des patient
+router.post('/patients',require('../controller/patient.controller').register);
+router.delete('/patient',require('../controller/patient.controller').delete);
+router.get('/patients',require('../controller/patient.controller').getList);
+router.post('/patient',require('../controller/patient.controller').update);
 
 
 //------
