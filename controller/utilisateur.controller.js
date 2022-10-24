@@ -72,10 +72,36 @@ class Utilisateur{
         }
  
     }  
-    
-    static async getList(req,res){ 
-        let filters = req.query
 
+    //Récupération des détails des utilisateurs
+    static async getDetailsUser(req,res){
+        try {
+
+            let {id} = req.params
+
+            //Récupération d'un simple utilisateur
+            let user = (await D.exec_params('select * from utilisateur where util_id = ?',id))[0]
+
+            //Récupération accès modules
+            let user_access = await D.exec_params(`select * from util_access
+            left join module on module_id = ua_module_id where ua_util_id = ? `,id)
+
+            //à venir : récupération des historiques de l'utilisateur
+
+            // console.log(user);
+
+            return res.send({status:true,user,user_access})
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+    
+    static async getList(req,res){
+
+
+        let filters = req.query
         let _obj_pat = {
             util_id:'util_id',
             util_label:'util_label',

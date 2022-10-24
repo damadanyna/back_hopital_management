@@ -4,13 +4,15 @@ class Patient{
     static async register(req,res){ 
         
         let _d= req.body; 
+
+        // console.log(_d)
         let patient_data={
             pat_id:{front_name:'pat_id',fac:true},
             pat_nom_et_prenom:{front_name:'pat_nom_et_prenom',fac:false}, 
-            pat_date_naiss :{front_name:'pat_date_naiss',fac:false,format:(a)=> new Date(a)},
-            pat_date_enreg :{front_name:'pat_date_enreg',fac:true,format:()=> new Date()},
-            pat_adresse:{front_name:'pat_adresse',fac:false}, 
+            pat_date_naiss :{front_name:'pat_date_naiss',fac:true,format:(a)=> new Date(a)},
+            pat_adresse:{front_name:'pat_adresse',fac:true}, 
             pat_profession:{front_name:'pat_profession',fac:false}, 
+            pat_sexe:{front_name:'pat_sexe',fac:false}, 
             pat_numero:{front_name:'pat_numero',fac:false}, 
         };
 
