@@ -100,6 +100,43 @@ router.delete('/versement',require('../controller/versement.controller').delete)
 router.get('/versements',require('../controller/versement.controller').getList);
 router.put('/versement',require('../controller/versement.controller').update);
 
+/*  -- mar 25 --   */
+//Gestion des fournisseur
+router.post('/fournisseurs',require('../controller/fournisseur.controller').register);
+router.delete('/fournisseur',require('../controller/fournisseur.controller').delete);
+router.get('/fournisseurs',require('../controller/fournisseur.controller').getList);
+router.put('/fournisseur',require('../controller/fournisseur.controller').update);
+
+//Gestion des fournisseur
+router.post('/fournisseurs',require('../controller/fournisseur.controller').register);
+router.delete('/fournisseur',require('../controller/fournisseur.controller').delete);
+router.get('/fournisseurs',require('../controller/fournisseur.controller').getList);
+router.put('/fournisseur',require('../controller/fournisseur.controller').update);
+
+//Gestion des categorie_article
+router.post('/categorie_articles',require('../controller/categorie_article.controller').register);
+router.delete('/categorie_article',require('../controller/categorie_article.controller').delete);
+router.get('/categorie_articles',require('../controller/categorie_article.controller').getList);
+router.put('/categorie_article',require('../controller/categorie_article.controller').update);
+
+//Gestion des article
+router.post('/articles',require('../controller/article.controller').register);
+router.delete('/article',require('../controller/article.controller').delete);
+router.get('/articles',require('../controller/article.controller').getList);
+router.put('/article',require('../controller/article.controller').update);
+
+//Gestion des depot
+router.post('/depots',require('../controller/depot.controller').register);
+router.delete('/depot',require('../controller/depot.controller').delete);
+router.get('/depots',require('../controller/depot.controller').getList);
+router.put('/depot',require('../controller/depot.controller').update);
+
+//Gestion des stock_article
+router.post('/stock_articles',require('../controller/stock_article.controller').register);
+router.delete('/stock_article',require('../controller/stock_article.controller').delete);
+router.get('/stock_articles',require('../controller/stock_article.controller').getList);
+router.put('/stock_article',require('../controller/depot.controller').update);
+
 
 //------
 module.exports = router

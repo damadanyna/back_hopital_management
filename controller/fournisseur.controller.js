@@ -1,30 +1,29 @@
 let D = require('../models/data')
 
-class Versement{
+class Fournisseur{
     static async register(req,res){ 
         
         let _d= req.body; 
-        let versement_data={
-            versmnt_id:{front_name:'versmnt_id',fac:true},
-            dep_id:{front_name:'dep_id',fac:true ,format:(a)=>parseInt(a)},
-            versmnt_date_versement:{front_name:'versmnt_date_versement',fac:false ,format:(a)=>parseInt(a)}, 
-            versmnt_font_caisse:{front_name:'versmnt_font_caisse',fac:true ,format:(a)=>parseInt(a)}, 
-            versmnt_recette_esp:{front_name:'versmnt_recette_esp',fac:true ,format:(a)=>parseInt(a)},
-            versmnt_recette_total:{front_name:'versmnt_recette_total',fac:true ,format:(a)=>parseInt(a)},
-            versmnt_total_cheque:{front_name:'versmnt_total_cheque',fac:true ,format:(a)=>parseInt(a)},
-            versmnt_total_versement:{front_name:'versmnt_total_versement',fac:true ,format:(a)=>parseInt(a)},
-            versmnt_remborser:{front_name:'versmnt_remborser',fac:true ,format:(a)=>parseInt(a)},
-         
+        let fournisseur_data={
+            fourn_id:{front_name:'fourn_id',fac:true},
+            fourn_label:{front_name:'fourn_label',fac:false}, 
+            fourn_date_enreg :{front_name:'fourn_date_enreg',fac:true,format:()=> new Date()},
+            fourn_adresse:{front_name:'fourn_adresse',fac:false },
+            cod_foun:{front_name:'cod_foun',fac:false },
+            nif_fourn:{front_name:'nif_fourn',fac:false },
+            num_stat_fourn:{front_name:'num_stat_fourn',fac:false },
+            info_fourn:{front_name:'info_fourn',fac:false },
+            tva_fourn:{front_name:'tva_fourn',fac:false },
         };
 
-        //Vérification du versement
-        const _pd_keys = Object.keys(versement_data)
+        //Vérification du fournisseur
+        const _pd_keys = Object.keys(fournisseur_data)
         let _tmp = {}
         let _list_error = []
         
         try {
             _pd_keys.forEach((v,i)=>{
-                _tmp = versement_data[v]
+                _tmp = fournisseur_data[v]
                 if(!_tmp.fac && !_d[_tmp.front_name]){
     
                     _list_error.push({code:_tmp.front_name})
@@ -36,22 +35,22 @@ class Versement{
             }
     
             //Si la vérification c'est bien passé, 
-            // on passe à l'insertion du versement
+            // on passe à l'insertion du Fournisseur
             let _data = {}
             _pd_keys.forEach((v,i)=>{
-                _tmp = versement_data[v]
+                _tmp = fournisseur_data[v]
     
                 _d[_tmp.front_name] = (_tmp.format)?_tmp.format(_d[_tmp.front_name]):_d[_tmp.front_name]
                  
                 _data[v] = _d[_tmp.front_name]
             })
             
-            //l'objet versement est rempli maintenant
+            //l'objet Fournisseur est rempli maintenant
             // on l'insert dans la base de donnée
 
-            await D.set('versement',_data)
-            //Ici tous les fonctions sur l'enregistrement d'un versement
-            return res.send({status:true,message:"versement bien enregistrer."})
+            await D.set('fournisseur',_data)
+            //Ici tous les fonctions sur l'enregistrement d'un fournisseur
+            return res.send({status:true,message:"fournisseur bien enregistrer."})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -62,9 +61,9 @@ class Versement{
 
     static async delete(req,res){
         try {   
-            await D.del('versement',req.body)
-            //Ici tous les fonctions sur l'enregistrement d'un versement
-            return res.send({status:true,message:"versement supprimé."})
+            await D.del('fournisseur',req.body)
+            //Ici tous les fonctions sur l'enregistrement d'un fournisseur
+            return res.send({status:true,message:"fournisseur supprimé."})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -76,11 +75,11 @@ class Versement{
         let filters = req.query
 
         let _obj_pat = {
-            versmnt_id:'versmnt_id',
-            dep_id:'dep_id',
-            versmnt_date_versement:'versmnt_date_versement',
+            fourn_id:'fourn_id',
+            fourn_label:'fourn_label',
+            fourn_date_enreg:'fourn_date_enreg',
         } 
-        let default_sort_by = 'versmnt_id'
+        let default_sort_by = 'fourn_id'
 
         filters.page = (!filters.page )?1:parseInt(filters.page)
         filters.limit = (!filters.limit)?100:parseInt(filters.limit)
@@ -88,15 +87,15 @@ class Versement{
 
         try { 
             //A reserver recherche par nom_prenom
-            let reponse = await D.exec_params(`select * from versement order by ${filters.sort_by} limit ? offset ?`,[
+            let reponse = await D.exec_params(`select * from fournisseur order by ${filters.sort_by} limit ? offset ?`,[
                 filters.limit,
                 (filters.page-1)*filters.limit
             ])
 
-            //Liste total des versement
-            let nb_total_versement = (await D.exec('select count(*) as nb from versement'))[0].nb
+            //Liste total des fournisseur
+            let nb_total_fournisseur = (await D.exec('select count(*) as nb from fournisseur'))[0].nb
 
-            return res.send({status:true,reponse,nb_total_versement})
+            return res.send({status:true,reponse,nb_total_fournisseur})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -112,9 +111,9 @@ class Versement{
         try {  
             for (let i = 1; i < array.length; i++) {
                 const element = array[i]; 
-                await D.updateWhere('versement',element,array[0]) 
+                await D.updateWhere('fournisseur',element,array[0]) 
             }
-                //Ici tous les fonctions sur l'enregistrement d'un versement
+                //Ici tous les fonctions sur l'enregistrement d'un fournisseur
                 return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
             console.error(e)
@@ -123,4 +122,4 @@ class Versement{
     }
 }
 
-module.exports = Versement;
+module.exports = Fournisseur;

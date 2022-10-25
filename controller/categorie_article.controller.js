@@ -1,30 +1,25 @@
 let D = require('../models/data')
 
-class Versement{
+class Categorie_article{
     static async register(req,res){ 
         
         let _d= req.body; 
-        let versement_data={
-            versmnt_id:{front_name:'versmnt_id',fac:true},
-            dep_id:{front_name:'dep_id',fac:true ,format:(a)=>parseInt(a)},
-            versmnt_date_versement:{front_name:'versmnt_date_versement',fac:false ,format:(a)=>parseInt(a)}, 
-            versmnt_font_caisse:{front_name:'versmnt_font_caisse',fac:true ,format:(a)=>parseInt(a)}, 
-            versmnt_recette_esp:{front_name:'versmnt_recette_esp',fac:true ,format:(a)=>parseInt(a)},
-            versmnt_recette_total:{front_name:'versmnt_recette_total',fac:true ,format:(a)=>parseInt(a)},
-            versmnt_total_cheque:{front_name:'versmnt_total_cheque',fac:true ,format:(a)=>parseInt(a)},
-            versmnt_total_versement:{front_name:'versmnt_total_versement',fac:true ,format:(a)=>parseInt(a)},
-            versmnt_remborser:{front_name:'versmnt_remborser',fac:true ,format:(a)=>parseInt(a)},
-         
+        let categorie_article_data={
+            cat_id:{front_name:'cat_id',fac:true},
+            cat_label:{front_name:'cat_label',fac:false}, 
+            cat_date_enreg :{front_name:'cat_date_enreg',fac:false,format:()=> new Date()},
+            tarif_id:{front_name:'tarif_id',fac:false ,format:(a)=>parseInt(a)},
+            cat_parent_id:{front_name:'cat_parent_id',fac:false ,format:(a)=>parseInt(a)},
         };
 
-        //Vérification du versement
-        const _pd_keys = Object.keys(versement_data)
+        //Vérification du categorie_article
+        const _pd_keys = Object.keys(categorie_article_data)
         let _tmp = {}
         let _list_error = []
         
         try {
             _pd_keys.forEach((v,i)=>{
-                _tmp = versement_data[v]
+                _tmp = categorie_article_data[v]
                 if(!_tmp.fac && !_d[_tmp.front_name]){
     
                     _list_error.push({code:_tmp.front_name})
@@ -36,22 +31,22 @@ class Versement{
             }
     
             //Si la vérification c'est bien passé, 
-            // on passe à l'insertion du versement
+            // on passe à l'insertion du categorie_article
             let _data = {}
             _pd_keys.forEach((v,i)=>{
-                _tmp = versement_data[v]
+                _tmp = categorie_article_data[v]
     
                 _d[_tmp.front_name] = (_tmp.format)?_tmp.format(_d[_tmp.front_name]):_d[_tmp.front_name]
                  
                 _data[v] = _d[_tmp.front_name]
             })
             
-            //l'objet versement est rempli maintenant
+            //l'objet categorie_article est rempli maintenant
             // on l'insert dans la base de donnée
 
-            await D.set('versement',_data)
-            //Ici tous les fonctions sur l'enregistrement d'un versement
-            return res.send({status:true,message:"versement bien enregistrer."})
+            await D.set('categorie_article',_data)
+            //Ici tous les fonctions sur l'enregistrement d'un categorie_article
+            return res.send({status:true,message:"categorie_article bien enregistrer."})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -62,9 +57,9 @@ class Versement{
 
     static async delete(req,res){
         try {   
-            await D.del('versement',req.body)
-            //Ici tous les fonctions sur l'enregistrement d'un versement
-            return res.send({status:true,message:"versement supprimé."})
+            await D.del('categorie_article',req.body)
+            //Ici tous les fonctions sur l'enregistrement d'un categorie_article
+            return res.send({status:true,message:"categorie_article supprimé."})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -76,11 +71,11 @@ class Versement{
         let filters = req.query
 
         let _obj_pat = {
-            versmnt_id:'versmnt_id',
-            dep_id:'dep_id',
-            versmnt_date_versement:'versmnt_date_versement',
+            cat_id:'cat_id',
+            cat_label:'cat_label',
+            cat_date_enreg:'cat_date_enreg',
         } 
-        let default_sort_by = 'versmnt_id'
+        let default_sort_by = 'cat_id'
 
         filters.page = (!filters.page )?1:parseInt(filters.page)
         filters.limit = (!filters.limit)?100:parseInt(filters.limit)
@@ -88,15 +83,15 @@ class Versement{
 
         try { 
             //A reserver recherche par nom_prenom
-            let reponse = await D.exec_params(`select * from versement order by ${filters.sort_by} limit ? offset ?`,[
+            let reponse = await D.exec_params(`select * from categorie_article order by ${filters.sort_by} limit ? offset ?`,[
                 filters.limit,
                 (filters.page-1)*filters.limit
             ])
 
-            //Liste total des versement
-            let nb_total_versement = (await D.exec('select count(*) as nb from versement'))[0].nb
+            //Liste total des categorie_article
+            let nb_total_categorie_article = (await D.exec('select count(*) as nb from categorie_article'))[0].nb
 
-            return res.send({status:true,reponse,nb_total_versement})
+            return res.send({status:true,reponse,nb_total_categorie_article})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -112,9 +107,9 @@ class Versement{
         try {  
             for (let i = 1; i < array.length; i++) {
                 const element = array[i]; 
-                await D.updateWhere('versement',element,array[0]) 
+                await D.updateWhere('categorie_article',element,array[0]) 
             }
-                //Ici tous les fonctions sur l'enregistrement d'un versement
+                //Ici tous les fonctions sur l'enregistrement d'un categorie_article
                 return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
             console.error(e)
@@ -123,4 +118,4 @@ class Versement{
     }
 }
 
-module.exports = Versement;
+module.exports = Categorie_article;

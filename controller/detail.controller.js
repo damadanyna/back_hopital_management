@@ -6,13 +6,13 @@ class Detail{
         let _d= req.body; 
         let detail_data={
             detail_id:{front_name:'detail_id',fac:true},
-            service_id:{front_name:'service_id',fac:true ,format:(a)=> new parseInt(a)},
-            pat_id:{front_name:'pat_id',fac:true ,format:(a)=> new parseInt(a)},
-            cais_id:{front_name:'cais_id',fac:true ,format:(a)=> new parseInt(a)},
+            service_id:{front_name:'service_id',fac:true ,format:(a)=>parseInt(a)},
+            pat_id:{front_name:'pat_id',fac:true ,format:(a)=>parseInt(a)},
+            cais_id:{front_name:'cais_id',fac:true ,format:(a)=>parseInt(a)},
             detail_label:{front_name:'detail_label',fac:false}, 
             is_save:{front_name:'is_save',fac:false}, 
-            detail_nombre:{front_name:'detail_nombre',fac:false ,format:(a)=> new parseInt(a)},
-            detail_p_u:{front_name:'detail_p_u',fac:false ,format:(a)=> new parseInt(a)},
+            detail_nombre:{front_name:'detail_nombre',fac:false ,format:(a)=>parseInt(a)},
+            detail_p_u:{front_name:'detail_p_u',fac:false ,format:(a)=>parseInt(a)},
             detail_date_enreg :{front_name:'detail_date_enreg',fac:true,format:()=> new Date()},
             
         };

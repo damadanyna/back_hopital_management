@@ -205,7 +205,7 @@ create table if not exists stock_article(
     stock_emplacement varchar(50), 
     stock_prix_unit int not null, 
     stock_prix_tot int not null, 
-    stock_article_age_enreg datetime null default NOW(), 
+    stock_article_date_enreg datetime null default NOW(), 
     primary key (stock_id)
 )Engine=InnoDB; 
  
