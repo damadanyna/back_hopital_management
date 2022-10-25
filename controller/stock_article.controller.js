@@ -8,6 +8,7 @@ class Stock_article{
             stock_id:{front_name:'stock_id',fac:true},  
             stock_article_date_enreg :{front_name:'stock_article_date_enreg',fac:true,format:()=> new Date()},
             art_id:{front_name:'art_id',fac:false ,format:(a)=>parseInt(a)},
+            stock_code:{front_name:'stock_code',fac:false},
             depot_id:{front_name:'depot_id',fac:false ,format:(a)=>parseInt(a)},
             stock_unit:{front_name:'stock_unit',fac:false ,format:(a)=>parseInt(a)},
             stock_min:{front_name:'stock_min',fac:false ,format:(a)=>parseInt(a)},

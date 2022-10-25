@@ -176,7 +176,7 @@ create table if not exists categorie_article(
 create table if not exists article(
     art_id int auto_increment not null, 
     id_parent_article int not null,
-    art_code int not null, 
+    art_code varchar(50) not null, 
     fourn_id int not null, 
     art_date_enreg datetime null default NOW(),
     art_label varchar(50) null, 
@@ -203,6 +203,7 @@ create table if not exists stock_article(
     stock_unit int not null, 
     stock_min int not null, 
     stock_condi varchar(50),
+    stock_code varchar(50),
     stock_emplacement varchar(50), 
     stock_prix_unit int not null, 
     stock_prix_tot int not null, 

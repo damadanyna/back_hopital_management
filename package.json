@@ -37,7 +37,8 @@
     "sharp": "^0.30.7",
     "socket.io": "^4.4.1",
     "winston": "^3.4.0",
-    "winston-daily-rotate-file": "^4.5.5"
+    "winston-daily-rotate-file": "^4.5.5",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@electron-forge/cli": "^6.0.0-beta.67",

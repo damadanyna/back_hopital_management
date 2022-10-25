@@ -105,13 +105,8 @@ router.put('/versement',require('../controller/versement.controller').update);
 router.post('/fournisseurs',require('../controller/fournisseur.controller').register);
 router.delete('/fournisseur',require('../controller/fournisseur.controller').delete);
 router.get('/fournisseurs',require('../controller/fournisseur.controller').getList);
-router.put('/fournisseur',require('../controller/fournisseur.controller').update);
+router.put('/fournisseur',require('../controller/fournisseur.controller').update); 
 
-//Gestion des fournisseur
-router.post('/fournisseurs',require('../controller/fournisseur.controller').register);
-router.delete('/fournisseur',require('../controller/fournisseur.controller').delete);
-router.get('/fournisseurs',require('../controller/fournisseur.controller').getList);
-router.put('/fournisseur',require('../controller/fournisseur.controller').update);
 
 //Gestion des categorie_article
 router.post('/categorie_articles',require('../controller/categorie_article.controller').register);
@@ -136,6 +131,11 @@ router.post('/stock_articles',require('../controller/stock_article.controller').
 router.delete('/stock_article',require('../controller/stock_article.controller').delete);
 router.get('/stock_articles',require('../controller/stock_article.controller').getList);
 router.put('/stock_article',require('../controller/depot.controller').update);
+
+//Gestion des importation des fichier
+router.get('/article',require('../controller/impor_export/importation.controller').article); 
+router.get('/export',require('../controller/impor_export/importation.controller').export); 
+router.get('/import_temp',require('../controller/impor_export/importation.controller').import_temp);
 
 
 //------
