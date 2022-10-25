@@ -106,7 +106,7 @@ create table if not exists tarif(
 create table if not exists departement(
     dep_id int auto_increment not null, 
     dep_label varchar(50) null, 
-    dep_code int not null,
+    dep_code varchar(100) null,
     dep_date_enreg datetime null default NOW(),
     primary key (dep_id)
 )Engine=InnoDB; 
@@ -152,11 +152,11 @@ create table if not exists fournisseur(
     fourn_label varchar(50) null, 
     fourn_date_enreg datetime null default NOW(),
     fourn_adresse varchar(70) not null,
-    cod_foun varchar(10) not null,
-    nif_fourn varchar(70) not null,
-    num_stat_fourn varchar(70) not null,
-    info_fourn varchar(250) not null,
-    tva_fourn boolean not null,
+    fourn_code varchar(100) not null,
+    fourn_nif varchar(70) not null,
+    fourn_stat varchar(70) not null,
+    fourn_info varchar(250) not null,
+    fourn_tva int not null,
     primary key (fourn_id)
 )Engine=InnoDB; 
  

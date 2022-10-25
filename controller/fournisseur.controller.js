@@ -9,11 +9,11 @@ class Fournisseur{
             fourn_label:{front_name:'fourn_label',fac:false}, 
             fourn_date_enreg :{front_name:'fourn_date_enreg',fac:true,format:()=> new Date()},
             fourn_adresse:{front_name:'fourn_adresse',fac:false },
-            cod_foun:{front_name:'cod_foun',fac:false },
-            nif_fourn:{front_name:'nif_fourn',fac:false },
-            num_stat_fourn:{front_name:'num_stat_fourn',fac:false },
-            info_fourn:{front_name:'info_fourn',fac:false },
-            tva_fourn:{front_name:'tva_fourn',fac:false },
+            fourn_code:{front_name:'fourn_code',fac:false },
+            fourn_nif:{front_name:'fourn_nif',fac:false },
+            fourn_stat:{front_name:'fourn_stat',fac:false },
+            fourn_info:{front_name:'fourn_info',fac:false },
+            fourn_tva:{front_name:'fourn_tva',fac:false },
         };
 
         //Vérification du fournisseur
