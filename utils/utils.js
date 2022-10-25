@@ -2,14 +2,12 @@ const bcrypt = require('bcrypt')
 
 class Utils{
     static async hash(p){
-        const pass = await new Promise((resolve,reject)=>{
+        return new Promise((resolve,reject)=>{
             bcrypt.hash(p, 10, function(err, hash) {
                 if (err) reject(err)
                 resolve(hash)
             });
         })
-
-        return pass
     }
 
     static hashCompare(n,cp){
