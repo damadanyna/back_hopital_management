@@ -144,3 +144,68 @@ create table if not exists versement(
     primary key (versmnt_id)
 )Engine=InnoDB; 
  
+-- mardi 25 oct 2022
+-- Table fournisseur
+create table if not exists fournisseur(
+    fourn_id int auto_increment not null, 
+    fourn_label varchar(50) null, 
+    fourn_date_enreg datetime null default NOW(),
+    fourn_adresse varchar(70) not null,
+    cod_foun varchar(10) not null,
+    nif_fourn varchar(70) not null,
+    num_stat_fourn varchar(70) not null,
+    info_fourn varchar(250) not null,
+    tva_fourn boolean not null,
+    primary key (fourn_id)
+)Engine=InnoDB; 
+ 
+
+-- Table categorie_article
+create table if not exists categorie_article(
+    cat_id int auto_increment not null, 
+    cat_parent_id int not null,
+    cat_label varchar(50) null, 
+    cat_date_enreg datetime null default NOW(),
+    cat_code varchar(50) null, 
+    primary key (cat_id)
+)Engine=InnoDB; 
+ 
+
+-- Table article
+create table if not exists article(
+    art_id int auto_increment not null, 
+    id_parent_article int not null,
+    art_code int not null, 
+    fourn_id int not null, 
+    art_date_enreg datetime null default NOW(),
+    art_label varchar(50) null, 
+    primary key (art_id)
+)Engine=InnoDB; 
+ 
+
+-- Table depot
+create table if not exists depot(
+    depot_id int auto_increment not null, 
+    id_parent_article int not null,
+    depot_stock_init int not null, 
+    depot_stock_final int not null, 
+    depot_date_enreg datetime null default NOW(), 
+    primary key (depot_id)
+)Engine=InnoDB; 
+ 
+
+-- Table stock_article
+create table if not exists stock_article(
+    stock_id int auto_increment not null, 
+    depot_id int not null,
+    art_id int not null, 
+    stock_unit int not null, 
+    stock_min int not null, 
+    stock_condi varchar(50),
+    stock_emplacement varchar(50), 
+    stock_prix_unit int not null, 
+    stock_prix_tot int not null, 
+    stock_article_age_enreg datetime null default NOW(), 
+    primary key (stock_id)
+)Engine=InnoDB; 
+ 
