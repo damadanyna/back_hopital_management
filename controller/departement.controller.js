@@ -7,6 +7,7 @@ class Departement{
         let departement_data={
             dep_id:{front_name:'dep_id',fac:true},
             dep_label:{front_name:'dep_label',fac:false}, 
+            dep_code:{front_name:'dep_code',fac:false}, 
             dep_date_enreg :{front_name:'dep_date_enreg',fac:true,format:()=> new Date()},
             
         };
@@ -56,7 +57,7 @@ class Departement{
 
     static async delete(req,res){
         try {   
-            await D.del('departement',req.body)
+            await D.del('departement',req.params)
             //Ici tous les fonctions sur l'enregistrement d'un departement
             return res.send({status:true,message:"departement supprimé."})
         } catch (e) {

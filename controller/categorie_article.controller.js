@@ -5,11 +5,10 @@ class Categorie_article{
         
         let _d= req.body; 
         let categorie_article_data={
-            cat_id:{front_name:'cat_id',fac:true},
             cat_label:{front_name:'cat_label',fac:false}, 
-            cat_date_enreg :{front_name:'cat_date_enreg',fac:false,format:()=> new Date()},
-            tarif_id:{front_name:'tarif_id',fac:false ,format:(a)=>parseInt(a)},
-            cat_parent_id:{front_name:'cat_parent_id',fac:false ,format:(a)=>parseInt(a)},
+            cat_code:{front_name:'cat_code',fac:false}, 
+            cat_date_enreg :{front_name:'cat_date_enreg',fac:true,format:()=> new Date()},
+            cat_parent_id:{front_name:'cat_parent_id',fac:true ,format:(a)=>(parseInt(a).toString() == 'NaN')?null:parseInt(a)},
         };
 
         //Vérification du categorie_article
@@ -111,6 +110,20 @@ class Categorie_article{
             }
                 //Ici tous les fonctions sur l'enregistrement d'un categorie_article
                 return res.send({status:true,message:"Mise à jour, fait"})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getListParent(req,res){
+        try {
+            let s = `select *, (select count(*) from categorie_article ca1 where ca1.cat_parent_id = ca.cat_id ) as nb_child
+            from categorie_article ca where ca.cat_parent_id is null`
+
+            let reponse = await D.exec(s)
+
+            return res.send({status:true,reponse})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

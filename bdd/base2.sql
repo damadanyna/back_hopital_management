@@ -164,7 +164,7 @@ create table if not exists fournisseur(
 -- Table categorie_article
 create table if not exists categorie_article(
     cat_id int auto_increment not null, 
-    cat_parent_id int not null,
+    cat_parent_id int null,
     cat_label varchar(50) null, 
     cat_date_enreg datetime null default NOW(),
     cat_code varchar(50) null, 
@@ -187,7 +187,7 @@ create table if not exists article(
 -- Table depot
 create table if not exists depot(
     depot_id int auto_increment not null, 
-    id_parent_article int not null,
+    depot_article_id int not null,
     depot_stock_init int not null, 
     depot_stock_final int not null, 
     depot_date_enreg datetime null default NOW(), 

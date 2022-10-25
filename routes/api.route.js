@@ -84,7 +84,7 @@ router.put('/tarif',require('../controller/tarif.controller').update);
 
 //Gestion des departement
 router.post('/departements',require('../controller/departement.controller').register);
-router.delete('/departement',require('../controller/departement.controller').delete);
+router.delete('/departement/:dep_id',require('../controller/departement.controller').delete);
 router.get('/departements',require('../controller/departement.controller').getList);
 router.put('/departement',require('../controller/departement.controller').update);
 
@@ -102,16 +102,26 @@ router.put('/versement',require('../controller/versement.controller').update);
 
 /*  -- mar 25 --   */
 //Gestion des fournisseur
+<<<<<<< HEAD
 router.post('/fournisseurs',require('../controller/fournisseur.controller').register);
 router.delete('/fournisseur',require('../controller/fournisseur.controller').delete);
 router.get('/fournisseurs',require('../controller/fournisseur.controller').getList);
 router.put('/fournisseur',require('../controller/fournisseur.controller').update); 
 
+=======
+
+//Gestion des fournisseur
+router.post('/fournisseurs',require('../controller/fournisseur.controller').register);
+router.delete('/fournisseur/:fourn_id',require('../controller/fournisseur.controller').delete);
+router.get('/fournisseurs',require('../controller/fournisseur.controller').getList);
+router.put('/fournisseur',require('../controller/fournisseur.controller').update);
+>>>>>>> b035bf87c975992ff16ebf22ecaa86fb07fe4166
 
 //Gestion des categorie_article
 router.post('/categorie_articles',require('../controller/categorie_article.controller').register);
 router.delete('/categorie_article',require('../controller/categorie_article.controller').delete);
 router.get('/categorie_articles',require('../controller/categorie_article.controller').getList);
+router.get('/categorie_articles/parent',require('../controller/categorie_article.controller').getListParent);
 router.put('/categorie_article',require('../controller/categorie_article.controller').update);
 
 //Gestion des article
