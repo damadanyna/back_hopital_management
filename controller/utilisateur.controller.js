@@ -10,9 +10,9 @@ class Utilisateur{
             util_id:{front_name:'util_id',fac:true},
             util_label:{front_name:'util_label',fac:false},
             util_login :{front_name:'util_login',fac:false},
-            util_mdp :{front_name:'util_mdp',fac:false},
+            util_mdp :{front_name:'util_mdp',fac:false,},
             util_type :{front_name:'util_type',fac:false},
-            util_date_enreg :{front_name:'util_date_enreg',fac:true,format:(a)=> new Date()},
+            util_date_enreg :{front_name:'util_date_enreg',fac:true,format:(a) => new Date()},
         };
 
         //Vérification du utilisateur
@@ -40,12 +40,16 @@ class Utilisateur{
             let _data = {}
             _pd_keys.forEach((v,i)=>{
                 _tmp = utilisateur_data[v]
-    
-                _d[_tmp.front_name] = (_tmp.format)?_tmp.format(_d[_tmp.front_name]):_d[_tmp.front_name]
-                
-                console.log(_d)
+
+                if(_tmp.format != undefined){
+                    _d[_tmp.front_name] = _tmp.format(_d[_tmp.front_name])
+                }
+            
                 _data[v] = _d[_tmp.front_name]
             })
+
+            //Hashage de mot de passe
+            _data['util_mdp'] = await utils.hash(_data['util_mdp'])
             
             //l'objet utilisateur est rempli maintenant
             // on l'insert dans la base de donnée
