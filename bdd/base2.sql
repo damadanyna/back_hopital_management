@@ -106,6 +106,7 @@ create table if not exists tarif(
 create table if not exists departement(
     dep_id int auto_increment not null, 
     dep_label varchar(50) null, 
+    dep_code int not null,
     dep_date_enreg datetime null default NOW(),
     primary key (dep_id)
 )Engine=InnoDB; 
