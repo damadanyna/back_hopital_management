@@ -29,15 +29,6 @@ class File_manager{
                     element[elt]?val[j].push(element[elt]):val[j].push(null)  
                 }
 
-                // if(j!=0){
-                //     try { 
-                //         D.set('article',article_data)
-                //         return res.send({status:true,message:"article bien enregistrer."})
-                //     } catch (error) { 
-                //         return res.send({status:false,message:"Erreur dans la base de donnée"})
-                //     }
-                // };
-
             }  
             return res.send(val)
     } 

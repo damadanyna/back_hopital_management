@@ -100,22 +100,13 @@ router.delete('/versement',require('../controller/versement.controller').delete)
 router.get('/versements',require('../controller/versement.controller').getList);
 router.put('/versement',require('../controller/versement.controller').update);
 
-/*  -- mar 25 --   */
-//Gestion des fournisseur
-<<<<<<< HEAD
-router.post('/fournisseurs',require('../controller/fournisseur.controller').register);
-router.delete('/fournisseur',require('../controller/fournisseur.controller').delete);
-router.get('/fournisseurs',require('../controller/fournisseur.controller').getList);
-router.put('/fournisseur',require('../controller/fournisseur.controller').update); 
-
-=======
+/*  -- mar 25 --   */ 
 
 //Gestion des fournisseur
 router.post('/fournisseurs',require('../controller/fournisseur.controller').register);
 router.delete('/fournisseur/:fourn_id',require('../controller/fournisseur.controller').delete);
 router.get('/fournisseurs',require('../controller/fournisseur.controller').getList);
 router.put('/fournisseur',require('../controller/fournisseur.controller').update);
->>>>>>> b035bf87c975992ff16ebf22ecaa86fb07fe4166
 
 //Gestion des categorie_article
 router.post('/categorie_articles',require('../controller/categorie_article.controller').register);
@@ -140,7 +131,29 @@ router.put('/depot',require('../controller/depot.controller').update);
 router.post('/stock_articles',require('../controller/stock_article.controller').register);
 router.delete('/stock_article',require('../controller/stock_article.controller').delete);
 router.get('/stock_articles',require('../controller/stock_article.controller').getList);
-router.put('/stock_article',require('../controller/depot.controller').update);
+router.put('/stock_article',require('../controller/depot.controller').update); 
+
+//Gestion des encharge
+router.post('/encharge',require('../controller/encharge.controller').register);
+router.delete('/encharge/:encharge_id',require('../controller/encharge.controller').delete);
+router.get('/encharge/:encharge_id',require('../controller/encharge.controller').getOne);
+router.delete('/encharge',require('../controller/encharge.controller').delete);
+router.get('/encharge',require('../controller/encharge.controller').getList);
+router.put('/encharge',require('../controller/encharge.controller').update);
+
+//Gestion des conslutation
+router.post('/conslutation',require('../controller/cons.controller').register);
+router.delete('/conslutation/:conslutation_id',require('../controller/cons.controller').delete);
+// router.get('/conslutation/:conslutation_id',require('../controller/cons.controller').getOne);
+router.delete('/conslutation',require('../controller/cons.controller').delete);
+router.get('/conslutation',require('../controller/cons.controller').getList);
+router.put('/conslutation',require('../controller/cons.controller').update);
+
+// //Gestion des encharge
+// router.post('/encharge',require('../controller/encharge.controller').register);
+// router.delete('/encharge',require('../controller/encharge.controller').delete);
+// router.get('/encharge',require('../controller/encharge.controller').getList);
+// router.put('/encharge',require('../controller/encharge.controller').update);
 
 //Gestion des importation des fichier
 router.get('/article',require('../controller/impor_export/importation.controller').article); 

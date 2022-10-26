@@ -1,25 +1,27 @@
 let D = require('../models/data')
 
-class Entreprise{
+class Consutlation{
     static async register(req,res){ 
         
         let _d= req.body; 
-        let entreprise_data={
-            ent_num_compte:{front_name:'ent_num_compte',fac:true},
-            ent_label:{front_name:'ent_label',fac:false}, 
-            ent_code:{front_name:'ent_code',fac:false}, 
-            en_adresse:{front_name:'en_adresse',fac:false}, 
-            ent_date_enreg :{front_name:'ent_date_enreg',fac:true,format:()=> new Date()}, 
+        let consultation_data={
+            pat_id:{front_name:'pat_id',fac:true},  
+            ent_id:{front_name:'ent_id',fac:true},  
+            cons_num_dos:{front_name:'cons_num_dos',fac:true},  
+            cons_code:{front_name:'cons_code',fac:true},  
+            cons_montant:{front_name:'cons_montant',fac:true},    
+            cons_montant_calc:{front_name:'cons_montant_calc',fac:false},
+            cons_med:{front_name:'cons_med',fac:false},
         };
 
-        //Vérification du entreprise
-        const _pd_keys = Object.keys(entreprise_data)
+        //Vérification du consultation
+        const _pd_keys = Object.keys(consultation_data)
         let _tmp = {}
         let _list_error = []
         
         try {
             _pd_keys.forEach((v,i)=>{
-                _tmp = entreprise_data[v]
+                _tmp = consultation_data[v]
                 if(!_tmp.fac && !_d[_tmp.front_name]){
     
                     _list_error.push({code:_tmp.front_name})
@@ -31,22 +33,22 @@ class Entreprise{
             }
     
             //Si la vérification c'est bien passé, 
-            // on passe à l'insertion du entreprise
+            // on passe à l'insertion du consultation
             let _data = {}
             _pd_keys.forEach((v,i)=>{
-                _tmp = entreprise_data[v]
+                _tmp = consultation_data[v]
     
                 _d[_tmp.front_name] = (_tmp.format)?_tmp.format(_d[_tmp.front_name]):_d[_tmp.front_name]
                  
                 _data[v] = _d[_tmp.front_name]
             })
             
-            //l'objet entreprise est rempli maintenant
+            //l'objet consultation est rempli maintenant
             // on l'insert dans la base de donnée
 
-            await D.set('entreprise',_data)
-            //Ici tous les fonctions sur l'enregistrement d'un entreprise
-            return res.send({status:true,message:"entreprise bien enregistrer."})
+            await D.set('consultation',_data)
+            //Ici tous les fonctions sur l'enregistrement d'un consultation
+            return res.send({status:true,message:"consultation bien enregistrer."})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -57,9 +59,9 @@ class Entreprise{
 
     static async delete(req,res){
         try {   
-            await D.del('entreprise',req.body)
-            //Ici tous les fonctions sur l'enregistrement d'un entreprise
-            return res.send({status:true,message:"entreprise supprimé."})
+            await D.del('consultation',req.body)
+            //Ici tous les fonctions sur l'enregistrement d'un consultation
+            return res.send({status:true,message:"consultation supprimé."})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -71,11 +73,11 @@ class Entreprise{
         let filters = req.query
 
         let _obj_pat = {
-            ent_id:'ent_id',
-            ent_label:'ent_label',
-            ent_date_enreg:'ent_date_enreg',
+            pat_id:'pat_id',
+            consultation_stock_init:'consultation_stock_init',
+            cons_date_enreg:'cons_date_enreg',
         } 
-        let default_sort_by = 'ent_id'
+        let default_sort_by = 'pat_id'
 
         filters.page = (!filters.page )?1:parseInt(filters.page)
         filters.limit = (!filters.limit)?100:parseInt(filters.limit)
@@ -83,15 +85,15 @@ class Entreprise{
 
         try { 
             //A reserver recherche par nom_prenom
-            let reponse = await D.exec_params(`select * from entreprise order by ${filters.sort_by} limit ? offset ?`,[
+            let reponse = await D.exec_params(`select * from consultation order by ${filters.sort_by} limit ? offset ?`,[
                 filters.limit,
                 (filters.page-1)*filters.limit
             ])
 
-            //Liste total des entreprise
-            let nb_total_entreprise = (await D.exec('select count(*) as nb from entreprise'))[0].nb
+            //Liste total des consultation
+            let nb_total_consultation = (await D.exec('select count(*) as nb from consultation'))[0].nb
 
-            return res.send({status:true,reponse,nb_total_entreprise})
+            return res.send({status:true,reponse,nb_total_consultation})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -107,9 +109,9 @@ class Entreprise{
         try {  
             for (let i = 1; i < array.length; i++) {
                 const element = array[i]; 
-                await D.updateWhere('entreprise',element,array[0]) 
+                await D.updateWhere('consultation',element,array[0]) 
             }
-                //Ici tous les fonctions sur l'enregistrement d'un entreprise
+                //Ici tous les fonctions sur l'enregistrement d'un consultation
                 return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
             console.error(e)
@@ -118,4 +120,4 @@ class Entreprise{
     }
 }
 
-module.exports = Entreprise;
+module.exports = Consutlation;
