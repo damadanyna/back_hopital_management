@@ -11,4 +11,7 @@ let connection = mysql.createConnection({
 //Solarpro!!
 connection.connect()
 
+
+//type Utilisateur
+
 module.exports = connection

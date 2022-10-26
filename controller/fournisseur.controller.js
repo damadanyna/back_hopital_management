@@ -61,7 +61,8 @@ class Fournisseur{
 
     static async delete(req,res){
         try {   
-            await D.del('fournisseur',req.body)
+            console.log(req.params);
+            await D.del('fournisseur',req.params)
             //Ici tous les fonctions sur l'enregistrement d'un fournisseur
             return res.send({status:true,message:"fournisseur supprimé."})
         } catch (e) {
