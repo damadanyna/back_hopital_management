@@ -120,6 +120,10 @@ router.put('/categorie_article',require('../controller/categorie_article.control
 router.post('/articles',require('../controller/article.controller').register);
 router.delete('/article',require('../controller/article.controller').delete);
 router.get('/articles',require('../controller/article.controller').getList);
+
+router.get('/articles/utils-add',require('../controller/article.controller').getUtilsAdd);
+router.get('/articles/sub-cat/:cat_id',require('../controller/article.controller').getListSubCat);
+
 router.put('/article',require('../controller/article.controller').update);
 
 //Gestion des depot

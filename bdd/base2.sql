@@ -175,11 +175,18 @@ create table if not exists categorie_article(
 -- Table article
 create table if not exists article(
     art_id int auto_increment not null, 
-    id_parent_article int not null,
-    art_code int not null, 
-    fourn_id int not null, 
+    art_parent_cat_id int not null,
+    art_cat_id int not null,
+    art_code varchar(100) null, 
+    art_fourn_id int null, 
     art_date_enreg datetime null default NOW(),
-    art_label varchar(50) null, 
+    art_label varchar(100) null, 
+    art_unite_stk varchar(50) null,
+    art_conditionnement varchar(50),
+    art_emplacement varchar(255),
+    art_prix_unitaire varchar(255),
+    art_prix_revient varchar(255),
+    art_stk_mini int null,
     primary key (art_id)
 )Engine=InnoDB; 
  
@@ -187,9 +194,8 @@ create table if not exists article(
 -- Table depot
 create table if not exists depot(
     depot_id int auto_increment not null, 
-    depot_article_id int not null,
-    depot_stock_init int not null, 
-    depot_stock_final int not null, 
+    depot_code varchar(50) null,
+    depot_label varchar(50) null,
     depot_date_enreg datetime null default NOW(), 
     primary key (depot_id)
 )Engine=InnoDB; 
@@ -197,16 +203,12 @@ create table if not exists depot(
 
 -- Table stock_article
 create table if not exists stock_article(
-    stock_id int auto_increment not null, 
-    depot_id int not null,
-    art_id int not null, 
-    stock_unit int not null, 
-    stock_min int not null, 
-    stock_condi varchar(50),
-    stock_emplacement varchar(50), 
-    stock_prix_unit int not null, 
-    stock_prix_tot int not null, 
-    stock_article_date_enreg datetime null default NOW(), 
-    primary key (stock_id)
+    stk_id int auto_increment not null, 
+    stk_depot_id int not null,
+    stk_art_id int not null, 
+    stk_initial int null,
+    stk_actuel int null,
+    stk_article_date_enreg datetime null default NOW(), 
+    primary key (stk_id)
 )Engine=InnoDB; 
  
