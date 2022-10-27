@@ -5,13 +5,13 @@ class Consutlation{
         
         let _d= req.body; 
         let consultation_data={
-            pat_id:{front_name:'pat_id',fac:true},  
-            ent_id:{front_name:'ent_id',fac:true},  
-            cons_num_dos:{front_name:'cons_num_dos',fac:true},  
+            cons_pat_id:{front_name:'cons_pat_id',fac:true},  
+            cons_ent_id:{front_name:'cons_ent_id',fac:true},  
+            cons_num_dossier:{front_name:'cons_num_dossier',fac:true},  
             cons_code:{front_name:'cons_code',fac:true},  
             cons_montant:{front_name:'cons_montant',fac:true},    
-            cons_montant_calc:{front_name:'cons_montant_calc',fac:false},
-            cons_med:{front_name:'cons_med',fac:false},
+            cons_montant_calc:{front_name:'cons_montant_calc',fac:true},
+            cons_medcin:{front_name:'cons_medcin',fac:true},
         };
 
         //Vérification du consultation
@@ -46,6 +46,9 @@ class Consutlation{
             //l'objet consultation est rempli maintenant
             // on l'insert dans la base de donnée
 
+            //Insertion de util id
+            _data.cons_util_id = req.user.util_id
+
             await D.set('consultation',_data)
             //Ici tous les fonctions sur l'enregistrement d'un consultation
             return res.send({status:true,message:"consultation bien enregistrer."})
@@ -73,11 +76,9 @@ class Consutlation{
         let filters = req.query
 
         let _obj_pat = {
-            pat_id:'pat_id',
-            consultation_stock_init:'consultation_stock_init',
-            cons_date_enreg:'cons_date_enreg',
+            cons_id:'cons_id',
         } 
-        let default_sort_by = 'pat_id'
+        let default_sort_by = 'cons_id'
 
         filters.page = (!filters.page )?1:parseInt(filters.page)
         filters.limit = (!filters.limit)?100:parseInt(filters.limit)
@@ -85,7 +86,10 @@ class Consutlation{
 
         try { 
             //A reserver recherche par nom_prenom
-            let reponse = await D.exec_params(`select * from consultation order by ${filters.sort_by} limit ? offset ?`,[
+            let reponse = await D.exec_params(`select *,TIME(cons_date_enreg) as cons_time from consultation 
+            left join patient on pat_id = cons_pat_id
+            left join entreprise on ent_id = cons_ent_id
+            order by ${filters.sort_by} desc limit ? offset ?`,[
                 filters.limit,
                 (filters.page-1)*filters.limit
             ])

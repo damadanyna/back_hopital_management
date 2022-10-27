@@ -4,14 +4,14 @@ class Encharge{
     static async register(req,res){ 
         let _d= req.body; 
         let encharge_data={ 
-            pat_id:{front_name:'pat_id',fac:false}, 
-            tarif_id:{front_name:'tarf_id',fac:true}, 
+            encharge_pat_id:{front_name:'encharge_pat_id',fac:true}, 
+            encharge_tarif_id:{front_name:'encharge_tarif_id',fac:true}, 
+            encharge_seq:{front_name:'encharge_seq',fac:true}, 
             encharge_date_entre :{front_name:'encharge_date_entre',fac:true,format:()=> new Date()},
             encharge_date_sortie :{front_name:'encharge_date_sortie',fac:true,format:()=> new Date()},
-            encharge_date_enreg :{front_name:'encharge_date_enreg',fac:false,format:()=> new Date()},
-            encharge_soc:{front_name:'encharge_soc',fac:true }, 
-            enchatge_num_compte:{front_name:'enchatge_num_compte',fac:true },  
-            enchatge_soc_payeur:{front_name:'enchatge_soc_payeur',fac:true },  
+            encharge_date_enreg :{front_name:'encharge_date_enreg',fac:true,format:()=> new Date()},
+            encharge_ent_id:{front_name:'encharge_ent_id',fac:true }, 
+            encharge_ent_payeur:{front_name:'encharge_ent_payeur',fac:true },  
         };
 
         //Vérification du encharge
@@ -45,6 +45,10 @@ class Encharge{
             
             //l'objet encharge est rempli maintenant
             // on l'insert dans la base de donnée
+            
+
+            //Insertion de util iD
+            _data.encharge_util_id = req.user.util_id
 
             await D.set('encharge',_data)
             //Ici tous les fonctions sur l'enregistrement d'un encharge
@@ -73,11 +77,9 @@ class Encharge{
         let filters = req.query
 
         let _obj_pat = {
-            pat_id:'pat_id',
-            tarf_id:'tarf_id',
-            art_date_enreg:'art_date_enreg',
+            encharge_id:'encharge_id',
         } 
-        let default_sort_by = 'pat_id'
+        let default_sort_by = 'encharge_id'
 
         filters.page = (!filters.page )?1:parseInt(filters.page)
         filters.limit = (!filters.limit)?100:parseInt(filters.limit)
@@ -85,7 +87,14 @@ class Encharge{
 
         try { 
             //A reserver recherche par nom_prenom
-            let reponse = await D.exec_params(`select * from encharge order by ${filters.sort_by} limit ? offset ?`,[
+            let reponse = await D.exec_params(`select encharge.*,tarif.*,patient.*,
+            e2.ent_label as ent_label_payeur,e2.ent_num_compte as ent_num_compte_payeur,e1.ent_label
+            from encharge 
+            left join tarif on tarif_id = encharge_tarif_id
+            left join patient on pat_id = encharge_pat_id
+            left join entreprise e1 on e1.ent_id = encharge_ent_id
+            left join entreprise e2 on e2.ent_id = encharge_ent_payeur
+            order by ${filters.sort_by} desc limit ? offset ?`,[
                 filters.limit,
                 (filters.page-1)*filters.limit
             ])

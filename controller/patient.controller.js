@@ -61,7 +61,7 @@ class Patient{
 
     static async delete(req,res){
         try {   
-            await D.del('patient',req.body)
+            await D.del('patient',req.params)
             //Ici tous les fonctions sur l'enregistrement d'un patient
             return res.send({status:true,message:"patient supprimé."})
         } catch (e) {
@@ -115,6 +115,20 @@ class Patient{
             }
                 //Ici tous les fonctions sur l'enregistrement d'un patient
                 return res.send({status:true,message:"Mise à jour, fait"})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async outSearch(req,res){
+        try {
+            let  {by,search} = req.query
+
+            search = `%${search}%`
+            let patients = await D.exec_params(`select * from patient where ${by} like ?`,search)
+
+            return res.send({status:true,patients})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

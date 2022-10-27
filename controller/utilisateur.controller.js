@@ -87,15 +87,42 @@ class Utilisateur{
             let user = (await D.exec_params('select * from utilisateur where util_id = ?',id))[0]
 
             //Récupération accès modules
-            let user_access = await D.exec_params(`select * from util_access
-            left join module on module_id = ua_module_id where ua_util_id = ? `,id)
+            let user_access = await D.exec_params(`select * from module
+            left join util_access on module_id = ua_module_id 
+            left join utilisateur on ua_util_id = util_id where util_id = ? `,id)
+
+
 
             //à venir : récupération des historiques de l'utilisateur
+            let module_list = await D.exec('select * from module')
+
 
             // console.log(user);
 
-            return res.send({status:true,user,user_access})
+            return res.send({status:true,user,user_access,module_list})
 
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async setAccess(req,res){
+        try {
+            let id_module = req.body.util_id
+            let util_id = req.params.util_id
+
+            let _f = await D.exec_params(`select * from util_access where ua_module_id = ? and ua_util_id = ?`,[id_module,util_id])
+            
+            if(_f.length > 0){
+                await D.exec_params(`delete from util_access where ua_util_id = ? and ua_module_id = ?`,[util_id,id_module])
+            }else{
+                await D.set('util_access',{
+                    ua_module_id:id_module,
+                    ua_util_id:util_id
+                })
+                
+            }
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

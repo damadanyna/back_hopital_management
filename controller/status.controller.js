@@ -19,6 +19,16 @@ class Status{
         }
     }
 
+    static async deconnect(req,res){
+        let options = {
+            path:"/",
+            sameSite:true,
+            httpOnly: true, // The cookie only accessible by the web server
+        }
+        res.cookie('x-access-token','sdfqsdfqsdfqs', options)
+        res.send({status:true,message:"Suppression des donées de session !!"})
+    }
+
 
     //Ajout des masters
     static async addMaster(req,res){
@@ -47,10 +57,24 @@ class Status{
         //Authentification des utilisateurs
         let _d = req.body // {id,pass}
 
+
+
         console.log(_d)
         try {
             //
-            let _u = await D.exec_params('select * from utilisateur where util_login = ?',_d.id)
+            let _u = {}
+
+            if(req.body.module){
+                _u = await D.exec_params(`select * from utilisateur
+                left join util_access on util_id = ua_util_id
+                left join module on module_id = ua_module_id
+                where module_label = ? and util_login = ?`,[_d.module,_d.id])
+            }else{
+                _u = await D.exec_params('select * from utilisateur where util_login = ?',_d.id)
+            }
+
+
+
 
             if(_u.length>0){
                 _u = _u[0]

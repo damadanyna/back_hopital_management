@@ -24,6 +24,7 @@ router.get('/test-hash',require('../controller/test.controller').testBcrypt);
 
 //Gestion de connexion
 router.get('/status-connexion',require('../controller/status.controller').status);
+router.get('/deconnect',require('../controller/status.controller').deconnect);
 
 //Route d'authentification
 router.post('/auth',require('../controller/status.controller').auth); 
@@ -37,6 +38,7 @@ router.delete('/hosp/:ref',require('../controller/hospitalisation.controller').d
 router.post('/users',require('../controller/utilisateur.controller').register);
 router.delete('/user',require('../controller/utilisateur.controller').delete);
 router.get('/users',require('../controller/utilisateur.controller').getList);
+router.put('/user/access/:util_id',require('../controller/utilisateur.controller').setAccess);
 router.get('/user/:id',require('../controller/utilisateur.controller').getDetailsUser);
 router.put('/user',require('../controller/utilisateur.controller').update);
 
@@ -48,14 +50,16 @@ router.put('/visite',require('../controller/visite.controller').update);
 
 //Gestion des patient
 router.post('/patient',require('../controller/patient.controller').register);
-router.delete('/patient',require('../controller/patient.controller').delete);
+router.delete('/patient/:pat_id',require('../controller/patient.controller').delete);
 router.get('/patients',require('../controller/patient.controller').getList);
+router.get('/patients/out/search',require('../controller/patient.controller').outSearch);
 router.put('/patient',require('../controller/patient.controller').update);
 
 //Gestion des entreprises
 router.post('/entreprises',require('../controller/entreprise.controller').register);
 router.delete('/entreprise/:ent_id',require('../controller/entreprise.controller').delete);
 router.get('/entreprises',require('../controller/entreprise.controller').getList);
+router.get('/entreprises/out/search',require('../controller/entreprise.controller').outSearch);
 router.put('/entreprise',require('../controller/entreprise.controller').update);
 
 //Gestion des payement
@@ -147,12 +151,12 @@ router.get('/encharge',require('../controller/encharge.controller').getList);
 router.put('/encharge',require('../controller/encharge.controller').update);
 
 //Gestion des conslutation
-router.post('/conslutation',require('../controller/cons.controller').register);
-router.delete('/conslutation/:conslutation_id',require('../controller/cons.controller').delete);
+router.post('/consultation',require('../controller/cons.controller').register);
+router.delete('/consultation/:cons_id',require('../controller/cons.controller').delete);
 // router.get('/conslutation/:conslutation_id',require('../controller/cons.controller').getOne);
-router.delete('/conslutation',require('../controller/cons.controller').delete);
-router.get('/conslutation',require('../controller/cons.controller').getList);
-router.put('/conslutation',require('../controller/cons.controller').update);
+router.delete('/consultation',require('../controller/cons.controller').delete);
+router.get('/consultation',require('../controller/cons.controller').getList);
+router.put('/consultation',require('../controller/cons.controller').update);
 
 // //Gestion des encharge
 // router.post('/encharge',require('../controller/encharge.controller').register);

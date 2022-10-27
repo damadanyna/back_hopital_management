@@ -118,6 +118,20 @@ class Entreprise{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+    static async outSearch(req,res){
+        try {
+            let  {by,search} = req.query
+
+            search = `%${search}%`
+            let ents = await D.exec_params(`select * from entreprise where ${by} like ?`,search)
+
+            return res.send({status:true,ents})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }       
 }
 
 module.exports = Entreprise;

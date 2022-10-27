@@ -31,6 +31,7 @@ create table if not exists util_access(
 create table if not exists module(
     module_id int auto_increment not null, 
     module_label varchar(100) null,
+    base_link varchar(50) null,
     primary key (module_id)
 )Engine=InnoDB;
 
@@ -44,6 +45,7 @@ create table if not exists patient(
     pat_profession varchar(50) null,  
     pat_sexe varchar(5) null,
     pat_numero varchar(20) null, 
+    pat_util_id int null,
     primary key (pat_id)
 )Engine=InnoDB;
  
@@ -58,6 +60,7 @@ create table if not exists entreprise(
     ent_soc_percent varchar(50),
     ent_adresse varchar(50) null, 
     ent_date_enreg datetime null default NOW(),
+    ent_util_id int null,
     primary key (ent_id)
 )Engine=InnoDB; 
  
@@ -67,6 +70,7 @@ create table if not exists payement(
     pai_id int auto_increment not null, 
     pai_label varchar(50) null, 
     pai_date_enreg datetime null default NOW(),
+    pai_util_id int null,
     primary key (pai_id)
 )Engine=InnoDB; 
  
@@ -77,6 +81,7 @@ create table if not exists service(
     service_label varchar(50) null,
     service_parent_id int null,
     service_date_enreg datetime null default NOW(),  
+    service_util_id int null,
     primary key (service_id)
 )Engine=InnoDB; 
 
@@ -104,6 +109,7 @@ create table if not exists tarif(
     tarif_id int auto_increment not null, 
     tarif_label varchar(50) null,
     tarif_date_enreg datetime null default NOW(),
+    tarif_util_id int null,
     primary key (tarif_id)
 )Engine=InnoDB; 
  
@@ -114,6 +120,7 @@ create table if not exists departement(
     dep_label varchar(50) null, 
     dep_code varchar(100) null,
     dep_date_enreg datetime null default NOW(),
+    dep_util_id int null,
     primary key (dep_id)
 )Engine=InnoDB; 
  
@@ -132,6 +139,7 @@ create table if not exists hospitalisation(
     hosp_date_entrer datetime null,
     hosp_date_sorti datetime null,
     hosp_date_enreg datetime null default NOW(),
+    hosp_util_id int null,
     primary key (hosp_id)
 )Engine=InnoDB; 
  
@@ -148,6 +156,7 @@ create table if not exists versement(
     versmnt_total_versement int null,  
     versmnt_rembourser int null,
     versmnt_date_enreg datetime null default NOW(),
+    versmnt_util_id int null,
     primary key (versmnt_id)
 )Engine=InnoDB; 
  
@@ -163,6 +172,7 @@ create table if not exists fournisseur(
     fourn_stat varchar(70) not null,
     fourn_info varchar(250) not null,
     fourn_tva int not null,
+    founr_util_id int null,
     primary key (fourn_id)
 )Engine=InnoDB; 
  
@@ -193,6 +203,7 @@ create table if not exists article(
     art_prix_unitaire varchar(255),
     art_prix_revient varchar(255),
     art_stk_mini int null,
+    art_util_id int null,
     primary key (art_id)
 )Engine=InnoDB; 
  
@@ -202,7 +213,8 @@ create table if not exists depot(
     depot_id int auto_increment not null, 
     depot_code varchar(50) null,
     depot_label varchar(50) null,
-    depot_date_enreg datetime null default NOW(), 
+    depot_date_enreg datetime null default NOW(),
+    depot_util_id int null,
     primary key (depot_id)
 )Engine=InnoDB; 
  
@@ -222,14 +234,15 @@ create table if not exists stock_article(
 -- Table encharge
 create table if not exists encharge(
     encharge_id int auto_increment not null, 
-    pat_id int null,
-    tarif_id int null, 
+    encharge_pat_id int null,
+    encharge_tarif_id int null, 
     encharge_ent_id int null,
-    encharger_seq varchar(50) null,
+    encharge_seq varchar(50) null,
     encharge_date_entre datetime null default NOW(), 
     encharge_date_sortie datetime null,
-    encharge_ent_payeur int, 
+    encharge_ent_payeur int null, 
     encharge_date_enreg datetime null default NOW(), 
+    encharge_util_id int null,
     primary key (encharge_id)
 )Engine=InnoDB; 
  
@@ -239,12 +252,13 @@ create table if not exists consultation(
     cons_id int auto_increment not null, 
     cons_pat_id int null, 
     cons_ent_id int null, 
-    cons_num_dos int null, 
+    cons_num_dossier int null, 
     cons_code int null, 
     cons_montant int null, 
     cons_date_enreg datetime null default NOW(), 
     cons_montant_calc int null,
-    cons_med varchar(200), 
+    cons_medcin varchar(200), 
+    cons_util_id int null,
     primary key (cons_id)
 )Engine=InnoDB; 
  
