@@ -128,6 +128,18 @@ class Encharge{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+    static async utilsAdd(req,res){
+        try {
+            let tarifs = await D.exec('select * from tarif')
+            let soc = await D.exec('select * from entreprise')
+
+            return res.send({status:true,tarifs,soc})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
 }
 
 module.exports = Encharge;

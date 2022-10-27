@@ -54,7 +54,7 @@ router.put('/patient',require('../controller/patient.controller').update);
 
 //Gestion des entreprises
 router.post('/entreprises',require('../controller/entreprise.controller').register);
-router.delete('/entreprise',require('../controller/entreprise.controller').delete);
+router.delete('/entreprise/:ent_id',require('../controller/entreprise.controller').delete);
 router.get('/entreprises',require('../controller/entreprise.controller').getList);
 router.put('/entreprise',require('../controller/entreprise.controller').update);
 
@@ -78,7 +78,7 @@ router.put('/detail',require('../controller/detail.controller').update);
 
 //Gestion des tarif
 router.post('/tarifs',require('../controller/tarif.controller').register);
-router.delete('/tarif',require('../controller/tarif.controller').delete);
+router.delete('/tarif/:tarif_id',require('../controller/tarif.controller').delete);
 router.get('/tarifs',require('../controller/tarif.controller').getList);
 router.put('/tarif',require('../controller/tarif.controller').update);
 
@@ -141,6 +141,7 @@ router.put('/stock_article',require('../controller/depot.controller').update);
 router.post('/encharge',require('../controller/encharge.controller').register);
 router.delete('/encharge/:encharge_id',require('../controller/encharge.controller').delete);
 router.get('/encharge/:encharge_id',require('../controller/encharge.controller').getOne);
+router.get('/encharge/utils/add',require('../controller/encharge.controller').utilsAdd);
 router.delete('/encharge',require('../controller/encharge.controller').delete);
 router.get('/encharge',require('../controller/encharge.controller').getList);
 router.put('/encharge',require('../controller/encharge.controller').update);

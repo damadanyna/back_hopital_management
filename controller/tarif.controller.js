@@ -56,7 +56,7 @@ class Tarif{
 
     static async delete(req,res){
         try {   
-            await D.del('tarif',req.body)
+            await D.del('tarif',req.params)
             //Ici tous les fonctions sur l'enregistrement d'un tarif
             return res.send({status:true,message:"tarif supprimé."})
         } catch (e) {

@@ -54,7 +54,9 @@ create table if not exists entreprise(
     ent_num_compte varchar(50) null, 
     ent_label varchar(50) null, 
     ent_code varchar(50) null, 
-    en_adresse varchar(50) null, 
+    ent_pat_percent varchar(50),
+    ent_soc_percent varchar(50),
+    ent_adresse varchar(50) null, 
     ent_date_enreg datetime null default NOW(),
     primary key (ent_id)
 )Engine=InnoDB; 
@@ -72,7 +74,8 @@ create table if not exists payement(
 -- Table Service
 create table if not exists service(
     service_id int auto_increment not null, 
-    service_label varchar(50) null, 
+    service_label varchar(50) null,
+    service_parent_id int null,
     service_date_enreg datetime null default NOW(),  
     primary key (service_id)
 )Engine=InnoDB; 
@@ -99,9 +102,7 @@ create table if not exists detail(
 -- Table Tarif
 create table if not exists tarif(
     tarif_id int auto_increment not null, 
-    tarif_label varchar(50) null, 
-    tarif_pourc_patient int null, 
-    tarif_pourc_societe int null, 
+    tarif_label varchar(50) null,
     tarif_date_enreg datetime null default NOW(),
     primary key (tarif_id)
 )Engine=InnoDB; 
@@ -140,12 +141,12 @@ create table if not exists versement(
     versmnt_id int auto_increment not null,  
     versmnt_date_versement datetime null,
     dep_id int not null, 
-    versmnt_font_caisse int not null,
-    versmnt_recette_esp int not null,
-    versmnt_recette_total int not null,
-    versmnt_total_cheque int not null,
-    versmnt_total_versement int not null,  
-    versmnt_rembourser int not null,
+    versmnt_font_caisse int null,
+    versmnt_recette_esp int null,
+    versmnt_recette_total int null,
+    versmnt_total_cheque int null,
+    versmnt_total_versement int null,  
+    versmnt_rembourser int null,
     versmnt_date_enreg datetime null default NOW(),
     primary key (versmnt_id)
 )Engine=InnoDB; 
@@ -223,21 +224,21 @@ create table if not exists encharge(
     encharge_id int auto_increment not null, 
     pat_id int null,
     tarif_id int null, 
-    encharge_soc varchar(50) null, 
+    encharge_ent_id int null,
+    encharger_seq varchar(50) null,
     encharge_date_entre datetime null default NOW(), 
-    encharge_date_sortie datetime null default NOW(), 
-    enchatge_num_compte varchar(50),
-    enchatge_soc_payeur varchar(50), 
+    encharge_date_sortie datetime null,
+    encharge_ent_payeur int, 
     encharge_date_enreg datetime null default NOW(), 
     primary key (encharge_id)
 )Engine=InnoDB; 
  
 
--- Table encharge
+-- Table consultation
 create table if not exists consultation(
     cons_id int auto_increment not null, 
-    pat_id int null, 
-    ent_id int null, 
+    cons_pat_id int null, 
+    cons_ent_id int null, 
     cons_num_dos int null, 
     cons_code int null, 
     cons_montant int null, 

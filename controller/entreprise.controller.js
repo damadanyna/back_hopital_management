@@ -6,9 +6,11 @@ class Entreprise{
         let _d= req.body; 
         let entreprise_data={
             ent_num_compte:{front_name:'ent_num_compte',fac:true},
-            ent_label:{front_name:'ent_label',fac:false}, 
-            ent_code:{front_name:'ent_code',fac:false}, 
-            en_adresse:{front_name:'en_adresse',fac:false}, 
+            ent_label:{front_name:'ent_label',fac:true}, 
+            ent_code:{front_name:'ent_code',fac:true}, 
+            ent_pat_percent:{front_name:'ent_pat_percent',fac:true}, 
+            ent_soc_percent:{front_name:'ent_soc_percent',fac:true}, 
+            ent_adresse:{front_name:'ent_adresse',fac:true}, 
             ent_date_enreg :{front_name:'ent_date_enreg',fac:true,format:()=> new Date()}, 
         };
 
@@ -57,7 +59,7 @@ class Entreprise{
 
     static async delete(req,res){
         try {   
-            await D.del('entreprise',req.body)
+            await D.del('entreprise',req.params)
             //Ici tous les fonctions sur l'enregistrement d'un entreprise
             return res.send({status:true,message:"entreprise supprimé."})
         } catch (e) {
