@@ -6,3 +6,5 @@ elog.txt
 /files/*
 
 /statics/tmp_carte.png
+
+/tmp/*

@@ -191,8 +191,8 @@ create table if not exists categorie_article(
 -- Table article
 create table if not exists article(
     art_id int auto_increment not null, 
-    art_parent_cat_id int not null,
-    art_cat_id int not null,
+    art_parent_cat_id int null,
+    art_cat_id int null,
     art_code varchar(100) null, 
     art_fourn_id int null, 
     art_date_enreg datetime null default NOW(),
