@@ -43,7 +43,7 @@ create table if not exists patient(
     pat_date_enreg datetime null default NOW(), 
     pat_adresse varchar(100) null, 
     pat_profession varchar(50) null,  
-    pat_sexe varchar(5) null,
+    pat_sexe varchar(55) null,
     pat_numero varchar(20) null, 
     pat_util_id int null,
     primary key (pat_id)

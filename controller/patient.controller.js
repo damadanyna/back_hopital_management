@@ -82,15 +82,18 @@ class Patient{
         let default_sort_by = 'pat_numero'
 
         filters.page = (!filters.page )?1:parseInt(filters.page)
-        filters.limit = (!filters.limit)?100:parseInt(filters.limit)
+        filters.limit = (!filters.limit)?10000:parseInt(filters.limit)
         filters.sort_by = (!filters.sort_by)?_obj_pat[default_sort_by]:_obj_pat[filters.sort_by]
+        filters.search = (!filters.search)?'%':`%${filters.search}%`
 
         try { 
             //A reserver recherche par nom_prenom
-            let reponse = await D.exec_params(`select * from patient order by ${filters.sort_by} limit ? offset ?`,[
-                filters.limit,
-                (filters.page-1)*filters.limit
-            ])
+            // let reponse = await D.exec_params(`select * from patient order by ${filters.sort_by} limit ? offset ?`,[
+            //     filters.limit,
+            //     (filters.page-1)*filters.limit
+            // ])
+
+            let reponse = await D.exec_params(`select * from patient where pat_nom_et_prenom like ? order by ${filters.sort_by} limit ?`,[filters.search,filters.limit])
 
             //Liste total des patient
             let nb_total_patient = (await D.exec('select count(*) as nb from patient'))[0].nb
