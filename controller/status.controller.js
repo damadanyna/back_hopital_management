@@ -81,6 +81,7 @@ class Status{
 
                 //V&rification par hash du mot de passe
                 let b = await Utils.hashCompare(_d.pass,_u.util_mdp)
+
                 if(b){
 
                     _u = {
@@ -96,11 +97,25 @@ class Status{
                     const token = jwt.sign(_u,config.TOKEN_KEY)
                     let options = {
                         path:"/",
-                        sameSite:true,
+                        sameSite:false,
                         httpOnly: true, // The cookie only accessible by the web server
                     }                        
+                    
+
+
+                    //Récupétation des utils access
+                    let ua = await D.exec_params(`select module_label from util_access
+                    left join module on module_id = ua_module_id
+                    where ua_util_id = ?`,_u.util_id)
+
+                    if(ua.length < 0 && _u.util_type != 'm' && _u.util_type != 'a'){
+                        return res.send({status:false,message:"Vous n'avez accès à aucun module"})
+                    }
+
+                    ua = ua.map(x => x.module_label)
+
                     res.cookie('x-access-token',token, options)
-                    return res.send({status:true,message:"Connexion réussie.",u:_u})
+                    return res.send({status:true,message:"Connexion réussie.",u:_u,ua})
                 }else{
                     return res.send({status:false,message:"Le mot de passe ne correspond pas"})
                 }

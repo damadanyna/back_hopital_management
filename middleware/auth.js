@@ -6,6 +6,8 @@ const config = process.env;
 const verifyToken = async (req, res, next) => {
     let token = req.cookies['x-access-token']
 
+    // console.log('Dans token : ',token);
+
     //Il y a encore la gestion de connexion pour mobile
 
     //Pour le mobile

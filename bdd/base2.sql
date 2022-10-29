@@ -166,15 +166,15 @@ create table if not exists fournisseur(
     fourn_id int auto_increment not null, 
     fourn_label varchar(50) null, 
     fourn_date_enreg datetime null default NOW(),
-    fourn_adresse varchar(70) not null,
-    fourn_code varchar(100) not null,
-    fourn_nif varchar(70) not null,
-    fourn_stat varchar(70) not null,
-    fourn_info varchar(250) not null,
-    fourn_tva int not null,
+    fourn_adresse varchar(70) null,
+    fourn_code varchar(100) null,
+    fourn_nif varchar(70) null,
+    fourn_stat varchar(70) null,
+    fourn_info varchar(250) null,
+    fourn_tva int null,
     founr_util_id int null,
     primary key (fourn_id)
-)Engine=InnoDB; 
+)Engine=InnoDB;
  
 
 -- Table categorie_article

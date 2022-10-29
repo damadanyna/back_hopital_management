@@ -1,3 +1,4 @@
+const { updateWhere } = require('../models/data');
 let D = require('../models/data')
 
 class Article{
@@ -65,7 +66,6 @@ class Article{
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
-
 
     }
 
@@ -150,17 +150,50 @@ class Article{
 
     static async update(req,res){ 
         let data = req.body 
+
+        let { article,stock,list_depot } = data
+
+        let g_stock = article.g_stock
+        delete article.g_stock
+        delete article.art_date_enreg
+
+
         var array=[]
         for (const key in data) { 
             array.push({[key]:data[key]})
         }  
-        try {  
-            for (let i = 1; i < array.length; i++) {
-                const element = array[i]; 
-                await D.updateWhere('article',element,array[0]) 
+        try {
+            
+            //Mise à jour e l'article
+            await D.updateWhere('article',article,{art_id:article.art_id})
+
+            //Puis mise à jour du stock
+            if(g_stock.length > 0){
+                for(let i=0; i <list_depot.length;i++){
+                    await D.exec_params(`update stock_article set ? where stk_depot_id = ? and stk_art_id = ?`,[
+                        {
+                            stk_initial:stock[i].stk_initial,
+                            stk_actuel:stock[i].stk_actuel
+                        },list_depot[i].depot_id,article.art_id
+                    ])
+                }
+
+
+            }else{
+                //Ajout du stock si c'est pas encore déjà inséré
+                for (let i = 0; i < list_depot.length; i++) {
+                    let tmp = list_depot[i]
+                    await D.set('stock_article',{
+                        stk_depot_id:tmp.depot_id,
+                        stk_art_id:article.art_id,
+                        stk_initial:stock[i].stk_initial,
+                        stk_actuel:stock[i].stk_actuel,
+                    })
+                }
             }
-                //Ici tous les fonctions sur l'enregistrement d'un article
-                return res.send({status:true,message:"Mise à jour, fait"})
+
+            //Ici tous les fonctions sur l'enregistrement d'un article
+            return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

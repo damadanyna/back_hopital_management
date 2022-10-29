@@ -89,7 +89,7 @@ class Utilisateur{
             //Récupération accès modules
             let user_access = await D.exec_params(`select * from module
             left join util_access on module_id = ua_module_id 
-            left join utilisateur on ua_util_id = util_id where util_id = ? `,id)
+            left join utilisateur on util_id = ?`,id)
 
 
 
@@ -109,7 +109,7 @@ class Utilisateur{
 
     static async setAccess(req,res){
         try {
-            let id_module = req.body.util_id
+            let id_module = req.body.id_module
             let util_id = req.params.util_id
 
             let _f = await D.exec_params(`select * from util_access where ua_module_id = ? and ua_util_id = ?`,[id_module,util_id])
@@ -123,6 +123,8 @@ class Utilisateur{
                 })
                 
             }
+
+            return res.send({status:true})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -145,7 +147,7 @@ class Utilisateur{
 
         try { 
             //A reserver recherche par nom_prenom
-            let reponse = await D.exec_params(`select * from utilisateur order by ${filters.sort_by} limit ? offset ?`,[
+            let reponse = await D.exec_params(`select * from utilisateur where util_type <> 'm'  order by ${filters.sort_by} limit ? offset ? `,[
                 filters.limit,
                 (filters.page-1)*filters.limit
             ])
@@ -160,18 +162,19 @@ class Utilisateur{
         }
     }
     static async update(req,res){ 
-        let data = req.body 
-        var array=[]
-        for (const key in data) { 
-            array.push({[key]:data[key]})
-        }  
-        try {  
-            for (let i = 1; i < array.length; i++) {
-                const element = array[i]; 
-                await D.updateWhere('utilisateur',element,array[0]) 
+        let {user,mng_pass} = req.body 
+        delete user.util_date_enreg
+
+        try { 
+            if(mng_pass.change){
+                user.util_mdp = await utils.hash(mng_pass.pass)
+            }else{
+                delete user.util_mdp
             }
-                //Ici tous les fonctions sur l'enregistrement d'un utilisateur
-                return res.send({status:true,message:"Mise à jour, fait"})
+            
+            await D.updateWhere('utilisateur',user,{util_id:user.util_id})
+            //Ici tous les fonctions sur l'enregistrement d'un utilisateur
+            return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
