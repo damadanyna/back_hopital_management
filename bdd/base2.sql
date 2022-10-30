@@ -262,5 +262,29 @@ create table if not exists consultation(
     primary key (cons_id)
 )Engine=InnoDB; 
  
+
+-- Table facture
+create table if not exists facture(
+    fact_id int auto_increment not null, 
+    fact_type int null, 
+    fact_dep_id int null, 
+    fact_encharge_id int null, 
+    fact_resume_indtervation int null,  
+    fact_date_enreg datetime null default NOW(),  
+    primary key (fact_id)
+)Engine=InnoDB;
  
- 
+
+-- Table fact_service
+create table if not exists fact_service(
+    fserv_id int auto_increment not null, 
+    fserv_qt int null, 
+    fserve_fac_id int null, 
+    fserve_serv_id int null, 
+    fserve_prix_unitaire int null,  
+    fserve_montant int null,  
+    fserve_prix_patient int null,  
+    fserve_prix_societe int null,  
+    fact_date_enreg datetime null default NOW(),  
+    primary key (fserv_id)
+)Engine=InnoDB; 
