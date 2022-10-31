@@ -251,8 +251,7 @@ create table if not exists encharge(
 create table if not exists consultation(
     cons_id int auto_increment not null, 
     cons_pat_id int null, 
-    cons_ent_id int null, 
-    cons_num_dossier int null, 
+    cons_ent_id int null,  
     cons_code int null, 
     cons_montant int null, 
     cons_date_enreg datetime null default NOW(), 
@@ -269,7 +268,7 @@ create table if not exists facture(
     fact_type int null, 
     fact_dep_id int null, 
     fact_encharge_id int null, 
-    fact_resume_indtervation int null,  
+    fact_resume_intervation int null,  
     fact_date_enreg datetime null default NOW(),  
     primary key (fact_id)
 )Engine=InnoDB;
@@ -288,3 +287,5 @@ create table if not exists fact_service(
     fact_date_enreg datetime null default NOW(),  
     primary key (fserv_id)
 )Engine=InnoDB; 
+ 
+ 
