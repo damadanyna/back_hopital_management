@@ -1,13 +1,10 @@
  
-{ 
-    
-    "pat_id":14,
-    "ent_id":14,
-    "cons_num_dos":41,
-    "cons_code":14,
-    "cons_montant":2,
-    "cons_date_enreg ":"1/12/2022",
-    "id_parent_article":1,
-    "cons_montant_calc":1,
-    "cons_med":"Mde"
+{  
+    "cons_pat_id":7491, 
+    "cons_ent_id":2,  
+    "cons_code":234, 
+    "cons_montant":10000,  
+    "cons_montant_calc":0,
+    "cons_medcin":"Medecin chef", 
+    "cons_util_id":20
 } 

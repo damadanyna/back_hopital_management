@@ -76,9 +76,9 @@ class Consutlation{
         let filters = req.query
 
         let _obj_pat = {
-            cons_id:'cons_id',
+            cons_date_enreg:'cons_date_enreg',
         } 
-        let default_sort_by = 'cons_id'
+        let default_sort_by = 'cons_date_enreg'
 
         filters.page = (!filters.page )?1:parseInt(filters.page)
         filters.limit = (!filters.limit)?100:parseInt(filters.limit)

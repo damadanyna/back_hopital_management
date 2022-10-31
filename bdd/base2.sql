@@ -1,4 +1,3 @@
-
 -- Table Utilisateurs
 create table if not exists utilisateur(
     util_id int auto_increment not null,
