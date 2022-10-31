@@ -261,6 +261,60 @@ create table if not exists consultation(
     cons_util_id int null,
     primary key (cons_id)
 )Engine=InnoDB; 
+
+-- Table création des saisies d'entrée en Stock
+create table if not exists mvmt (
+    mvmt_id int auto_increment not null,
+    mvmt_num varchar(20),
+    mvmt_action varchar(50) null, -- ohatra : entre, sortie
+    mvmt_type varchar(50) null, -- ohatra : achat, sortie interne, vente, ...
+    mvmt_tiers int null, -- raha entrée ny action de fournisseur ny eo, fa raha sortie de département
+    mvmt_date_enreg datetime null default NOW(),
+    mvmt_date datetime null,
+    mvmt_depot_exp int null,
+    mvmt_depot_dest int null,
+    mvmt_util_id int null,
+    mvmt_montant int null,
+    primary key (mvmt_id)
+)Engine=InnoDB;
+
+-- Table contenant les mouvements et les articles
+create table if not exists mvmt_art (
+    mart_id int auto_increment not null,
+    mart_qt int null, -- quantité de l'article demandée
+    mart_art_id int null,
+    mart_mvmt_id int null,
+    mart_prix_unit int null,
+    mart_date_enreg datetime null default NOW(),
+    mart_montant int null,
+    primary key (mart_id)
+)Engine=InnoDB;
+
+
+-- Table de facture du prise en charge
+-- create table if not exists facture (
+--     fact_id int auto_increment not null,
+--     fact_type varchar(50), --  Eto le hoe prise en charge na zavatra hafa
+--     fact_date_enreg datetime null default NOW(), -- date de la facture
+--     fact_dep_id int null, -- departement 
+--     fact_encharge_id int null, -- id de la prise en charge
+--     fact_resume_intervention text null, -- ty lé résumé des interventions
+--     primary key (fact_id)
+-- )Engine=InnoDB; 
+
+-- -- Table associatio désignation des actes et factures
+-- create table if not exists fact_service (
+--     fserv_id int auto_increment not null,
+--     fserv_qt int null, -- quantité des services
+--     fserv_fact_id int null, -- id de la facture
+--     fserv_serv_id int null, -- id an'ilay désignation des actes // na koa produits no iantsoana azy
+--     -- satri izy io mety ho article zany hoe fanafody
+--     fserv_prix_unitaire int null, --reto zavatra reto tokony efa hita any am stock re tokony ho izy
+--     fserv_montant int null, -- montant rehefa vita ny calcul prix unitaire sy QT
+--     fserv_prix_patient int null,
+--     fserv_prix_societe int null,
+--     primary key(fserv_id)
+-- )Engine=InnoDB;
  
  
  
