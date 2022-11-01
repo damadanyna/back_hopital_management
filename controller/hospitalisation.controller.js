@@ -74,7 +74,6 @@ class Hospitalisation{
         }
  
     }  
-    
     static async getList(req,res){ 
         let filters = req.query
 

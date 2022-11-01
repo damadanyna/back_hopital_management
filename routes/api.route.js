@@ -128,8 +128,6 @@ router.put('/article',require('../controller/article.controller').update);
 router.get('/articles/utils-add',require('../controller/article.controller').getUtilsAdd);
 router.get('/articles/sub-cat/:cat_id',require('../controller/article.controller').getListSubCat);
 
-
-
 //Gestion des depot
 router.post('/depots',require('../controller/depot.controller').register);
 router.delete('/depot',require('../controller/depot.controller').delete);
@@ -146,8 +144,7 @@ router.put('/stock_article',require('../controller/depot.controller').update);
 router.post('/encharge',require('../controller/encharge.controller').register);
 router.delete('/encharge/:encharge_id',require('../controller/encharge.controller').delete);
 router.get('/encharge/:encharge_id',require('../controller/encharge.controller').getOne);
-router.get('/encharge/utils/add',require('../controller/encharge.controller').utilsAdd);
-router.delete('/encharge',require('../controller/encharge.controller').delete);
+router.get('/encharge/utils/add',require('../controller/encharge.controller').utilsAdd); 
 router.get('/encharge',require('../controller/encharge.controller').getList);
 router.put('/encharge',require('../controller/encharge.controller').update);
 
@@ -155,23 +152,22 @@ router.put('/encharge',require('../controller/encharge.controller').update);
 router.post('/consultation',require('../controller/cons.controller').register);
 router.delete('/consultation/:cons_id',require('../controller/cons.controller').delete);
 // router.get('/conslutation/:conslutation_id',require('../controller/cons.controller').getOne);
-router.delete('/consultation',require('../controller/cons.controller').delete);
 router.get('/consultation',require('../controller/cons.controller').getList);
 router.put('/consultation',require('../controller/cons.controller').update);
+router.get('/consultation/:date',require('../controller/cons.controller').get_date_to);
+
 
 //Gestion des facture
 router.post('/facture',require('../controller/facture.controller').register);
 router.delete('/facture/:cons_id',require('../controller/facture.controller').delete);
-// router.get('/facture/:facture_id',require('../controller/facture.controller').getOne);
-router.delete('/facture',require('../controller/facture.controller').delete);
+// router.get('/facture/:facture_id',require('../controller/facture.controller').getOne); 
 router.get('/facture',require('../controller/facture.controller').getList);
 router.put('/facture',require('../controller/facture.controller').update);
 
 //Gestion des fact_service
 router.post('/fact_service',require('../controller/fact_service.controller').register);
 router.delete('/fact_service/:cons_id',require('../controller/fact_service.controller').delete);
-// router.get('/fact_service/:fact_service_id',require('../controller/fact_service.controller').getOne);
-router.delete('/fact_service',require('../controller/fact_service.controller').delete);
+// router.get('/fact_service/:fact_service_id',require('../controller/fact_service.controller').getOne); 
 router.get('/fact_service',require('../controller/fact_service.controller').getList);
 router.put('/fact_service',require('../controller/fact_service.controller').update); 
 

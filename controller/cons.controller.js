@@ -1,3 +1,4 @@
+const { response } = require('express');
 let D = require('../models/data')
 
 class Consutlation{
@@ -6,12 +7,12 @@ class Consutlation{
         let _d= req.body; 
         let consultation_data={
             cons_pat_id:{front_name:'cons_pat_id',fac:true},  
-            cons_ent_id:{front_name:'cons_ent_id',fac:true},  
-            cons_num_dossier:{front_name:'cons_num_dossier',fac:true},  
+            cons_ent_id:{front_name:'cons_ent_id',fac:true},   
             cons_code:{front_name:'cons_code',fac:true},  
             cons_montant:{front_name:'cons_montant',fac:true},    
             cons_montant_calc:{front_name:'cons_montant_calc',fac:true},
             cons_medcin:{front_name:'cons_medcin',fac:true},
+            cons_util_id:{front_name:'cons_util_id',fac:true},
         };
 
         //Vérification du consultation
@@ -47,7 +48,7 @@ class Consutlation{
             // on l'insert dans la base de donnée
 
             //Insertion de util id
-            _data.cons_util_id = req.user.util_id
+           /*  _data.cons_util_id = req.user.cons_util_id */
 
             await D.set('consultation',_data)
             //Ici tous les fonctions sur l'enregistrement d'un consultation
@@ -59,7 +60,12 @@ class Consutlation{
 
 
     }
-
+ 
+    static async get_date_to(req,res){ 
+        var response= new Date(req.params.date)
+        return await res.send({response})
+    }
+    
     static async delete(req,res){
         try {   
             await D.del('consultation',req.body)

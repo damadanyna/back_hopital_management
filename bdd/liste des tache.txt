@@ -10,3 +10,11 @@
 -- creation de l'api Versement
 -- creation de l'api Hospitalisation
 -- creation de l'api Caisse
+
+
+#################### Liste des taches fait ############################
+
+PRISE EN CHARGE
+    - Afichage de la Liste des Patient
+    - Ajout du consultation
+    - affichage du consultaion par date
