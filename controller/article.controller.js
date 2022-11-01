@@ -125,7 +125,7 @@ class Article{
 
         try { 
             //A reserver recherche par nom_prenom
-            let articles = await D.exec(`select * from article`)
+            let articles = await D.exec_params(`select * from article where art_label like ? limit ?`,[`%${filters.search}%`,filters.limit])
             
             let a_size = articles.length
 
@@ -194,6 +194,20 @@ class Article{
 
             //Ici tous les fonctions sur l'enregistrement d'un article
             return res.send({status:true,message:"Mise à jour, fait"})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async searchByLabel(req,res){
+        try {
+            let q = req.query
+
+            let articles = await D.exec_params(`select * from article 
+            where art_label like ? ${(q.id_not_in)?'and art_id not in (?)':''}`,[`%${q.search}%`,q.id_not_in])
+
+            return res.send({status:true,articles})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

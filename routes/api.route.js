@@ -122,6 +122,9 @@ router.put('/categorie_article',require('../controller/categorie_article.control
 //Gestion des article
 router.post('/articles',require('../controller/article.controller').register);
 router.delete('/article',require('../controller/article.controller').delete);
+
+//Recherche d'article
+router.get('/articles/search',require('../controller/article.controller').searchByLabel)
 router.get('/articles',require('../controller/article.controller').getList);
 router.put('/article',require('../controller/article.controller').update);
 
@@ -176,6 +179,9 @@ router.get('/article',require('../controller/impor_export/importation.controller
 router.get('/export',require('../controller/impor_export/importation.controller').export); 
 router.get('/import_temp',require('../controller/impor_export/importation.controller').import_temp);
 
+//Gestion des mouvements dans le stock
+router.post('/mvmt',require('../controller/mvmt.controller').register)
+router.get('/mvmt/utils-add',require('../controller/mvmt.controller').getUtilsAdd)
 
 //------
 module.exports = router
