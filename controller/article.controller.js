@@ -61,6 +61,19 @@ class Article{
                 })
             }
 
+            //Ajout relation entre article et tarif
+            //Récupération de la liste des tarifs
+            let list_tarif = await D.exec('select * from tarif')
+            if(list_tarif.length > 0){
+                let sql = `insert into tarif_service (tserv_tarif_id,tserv_service_id,tserv_prix,tserv_is_product) values ?;`
+                let datas = []
+                for (let i = 0; i < list_tarif.length; i++) {
+                    datas.push([list_tarif[i].tarif_id,_art.insertId,0,1])
+                }
+                //insertion
+                await D.exec_params(sql,[datas])
+            }
+
             return res.send({status:true,message:"Article bien enregistrer."})
         } catch (e) {
             console.error(e)
@@ -71,7 +84,16 @@ class Article{
 
     static async delete(req,res){
         try {   
-            await D.del('article',req.body)
+
+            //Eto mle verification hoe mbola relier amina table ilaina ve io article io sa tsia
+            let {art_id} = req.params
+
+            await D.del('article',{art_id})
+
+            
+            //On doit aussi supprimer les relations entre l'article et les autres tables
+            //suppression ny relation tarif et article
+            await D.exec_params('delete from tarif_service where tserv_service_id = ? and tserv_is_product = 1',art_id)
             //Ici tous les fonctions sur l'enregistrement d'un article
             return res.send({status:true,message:"article supprimé."})
         } catch (e) {

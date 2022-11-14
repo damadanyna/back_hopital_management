@@ -25,6 +25,13 @@ class Utils{
           );
     }
 
+    static setPrefixZero(nb){
+        let _nb = parseInt(nb)
+        if(_nb  >= 100) return _nb
+        if(_nb >= 10) return `0${_nb}`
+        if(_nb < 10) return `00${_nb}`
+    }
+
     static async _mp(){
         return "$2b$10$YGuDHfMe6ZbVNPQURV2Eleehh8SlUXNlEEznVAdoKfuqZX6ZuMmqW" //_master_pass
     }

@@ -106,18 +106,14 @@ class Patient{
     }
 
     static async update(req,res){ 
-        let data = req.body 
-        var array=[]
-        for (const key in data) { 
-            array.push({[key]:data[key]})
-        }  
-        try {  
-            for (let i = 1; i < array.length; i++) {
-                const element = array[i]; 
-                await D.updateWhere('patient',element,array[0]) 
-            }
+        let p = req.body  
+
+        delete p.pat_date_enreg
+        p.pat_date_naiss = (p.pat_date_naiss)?new Date(p.pat_date_naiss):null
+        try {
+            await D.updateWhere('patient',p,{pat_id:p.pat_id})
                 //Ici tous les fonctions sur l'enregistrement d'un patient
-                return res.send({status:true,message:"Mise à jour, fait"})
+            return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -129,7 +125,7 @@ class Patient{
             let  {by,search} = req.query
 
             search = `%${search}%`
-            let patients = await D.exec_params(`select * from patient where ${by} like ?`,search)
+            let patients = await D.exec_params(`select * from patient where ${by} like ? or pat_nom_et_prenom like ? limit 50`,[search,search])
 
             return res.send({status:true,patients})
         } catch (e) {

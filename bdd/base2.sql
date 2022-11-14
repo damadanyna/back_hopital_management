@@ -78,11 +78,22 @@ create table if not exists payement(
 create table if not exists service(
     service_id int auto_increment not null, 
     service_label varchar(50) null,
+    service_code varchar(50) null,
     service_parent_id int null,
     service_date_enreg datetime null default NOW(),  
     service_util_id int null,
     primary key (service_id)
 )Engine=InnoDB; 
+
+-- Relation service et tarif
+create table if not exists tarif_service (
+    tserv_id int auto_increment not null,
+    tserv_tarif_id int null,
+    tserv_service_id int null,
+    tserv_is_product int null default 0,
+    tserv_prix int null,
+    primary key (tserv_id)
+)Engine=InnoDB;
 
 -- NB: asina valuer boolean ao amin'ny (Détail service) mba halalana fa enregistré na tsia ilay service
 -- Raha eny dia afaka manao enregistrement hafa hoanio patient io
@@ -140,6 +151,16 @@ create table if not exists hospitalisation(
     hosp_date_enreg datetime null default NOW(),
     hosp_util_id int null,
     primary key (hosp_id)
+)Engine=InnoDB; 
+
+-- Table pour l'encaissement
+create table if not exists encaissement(
+    enc_id int auto_increment not null,  
+    enc_validate int null default 0,
+    enc_pat_id int null,
+    enc_date datetime null,
+    enc_date_enreg datetime default NOW(),
+    primary key (enc_id)
 )Engine=InnoDB; 
  
 
@@ -257,6 +278,7 @@ create table if not exists consultation(
     cons_montant_calc int null,
     cons_medcin varchar(200), 
     cons_util_id int null,
+    cons_num_dossier varchar(50) null,
     primary key (cons_id)
 )Engine=InnoDB; 
 
@@ -321,7 +343,9 @@ create table if not exists facture(
     fact_type int null, 
     fact_dep_id int null, 
     fact_encharge_id int null, 
-    fact_resume_intervation int null,  
+    fact_resume_intervention text null,
+    fact_montant int null,
+    fact_date datetime null,
     fact_date_enreg datetime null default NOW(),  
     primary key (fact_id)
 )Engine=InnoDB;
@@ -330,14 +354,15 @@ create table if not exists facture(
 -- Table fact_service
 create table if not exists fact_service(
     fserv_id int auto_increment not null, 
-    fserv_qt int null, 
-    fserve_fac_id int null, 
-    fserve_serv_id int null, 
-    fserve_prix_unitaire int null,  
-    fserve_montant int null,  
-    fserve_prix_patient int null,  
-    fserve_prix_societe int null,  
-    fact_date_enreg datetime null default NOW(),  
+    fserv_qt int null,
+    fserv_fact_id int null, 
+    fserv_serv_id int null, 
+    fserv_prix_unitaire int null,  
+    fserv_montant int null,  
+    fserv_prix_patient int null,  
+    fserv_prix_societe int null,  
+    fserv_is_product int null default 0,
+    fserv_date_enreg datetime null default NOW(),  
     primary key (fserv_id)
 )Engine=InnoDB; 
  

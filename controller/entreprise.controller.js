@@ -80,7 +80,7 @@ class Entreprise{
         let default_sort_by = 'ent_id'
 
         filters.page = (!filters.page )?1:parseInt(filters.page)
-        filters.limit = (!filters.limit)?100:parseInt(filters.limit)
+        filters.limit = (!filters.limit)?1000:parseInt(filters.limit)
         filters.sort_by = (!filters.sort_by)?_obj_pat[default_sort_by]:_obj_pat[filters.sort_by]
 
         try { 
@@ -124,7 +124,7 @@ class Entreprise{
             let  {by,search} = req.query
 
             search = `%${search}%`
-            let ents = await D.exec_params(`select * from entreprise where ${by} like ?`,search)
+            let ents = await D.exec_params(`select * from entreprise where ${by} like ? or ent_label like ?`,[search,search])
 
             return res.send({status:true,ents})
         } catch (e) {

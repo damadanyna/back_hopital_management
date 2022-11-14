@@ -7,13 +7,14 @@ class Fact_service{
 
         // console.log(_d)
         let fact_service_data={
-            fserv_qt:{front_name:'fserv_qt',fac:true},
-            fserve_fac_id:{front_name:'fserve_fac_id',fac:true},
-            fserve_serv_id:{front_name:'fserve_serv_id',fac:true},
-            fserve_prix_unitaire:{front_name:'fserve_prix_unitaire',fac:true},
-            fserve_montant:{front_name:'fserve_montant',fac:true},
-            fserve_prix_patient:{front_name:'fserve_prix_patient',fac:true},
-            fserve_prix_societe:{front_name:'fserve_prix_societe',fac:true},
+            fserv_qt:{front_name:'fserv_qt',fac:false},
+            fserv_fact_id:{front_name:'fserv_fact_id',fac:false},
+            fserv_serv_id:{front_name:'fserv_serv_id',fac:false},
+            fserv_prix_unitaire:{front_name:'fserv_prix_unitaire',fac:false},
+            fserv_montant:{front_name:'fserv_montant',fac:false},
+            fserv_prix_patient:{front_name:'fserv_prix_patient',fac:true},
+            fserv_is_product:{front_name:'fserv_is_product',fac:true},
+            fserv_prix_societe:{front_name:'fserv_prix_societe',fac:true},
         };
 
         //Vérification du fact_service

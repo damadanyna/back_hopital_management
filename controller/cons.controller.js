@@ -13,6 +13,7 @@ class Consutlation{
             cons_montant_calc:{front_name:'cons_montant_calc',fac:true},
             cons_medcin:{front_name:'cons_medcin',fac:true},
             cons_util_id:{front_name:'cons_util_id',fac:true},
+            cons_num_dossier:{front_name:'cons_num_dossier',fac:true},
         };
 
         //Vérification du consultation
@@ -68,7 +69,9 @@ class Consutlation{
     
     static async delete(req,res){
         try {   
-            await D.del('consultation',req.body)
+
+            //Suppression de consultation
+            await D.del('consultation',req.params)
             //Ici tous les fonctions sur l'enregistrement d'un consultation
             return res.send({status:true,message:"consultation supprimé."})
         } catch (e) {

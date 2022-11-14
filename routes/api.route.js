@@ -69,10 +69,15 @@ router.get('/payements',require('../controller/payement.controller').getList);
 router.put('/payement',require('../controller/payement.controller').update);
 
 //Gestion des service
-router.post('/services',require('../controller/service.controller').register);
-router.delete('/service',require('../controller/service.controller').delete);
+router.post('/service',require('../controller/service.controller').register);
+router.delete('/service/:service_id',require('../controller/service.controller').delete);
 router.get('/services',require('../controller/service.controller').getList);
+router.get('/service/add-utils',require('../controller/service.controller').getAddUtils);
+router.get('/service/utils-modif-prix',require('../controller/service.controller').getModifPrix);
 router.put('/service',require('../controller/service.controller').update);
+router.put('/service/modif-prix',require('../controller/service.controller').modifPrix);
+
+router.get('/products/tarifs',require('../controller/service.controller').getListTarifsProducts)
 
 //Gestion des detail
 router.post('/details',require('../controller/detail.controller').register);
@@ -121,7 +126,7 @@ router.put('/categorie_article',require('../controller/categorie_article.control
 
 //Gestion des article
 router.post('/articles',require('../controller/article.controller').register);
-router.delete('/article',require('../controller/article.controller').delete);
+router.delete('/article/:art_id',require('../controller/article.controller').delete);
 
 //Recherche d'article
 router.get('/articles/search',require('../controller/article.controller').searchByLabel)
@@ -146,9 +151,13 @@ router.put('/stock_article',require('../controller/depot.controller').update);
 //Gestion des encharge
 router.post('/encharge',require('../controller/encharge.controller').register);
 router.delete('/encharge/:encharge_id',require('../controller/encharge.controller').delete);
-router.get('/encharge/:encharge_id',require('../controller/encharge.controller').getOne);
+
 router.get('/encharge/utils/add',require('../controller/encharge.controller').utilsAdd); 
 router.get('/encharge',require('../controller/encharge.controller').getList);
+router.get('/encharge/print-pdf',require('../controller/encharge.controller').printToPDF);
+
+router.get('/encharge/:encharge_id',require('../controller/encharge.controller').getOne);
+
 router.put('/encharge',require('../controller/encharge.controller').update);
 
 //Gestion des conslutation
@@ -165,11 +174,16 @@ router.post('/facture',require('../controller/facture.controller').register);
 router.delete('/facture/:cons_id',require('../controller/facture.controller').delete);
 // router.get('/facture/:facture_id',require('../controller/facture.controller').getOne); 
 router.get('/facture',require('../controller/facture.controller').getList);
+router.get('/facture/add-utils',require('../controller/facture.controller').getAddUtils);
 router.put('/facture',require('../controller/facture.controller').update);
+
+router.get('/facture/download',require('../controller/encharge.controller').downFacture)
+
+// router.get('/facture/set/med/tarif/',require('../controller/facture.controller').setMedicamentsTarif)
 
 //Gestion des fact_service
 router.post('/fact_service',require('../controller/fact_service.controller').register);
-router.delete('/fact_service/:cons_id',require('../controller/fact_service.controller').delete);
+router.delete('/fact_service/:fserv_id',require('../controller/fact_service.controller').delete);
 // router.get('/fact_service/:fact_service_id',require('../controller/fact_service.controller').getOne); 
 router.get('/fact_service',require('../controller/fact_service.controller').getList);
 router.put('/fact_service',require('../controller/fact_service.controller').update); 

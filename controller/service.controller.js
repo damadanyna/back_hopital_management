@@ -1,12 +1,16 @@
 let D = require('../models/data')
 
+let utils = require('../utils/utils')
+
 class Service{
     static async register(req,res){ 
         
         let _d= req.body; 
         let service_data={
             service_id:{front_name:'service_id',fac:true},
-            service_label:{front_name:'service_label',fac:false}, 
+            service_label:{front_name:'service_label',fac:false},
+            service_parent_id:{front_name:'service_parent_id',fac:true},
+            service_util_id:{front_name:'service_util_id',fac:true},
             service_date_enreg :{front_name:'service_date_enreg',fac:true,format:()=> new Date()},
             
         };
@@ -43,9 +47,46 @@ class Service{
             //l'objet service est rempli maintenant
             // on l'insert dans la base de donnée
 
-            await D.set('service',_data)
+            //Eto alo création anle code service
+            //Raha misy ilay service parent de récupérérna ny enfant-ny farany 
+            let code ='',pre_code = 3
+            if(_data.service_parent_id){
+                let c = await D.exec_params(`select * from service where service_parent_id = ? order by service_id desc limit 1`,_data.service_parent_id)
+                if(c.length > 0){
+                    c = c[0]
+                    code = utils.setPrefixZero(parseInt(c.service_code.substr(pre_code)) + 1) //On extracte le chiffre
+                    code = `${c.service_code.substr(0,pre_code)}${code}`
+                }else{
+                    let c_tmp = (await D.exec_params(`select * from service where service_id = ?`,_data.service_parent_id))[0].service_label
+                    code = c_tmp.substr(0,pre_code).toUpperCase()
+                    code = `${code}${utils.setPrefixZero(1)}`
+                }
+            }else{
+                code = _data.service_label.substr(0,pre_code).toUpperCase()
+            }
+
+            _data.service_code = code
+            let _serv = await D.set('service',_data)
+
+            let list_tarif = []
+
+            //Eto ndray ny création ana relation entre service et tarif
+
+            if(_data.service_parent_id){
+                list_tarif = await D.exec('select * from tarif')
+                if(list_tarif.length > 0){
+                    let sql = `insert into tarif_service (tserv_tarif_id,tserv_service_id,tserv_prix) values ?;`
+                    let datas = []
+                    for (let i = 0; i < list_tarif.length; i++) {
+                        datas.push([list_tarif[i].tarif_id,_serv.insertId,0])
+                    }
+                    //insertion
+                    await D.exec_params(sql,[datas])
+                }
+            }
+
             //Ici tous les fonctions sur l'enregistrement d'un service
-            return res.send({status:true,message:"service bien enregistrer."})
+            return res.send({status:true,message:"Service bien enregistrer.",list_tarif})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -56,7 +97,16 @@ class Service{
 
     static async delete(req,res){
         try {   
-            await D.del('service',req.body)
+
+            let {service_id} = req.params
+            //Tokony mbola hisy vérification hoe relié amina table hafa ve sa tsia
+            await D.del('service',{service_id})
+            //On supprimer les relations des services et les autres tables
+            
+
+            //Suppression an'ny relation service et tarif
+
+            await D.exec_params('delete form tarif_service where tserv_service_id = ? and tserv_is_product = 0',service_id)
             //Ici tous les fonctions sur l'enregistrement d'un service
             return res.send({status:true,message:"service supprimé."})
         } catch (e) {
@@ -65,9 +115,22 @@ class Service{
         }
  
     }  
+
+    static async getAddUtils(req,res){
+        try {
+            const srv_parent = await D.exec('select * from service where service_parent_id is null')
+            
+            return res.send({status:true,srv_parent})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
     
     static async getList(req,res){ 
         let filters = req.query
+
+        // console.log(filters);
 
         let _obj_pat = {
             service_id:'service_id',
@@ -82,20 +145,117 @@ class Service{
 
         try { 
             //A reserver recherche par nom_prenom
-            let reponse = await D.exec_params(`select * from service order by ${filters.sort_by} limit ? offset ?`,[
-                filters.limit,
-                (filters.page-1)*filters.limit
-            ])
+            // let reponse = await D.exec_params(`select * from service order by ${filters.sort_by} limit ? offset ?`,[
+            //     filters.limit,
+            //     (filters.page-1)*filters.limit
+            // ])
+
+            filters.search = (filters.search === undefined)?'%%':`%${filters.search}%`
+
+
+            let srvs = await D.exec_params(`select * from service where service_label like ? order by service_code asc`,[filters.search])
+
+            //Récupération des tarifs de chaque service
+
+            for (let i = 0; i < srvs.length; i++) {
+                const e = srvs[i];
+                if(e.service_parent_id){
+                    e.tarifs = await D.exec_params(`select * from tarif_service 
+                    left join tarif on tserv_tarif_id = tarif_id
+                    where tserv_service_id = ?`,e.service_id)
+                }
+            }
 
             //Liste total des service
             let nb_total_service = (await D.exec('select count(*) as nb from service'))[0].nb
 
-            return res.send({status:true,reponse,nb_total_service})
+            //Liste des tarfis
+            const list_tarif = await D.exec('select * from tarif')
+
+            return res.send({status:true,srvs,list_tarif,nb_total_service})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+    static async getListTarifsProducts(req,res){
+        let filters = req.query
+
+        // console.log(filters);
+
+        let _obj_pat = {
+            art_id:'art_id',
+            art_label:'art_label',
+            art_date_enreg:'art_date_enreg',
+        } 
+        let default_sort_by = 'art_id'
+
+        filters.page = (!filters.page )?1:parseInt(filters.page)
+        filters.limit = (!filters.limit)?100:parseInt(filters.limit)
+        filters.sort_by = (!filters.sort_by)?_obj_pat[default_sort_by]:_obj_pat[filters.sort_by]
+
+        try {
+
+            filters.search = (filters.search === undefined)?'%%':`%${filters.search}%`
+
+
+            let srvs = await D.exec_params(`select * from article where art_label like ? order by art_code asc limit ?`,[filters.search,filters.limit])
+
+            //Récupération des tarifs de chaque produits
+            for (let i = 0; i < srvs.length; i++) {
+                const e = srvs[i];
+                e.tarifs = await D.exec_params(`select * from tarif_service 
+                left join tarif on tserv_tarif_id = tarif_id
+                where tserv_service_id = ? and tserv_is_product = 1`,e.art_id)
+            }
+
+            //Liste des tarfis
+            const list_tarif = await D.exec('select * from tarif')
+            
+            return res.send({status:true,srvs,list_tarif})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getModifPrix(req,res){
+        try {
+            let t = req.query
+
+            let tserv = (await D.exec_params(`select * from tarif_service 
+            left join tarif on tarif_id = tserv_tarif_id
+            left join service on service_id = tserv_service_id
+            where tserv_tarif_id = ? and tserv_service_id = ?`,[t.tserv_tarif_id,t.tserv_service_id]))[0]
+
+            return res.send({status:true,tserv})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async modifPrix(req,res){
+        try {
+            let t = req.body
+
+            let prix = parseInt(t.tserv_prix)
+
+            if(prix.toString() == 'NaN'){
+                return res.send({status:false,message:'Prix non correct'})
+            }
+
+            await D.exec_params('update tarif_service set tserv_prix = ? where tserv_tarif_id = ? and tserv_service_id = ? ',[prix,t.tserv_tarif_id,t.tserv_service_id])
+
+            return res.send({status:true})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+
 
     static async update(req,res){ 
         let data = req.body 

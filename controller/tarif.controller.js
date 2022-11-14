@@ -5,10 +5,8 @@ class Tarif{
         
         let _d= req.body; 
         let tarif_data={
-            tarif_id:{front_name:'tarif_id',fac:true},
             tarif_label:{front_name:'tarif_label',fac:false}, 
             tarif_date_enreg :{front_name:'tarif_date_enreg',fac:true,format:()=> new Date()},
-            
         };
 
         //Vérification du tarif
@@ -43,7 +41,33 @@ class Tarif{
             //l'objet tarif est rempli maintenant
             // on l'insert dans la base de donnée
 
-            await D.set('tarif',_data)
+            let _tarif = await D.set('tarif',_data)
+
+            //Eto ny insertion ny relation entre service sy tarifs
+            let list_service = await D.exec('select * from service where service_parent_id is not null')
+            let datas = []
+
+            if(list_service.length > 0){
+                let sql = `insert into tarif_service (tserv_tarif_id,tserv_service_id,tserv_prix) values ?;`
+                for (let i = 0; i < list_service.length; i++) {
+                    datas.push([_tarif.insertId,list_service[i].service_id,0])
+                }
+
+                await D.exec_params(sql,[datas])
+            }
+
+            //Eto ny insertion entre produits (médicaments) sy tarif
+            datas = []
+            let list_med = await D.exec('select * from article')
+            if(list_med.length > 0){
+                let sql = `insert into tarif_service (tserv_tarif_id,tserv_service_id,tserv_prix,tserv_is_product) values ?;`
+                for (let i = 0; i < list_med.length; i++) {
+                    datas.push([_tarif.insertId,list_med[i].art_id,0,1])
+                }
+                await D.exec_params(sql,[datas])
+            }
+
+
             //Ici tous les fonctions sur l'enregistrement d'un tarif
             return res.send({status:true,message:"tarif bien enregistrer."})
         } catch (e) {
@@ -56,7 +80,13 @@ class Tarif{
 
     static async delete(req,res){
         try {   
-            await D.del('tarif',req.params)
+            let {tarif_id} = req.params
+            await D.del('tarif',{tarif_id})
+
+            //Suppression anle relation entre tarif_service sy tarif
+            await D.del('tarif_service',{tserv_tarif_id:tarif_id})
+
+
             //Ici tous les fonctions sur l'enregistrement d'un tarif
             return res.send({status:true,message:"tarif supprimé."})
         } catch (e) {

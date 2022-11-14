@@ -88,14 +88,21 @@ class Utilisateur{
 
             //Récupération accès modules
             let user_access = await D.exec_params(`select * from module
-            left join util_access on module_id = ua_module_id 
-            left join utilisateur on util_id = ?`,id)
+            left join util_access on module_id = ua_module_id
+            where ua_util_id = ? or ua_module_id is null`,[id])
 
 
 
-            //à venir : récupération des historiques de l'utilisateur
+            //On récupère d'abord la liste des modules
             let module_list = await D.exec('select * from module')
+            let _tmp = {}
 
+            //puis on recherche dans util_access la combinaison util_id et module_id
+            for (let i = 0; i < module_list.length; i++) {
+                const e = module_list[i];
+                _tmp = await D.exec_params('select * from util_access where ua_module_id = ? and ua_util_id = ?',[e.module_id,id])
+                module_list[i]['in_user'] = (_tmp.length > 0)?1:0
+            }
 
             // console.log(user);
 
