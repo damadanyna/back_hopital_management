@@ -514,9 +514,6 @@ class Encharge{
 
             doc.end();
 
-            
-                
-
             return res.send({status:true,message:"PDF bien générer"})
 
         } catch (e) {

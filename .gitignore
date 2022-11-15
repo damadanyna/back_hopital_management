@@ -6,3 +6,6 @@ elog.txt
 /files/*
 
 /statics/tmp_carte.png
+
+./facture.pdf
+./tmp/*
