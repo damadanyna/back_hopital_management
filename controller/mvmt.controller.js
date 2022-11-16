@@ -72,23 +72,59 @@ class Mouvement{
 
                 //Entrée alors on ajoute le nombre de l'article au dépot de stock actuel
                 if(mvmt.mvmt_action == 'entre'){
-                    await D.exec_params(`update stock_article set  stk_actuel = stk_actuel + ?
-                    where stk_depot_id = ? and stk_art_id = ?`,[el.mart_qt,mvmt.mvmt_depot_dest,el.mart_art_id])
+                    //On vérifie d'abord si le lien existe
+                    let link = await D.exec_params('select * from stock_article where stk_depot_id = ? and stk_art_id = ?',[mvmt.mvmt_depot_dest,el.mart_art_id])
 
+                    //si existe en met à jour
+                    if(link.length > 0){
+                        await D.exec_params(`update stock_article set  stk_actuel = stk_actuel + ?
+                        where stk_depot_id = ? and stk_art_id = ?`,[el.mart_qt,mvmt.mvmt_depot_dest,el.mart_art_id])
+                    }else{
+                        //si non on crée le lien
+                        await D.set('stock_article',{
+                            stk_actuel:el.mart_qt,
+                            stk_depot_id:mvmt.mvmt_depot_dest,
+                            stk_art_id:el.mart_art_id
+                        })
+                    }
                     //Trop be io zavatra ambony io 👌👌
                     
                 }else if(mvmt.mvmt_action == 'sortie'){ //Resaka sortie de méicaments ty e !!
                     //eto am sortie ndray e
 
-                    //Angalana ny depot d'expédition satri izy no mandefa an'ilay fanfody
-                    await D.exec_params(`update stock_article set stk_actuel = stk_actuel - ?
-                    where stk_depot_id = ? and stk_art_id = ?`,[el.mart_qt,mvmt.mvmt_depot_exp,el.mart_art_id])
+                    //On vérifie d'abord si le lien existe
+                    let link = await D.exec_params('select * from stock_article where stk_depot_id = ? and stk_art_id = ?',[mvmt.mvmt_depot_exp,el.mart_art_id])
+                    if(link.length > 0){
+                        //Angalana ny depot d'expédition satri izy no mandefa an'ilay fanfody
+                        await D.exec_params(`update stock_article set stk_actuel = stk_actuel - ?
+                        where stk_depot_id = ? and stk_art_id = ?`,[el.mart_qt,mvmt.mvmt_depot_exp,el.mart_art_id])
+                    }else{
+                        
+                        //si non on crée le lien
+                        await D.set('stock_article',{
+                            stk_actuel:0,
+                            stk_depot_id:mvmt.mvmt_depot_exp,
+                            stk_art_id:el.mart_art_id
+                        })
+                    }
 
                     //cas exeptionnel pour le transfert
                     if(mvmt.mvmt_type == 'transfert'){
-                        //Alefa any am depot e destination le raha, rehefa transfert
-                        await D.exec_params(`update stock_article set stk_actuel = stk_actuel + ?
-                        where stk_depot_id = ? and stk_art_id = ?`,[el.mart_qt,mvmt.mvmt_depot_dest,el.mart_art_id])
+                        link = await D.exec_params('select * from stock_article where stk_depot_id = ? and stk_art_id = ?',[mvmt.mvmt_depot_dest,el.mart_art_id])
+
+                        //si existe en met à jour
+                        if(link.length > 0){
+                            //Alefa any am depot e destination le raha, rehefa transfert
+                            await D.exec_params(`update stock_article set stk_actuel = stk_actuel + ?
+                            where stk_depot_id = ? and stk_art_id = ?`,[el.mart_qt,mvmt.mvmt_depot_dest,el.mart_art_id])
+                        }else{
+                            //si non on crée le lien
+                            await D.set('stock_article',{
+                                stk_actuel:el.mart_qt,
+                                stk_depot_id:mvmt.mvmt_depot_dest,
+                                stk_art_id:el.mart_art_id
+                            })
+                        }
                     }else{
 
                     }
@@ -128,6 +164,26 @@ class Mouvement{
             let list_dep = await D.exec('select * from departement')
 
             return res.send({status:true,list_depot,list_fourn,list_dep,mvmt_last})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getEntre(req,res){
+        try {
+            let {date} = req.query
+
+            date = new Date(date)
+            
+            let sql = `select *,(select count(*) from mvmt_art where mart_mvmt_id = mvmt_id) as nb_art from mvmt 
+            left join depot on mvmt_depot_dest = depot_id
+            left join fournisseur on mvmt_tiers = fourn_id
+            where mvmt_date = ? and mvmt_action = 'entre'`
+
+            let list = await D.exec_params(sql,[date])
+
+            return res.send({status:true,list})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

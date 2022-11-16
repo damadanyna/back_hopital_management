@@ -196,6 +196,7 @@ router.get('/import_temp',require('../controller/impor_export/importation.contro
 //Gestion des mouvements dans le stock
 router.post('/mvmt',require('../controller/mvmt.controller').register)
 router.get('/mvmt/utils-add',require('../controller/mvmt.controller').getUtilsAdd)
+router.get('/mvmts/entre',require('../controller/mvmt.controller').getEntre)
 
 //------
 module.exports = router

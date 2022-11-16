@@ -217,6 +217,10 @@ class Encharge{
             
             fact_serv = [...fact_serv,...r]
 
+            if(fact_serv.length == 0){
+                return res.send({status:false,message:"Facture pas complet"})
+            }
+
 
             //Création de pdf amzay e, 
             let opt = {
@@ -506,7 +510,7 @@ class Encharge{
 
             let x_begin = doc.page.width /2 - w_sign/2
 
-            let t = ['Le Medecin,',`L'Employé,`,`La Société,`]
+            let t = ['Le Medecin Chef,',`L'Employé,`,`La Société,`]
 
             doc.text(t[0],x_begin,y_sign,{underline:true})
             doc.text(t[1], doc.page.width /2 - doc.widthOfString(t[1])/2 ,y_sign,{underline:true})
