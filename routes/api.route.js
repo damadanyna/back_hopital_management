@@ -197,6 +197,7 @@ router.get('/import_temp',require('../controller/impor_export/importation.contro
 router.post('/mvmt',require('../controller/mvmt.controller').register)
 router.get('/mvmt/utils-add',require('../controller/mvmt.controller').getUtilsAdd)
 router.get('/mvmts/entre',require('../controller/mvmt.controller').getEntre)
+router.get('/mvmts/sortie',require('../controller/mvmt.controller').getSortie)
 
 //------
 module.exports = router

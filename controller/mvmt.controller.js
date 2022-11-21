@@ -189,6 +189,29 @@ class Mouvement{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+    static async getSortie(req,res){
+        try {
+            let {date} = req.query
+
+            date = new Date(date)
+            
+            let sql = `select *,(select count(*) from mvmt_art where mart_mvmt_id = mvmt_id) as nb_art,
+            d_dest.depot_label as depot_dest,d_exp.depot_label as depot_exp
+            from mvmt 
+            left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
+            left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
+            left join departement on mvmt_tiers = dep_id
+            where mvmt_date = ? and mvmt_action = 'sortie'`
+
+            let list = await D.exec_params(sql,[date])
+
+            return res.send({status:true,list})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
 }
 
 module.exports = Mouvement
