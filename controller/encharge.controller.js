@@ -105,7 +105,7 @@ class Encharge{
         } 
         let default_sort_by = 'encharge_id'
 
-        console.log(filters);
+        // console.log(filters);
 
         filters.page = (!filters.page )?1:parseInt(filters.page)
         filters.limit = (!filters.limit)?100:parseInt(filters.limit)
@@ -237,7 +237,7 @@ class Encharge{
 
             //Ecriture du PDF
             
-            doc.pipe(fs.createWriteStream(`./facture.pdf`))
+            doc.pipe(fs.createWriteStream(`./files/facture.pdf`))
 
             let bottom = doc.page.margins.bottom;
             doc.page.margins.bottom = 0;
@@ -530,11 +530,71 @@ class Encharge{
 
     static async downFacture(req,res){
         try {
-            let data = fs.readFileSync(`./facture.pdf`)
+            let data = fs.readFileSync(`./files/facture.pdf`)
             res.contentType("application/pdf")
             // res.download(`./facture.pdf`)
-
             res.send(data);
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    //Recapitulatif de facture
+    static async getRecapFact(req,res){
+        try {
+            let encharge_id = req.params.encharge_id
+
+            //Récupération de la facture reliée à la prise en charge
+            let fact = (await D.exec_params('select * from facture where fact_encharge_id = ?',[encharge_id]))[0]
+
+            //Récupération de services patients
+            let serv = await D.exec('select * from service where service_parent_id is null')
+
+            //Récupération fact_serv
+            let fact_serv = await D.exec_params(`select * from fact_service
+            left join service on service_id = fserv_serv_id
+            where fserv_is_product = 0 and fserv_fact_id = ?`,[fact.fact_id])
+
+            //Récupération des service médicaments
+            let fact_med = await D.exec_params(`select * from fact_service
+            left join article on art_id = fserv_serv_id
+            where fserv_is_product = 1 and fserv_fact_id = ?`,[fact.fact_id]) 
+
+            //Manipulation des données amzay
+            let montant_total_pat = 0, montant_total_soc = 0
+            let index_med = -1
+            for (let i = 0; i < serv.length; i++) {
+                serv[i].montant_pat = 0
+                serv[i].montant_soc = 0
+
+                index_med = (serv[i].service_code == 'MED')?i:index_med
+
+                for (let j = 0; j < fact_serv.length; j++) {
+                    const fs = fact_serv[j];
+                    if(serv[i].service_id == fs.service_parent_id){
+                        serv[i].montant_pat += parseInt(fs.fserv_prix_patient)
+                        serv[i].montant_soc += parseInt(fs.fserv_prix_societe)
+                    }
+                }
+
+                montant_total_pat += serv[i].montant_pat
+                montant_total_soc += serv[i].montant_soc
+            }
+
+            //Eto ny momba ny médicament
+            for (let i = 0; i < fact_med.length; i++) {
+                const fs = fact_med[i]; 
+                serv[index_med].montant_pat += parseInt(fs.fserv_prix_patient);
+                serv[index_med].montant_soc += parseInt(fs.fserv_prix_societe)
+            }
+            montant_total_pat += serv[index_med].montant_pat
+            montant_total_soc += serv[index_med].montant_soc
+
+
+
+            res.send({status:true,list_serv:serv,montant_total_pat,montant_total_soc})
+
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

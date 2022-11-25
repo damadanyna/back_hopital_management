@@ -150,6 +150,8 @@ router.put('/stock_article',require('../controller/depot.controller').update);
 
 //Gestion des encharge
 router.post('/encharge',require('../controller/encharge.controller').register);
+router.get('/encharge/recap-fact/:encharge_id',require('../controller/encharge.controller').getRecapFact);
+
 router.delete('/encharge/:encharge_id',require('../controller/encharge.controller').delete);
 
 router.get('/encharge/utils/add',require('../controller/encharge.controller').utilsAdd); 
@@ -198,6 +200,15 @@ router.post('/mvmt',require('../controller/mvmt.controller').register)
 router.get('/mvmt/utils-add',require('../controller/mvmt.controller').getUtilsAdd)
 router.get('/mvmts/entre',require('../controller/mvmt.controller').getEntre)
 router.get('/mvmts/sortie',require('../controller/mvmt.controller').getSortie)
+
+//Resaka encaissement
+router.post('/encaissement',require('../controller/caisse.controller').encaissement)
+router.get('/encaissement/add-utils',require('../controller/caisse.controller').getAddUtils)
+router.get('/encaissements',require('../controller/caisse.controller').getListEncaissement)
+router.get('/encaissement/fact/unvalidate',require('../controller/caisse.controller').recupFactUnvalidate)
+router.get('/encaissement/set-pdf/:enc_id',require('../controller/caisse.controller').setPdfFact)
+router.get('/encaissement/download',require('../controller/caisse.controller').downloadFact)
+router.get('/encaissement/det/:enc_id',require('../controller/caisse.controller').getDetEncaissement)
 
 //------
 module.exports = router

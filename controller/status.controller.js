@@ -59,7 +59,7 @@ class Status{
 
 
 
-        console.log(_d)
+        // console.log(_d)
         try {
             //
             let _u = {}

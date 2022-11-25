@@ -151,18 +151,7 @@ create table if not exists hospitalisation(
     hosp_date_enreg datetime null default NOW(),
     hosp_util_id int null,
     primary key (hosp_id)
-)Engine=InnoDB; 
-
--- Table pour l'encaissement
-create table if not exists encaissement(
-    enc_id int auto_increment not null,  
-    enc_validate int null default 0,
-    enc_pat_id int null,
-    enc_date datetime null,
-    enc_date_enreg datetime default NOW(),
-    primary key (enc_id)
-)Engine=InnoDB; 
- 
+)Engine=InnoDB;  
 
 -- Table versement
 create table if not exists versement(
@@ -364,6 +353,43 @@ create table if not exists fact_service(
     fserv_is_product int null default 0,
     fserv_date_enreg datetime null default NOW(),  
     primary key (fserv_id)
+)Engine=InnoDB; 
+
+-- new 22/11/22 #############################
+-- Table pour l'encaissement
+create table if not exists encaissement(
+    enc_id int auto_increment not null,  
+    enc_validate int null default 0, -- validation de paiment / zany hoe tsy mila encaisser-na tsony
+    enc_pat_id int null,
+    enc_util_id int null,
+    enc_tarif_id int null,
+    enc_is_pec int null default 0, -- si c'est prise en charge ou non
+    enc_ent_id int null, -- si prise en charge
+    enc_date datetime null,
+    enc_util_validate_id int null, -- la personne qui a validé le truc // qui a fait le paiment
+    enc_date_enreg datetime default NOW(),
+    enc_montant int null, -- montant total du truc
+    enc_num_mvmt int null, -- Numéro du mouvement //je ne sais pas encore
+    enc_num_hosp varchar(255) null,
+    enc_mode_paiement varchar(100) null,
+    enc_remboursement int null,
+    enc_date_validation datetime null,
+    enc_dep_id int null,
+    enc_num_banque varchar(255) null,
+    enc_fin varchar(255) null, -- Tena tsy azoko mintsy io an !!????
+    primary key (enc_id)
+)Engine=InnoDB; 
+
+-- Table encaissement_service // liaison entre encaissement et service
+create table if not exists enc_serv(
+    encserv_id int auto_increment not null,  
+    encserv_serv_id int null,
+    encserv_is_product int null default 0,
+    encserv_enc_id int null,
+    encserv_qt int null,
+    encserv_montant int null,
+    encserv_prix_unit int null,
+    primary key (encserv_id)
 )Engine=InnoDB; 
  
  
