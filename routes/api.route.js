@@ -78,6 +78,7 @@ router.put('/service',require('../controller/service.controller').update);
 router.put('/service/modif-prix',require('../controller/service.controller').modifPrix);
 
 router.get('/products/tarifs',require('../controller/service.controller').getListTarifsProducts)
+router.get('/products/utils-modif-prix',require('../controller/service.controller').getModifPrixProduct);
 
 //Gestion des detail
 router.post('/details',require('../controller/detail.controller').register);
@@ -125,13 +126,18 @@ router.get('/categorie_articles/parent',require('../controller/categorie_article
 router.put('/categorie_article',require('../controller/categorie_article.controller').update);
 
 //Gestion des article
-router.post('/articles',require('../controller/article.controller').register);
-router.delete('/article/:art_id',require('../controller/article.controller').delete);
-
 //Recherche d'article
 router.get('/articles/search',require('../controller/article.controller').searchByLabel)
 router.get('/articles',require('../controller/article.controller').getList);
 router.put('/article',require('../controller/article.controller').update);
+
+//Article avec tarif
+// router.get('/article/tarif',require('../controller/article.controller').getArtWithTarif);
+
+router.post('/articles',require('../controller/article.controller').register);
+router.delete('/article/:art_id',require('../controller/article.controller').delete);
+
+
 
 router.get('/articles/utils-add',require('../controller/article.controller').getUtilsAdd);
 router.get('/articles/sub-cat/:cat_id',require('../controller/article.controller').getListSubCat);

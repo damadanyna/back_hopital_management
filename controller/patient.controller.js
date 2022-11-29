@@ -61,12 +61,44 @@ class Patient{
 
     static async delete(req,res){
         try {   
-            await D.del('patient',req.params)
+            let pat_id = req.params.pat_id
+
+            //suppresion de l'insertion de l'utilisateur dans caisse
+            //Récupération de la caisse alony
+            let c = (await D.exec_params('select * from encaissement where enc_pat_id = ?',[pat_id]))[0]
+            if(c != undefined){
+                //Suppresison relation caisse en encserv
+                await D.del('enc_ser',{encserv_enc_id:c.enc_id})
+                //suppresison de la ligne caisse
+                await D.del('encaissement',{enc_id:c.enc_id})
+            }
+
+            //atao tahaka an'io ko ny prise en charge
+            let pec = (await D.exec_params('select * from encharge where encharge_pat_id = ?',[pat_id]))[0]
+            if(pec != undefined){
+                //Suppresison relation caisse en encserv
+                await D.del('encharge',{encharge_id:pec.encharge_id})
+                //Récupération facture
+                let f = (await D.exec_params('select * from facture where fact_encharge_id = ?',[pec.encharge_id]))[0]
+                await D.del('fact_service',{fserv_fact_id:f.fact_id})
+                //Suppression facture
+                await D.del('facture',{fact_id:f.fact_id})
+            }
+
+            //Mbola misy consulaltion
+            let cons = (await D.exec_params('select * from consultation where cons_pat_id = ?',[pat_id]))[0]
+            if(cons != undefined){
+                await D.del('consultation',{cons_id:cons.cons_id})
+            }
+            //zay vao vita ny suppresion ana Patient
+
+            //Suppression du patient dans la grande liste
+            await D.del('patient',{pat_id})
             //Ici tous les fonctions sur l'enregistrement d'un patient
             return res.send({status:true,message:"patient supprimé."})
         } catch (e) {
             console.error(e)
-            return res.send({status:false,message:"Erreur dans la base de donnée"})
+            return res.send({status:false,message:"Erreur dans la base de donnée. Il est possible que le patient n'existe plus"})
         }
  
     }  

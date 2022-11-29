@@ -227,7 +227,23 @@ class Service{
             let tserv = (await D.exec_params(`select * from tarif_service 
             left join tarif on tarif_id = tserv_tarif_id
             left join service on service_id = tserv_service_id
-            where tserv_tarif_id = ? and tserv_service_id = ?`,[t.tserv_tarif_id,t.tserv_service_id]))[0]
+            where tserv_tarif_id = ? and tserv_service_id = ? and tserv_is_product = 0`,[t.tserv_tarif_id,t.tserv_service_id]))[0]
+
+            return res.send({status:true,tserv})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getModifPrixProduct(req,res){
+        try {
+            let t = req.query
+
+            let tserv = (await D.exec_params(`select *,art_label as service_label from tarif_service 
+            left join tarif on tarif_id = tserv_tarif_id
+            left join article on art_id = tserv_service_id
+            where tserv_tarif_id = ? and tserv_service_id = ? and tserv_is_product = 1`,[t.tserv_tarif_id,t.tserv_service_id]))[0]
 
             return res.send({status:true,tserv})
         } catch (e) {
@@ -242,11 +258,15 @@ class Service{
 
             let prix = parseInt(t.tserv_prix)
 
+            console.log(t)
+
+
             if(prix.toString() == 'NaN'){
                 return res.send({status:false,message:'Prix non correct'})
             }
 
-            await D.exec_params('update tarif_service set tserv_prix = ? where tserv_tarif_id = ? and tserv_service_id = ? ',[prix,t.tserv_tarif_id,t.tserv_service_id])
+            await D.exec_params(`update tarif_service set tserv_prix = ? where tserv_tarif_id = ? and tserv_service_id = ? and tserv_is_product =  ?`,
+            [prix,t.tserv_tarif_id,t.tserv_service_id,t.tserv_is_product])
 
             return res.send({status:true})
         } catch (e) {

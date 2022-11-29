@@ -80,15 +80,16 @@ class Caisse{
         filters.limit = (!filters.limit)?100:parseInt(filters.limit)
 
         try {
-            let d = new Date(filters.date)
+            let d = (new Date(filters.date)).toLocaleDateString('fr-CA')
+            let d2 = (new Date(filters.date2)).toLocaleDateString('fr-CA')
             
             let list_enc = await D.exec_params(`select * from encaissement
             left join patient on pat_id = enc_pat_id
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
-            where year(enc_date) = ? and month(enc_date) = ? and day(enc_date) = ?
+            where date(enc_date) between ? and ?
             order by enc_date desc
-            `,[d.getFullYear(),d.getMonth()+1,d.getDate()])
+            `,[d,d2])
 
             let nb_not_validate = (await D.exec_params(`select count(*) as nb from encaissement where enc_validate = 0`))[0].nb
             return res.send({status:true,list_enc,nb_not_validate})
@@ -329,13 +330,18 @@ async function createFactPDF(fact,list_serv,mode){
     let nom_hop = 'HOPITALY LOTERANA ANDRANOMADIO'
     let t_caisse = `RECU DE CAISSE - N° ${fact.enc_num_mvmt}`
     let t_date = `${f_date} -- ${f_time}`
-    let t_caissier = `CAISSIER : MED`
-    let t_pat_code = `Patient: ${fact.pat_numero}`
-    let t_pat_adresse = (fact.pat_adresse)?fact.pat_adresse:''
+    let t_caissier = `CAISSIER : ${fact.util_label}`
+    let t_pat_code = `Patient: ${(fact.pat_numero)?fact.pat_numero:'-'}`
+    let pat_name = (fact.pat_nom_et_prenom)?fact.pat_nom_et_prenom:'-'
+    let t_pat_adresse = (fact.pat_adresse)?fact.pat_adresse:'-'
     let t_somme = 'Soit la somme de:'
     let t_mode = 'Paiement:'
     let t_somme_m = NumberToLetter(parseInt(fact.enc_montant).toString())
     t_somme_m = t_somme_m.charAt(0).toUpperCase() + t_somme_m.slice(1) + ' Ariary'
+
+    //-------------
+    let t_stat = 'Stat n ° 85113 12 200 60 00614'
+    let t_nif =  'NIF n ° 20000038126'
 
     //Text en haut pour l'hôpital
     h_cadre = doc.heightOfString(nom_hop)+(margin_text_in_cadre * 2)
@@ -346,6 +352,23 @@ async function createFactPDF(fact,list_serv,mode){
     y_cur = y_begin+h_cadre
     //------------------
 
+    //Ajout stat
+    doc.fontSize(7)
+    h_cadre = doc.heightOfString(t_stat)+(margin_text_in_cadre * 2)
+    //Pour la date 
+    doc.lineJoin('miter')
+        .rect(x_begin,y_cur , w_cadre / 2,h_cadre)
+        .stroke();
+    doc.text(t_stat,(w_cadre/4 - doc.widthOfString(t_stat)/2) + x_begin,y_cur+margin_text_in_cadre)
+    //pour le nif
+    doc.lineJoin('miter')
+        .rect(x_begin + (w_cadre/2),y_cur , w_cadre / 2,h_cadre)
+        .stroke();
+    doc.text(t_nif,(w_cadre/4 - doc.widthOfString(t_nif)/2) + x_begin +(w_cadre/2),y_cur+margin_text_in_cadre)
+    y_cur = y_cur+h_cadre 
+    //------------------------------
+
+    // doc.fontSize(8)
     //text écriture sur la caisse
     doc.font('fira_bold')
     doc.fontSize(10)
@@ -377,7 +400,7 @@ async function createFactPDF(fact,list_serv,mode){
     //Resaka patient ndray zao
     doc.text(t_pat_code,(w_cadre/2 - doc.widthOfString(t_pat_code)/2) + x_begin,y_cur+10)
     doc.font('fira_bold')
-    doc.text(fact.pat_nom_et_prenom,(w_cadre/2 - doc.widthOfString(fact.pat_nom_et_prenom)/2) + x_begin)
+    doc.text(pat_name,(w_cadre/2 - doc.widthOfString(pat_name)/2) + x_begin)
     doc.font('fira')
     doc.text(t_pat_adresse,(w_cadre/2 - doc.widthOfString(t_pat_adresse)/2) + x_begin)
 
@@ -523,8 +546,11 @@ async function createFactPDF(fact,list_serv,mode){
 
 
     // ######################### La 2ème colonne maintenant
+    //##################################
     x_begin = (doc.page.width /2) + margin_middle
     y_begin = 25 
+
+
     //Text en haut pour l'hôpital
     h_cadre = doc.heightOfString(nom_hop)+(margin_text_in_cadre * 2)
     doc.lineJoin('miter')
@@ -534,10 +560,28 @@ async function createFactPDF(fact,list_serv,mode){
     y_cur = y_begin+h_cadre
     //------------------
 
+    //Ajout stat
+    doc.fontSize(7)
+    h_cadre = doc.heightOfString(t_stat)+(margin_text_in_cadre * 2)
+    //Pour la date 
+    doc.lineJoin('miter')
+        .rect(x_begin,y_cur , w_cadre / 2,h_cadre)
+        .stroke();
+    doc.text(t_stat,(w_cadre/4 - doc.widthOfString(t_stat)/2) + x_begin,y_cur+margin_text_in_cadre)
+    //pour le nif
+    doc.lineJoin('miter')
+        .rect(x_begin + (w_cadre/2),y_cur , w_cadre / 2,h_cadre)
+        .stroke();
+    doc.text(t_nif,(w_cadre/4 - doc.widthOfString(t_nif)/2) + x_begin +(w_cadre/2),y_cur+margin_text_in_cadre)
+    y_cur = y_cur+h_cadre 
+    //------------------------------
+
+    doc.fontSize(8)
+
     //text écriture sur la caisse
     doc.font('fira_bold')
     doc.fontSize(10)
-    h_cadre = doc.heightOfString(t_caisse)+(margin_text_in_cadre * 2)
+    h_cadre = doc.heightOfString(t_caisse)+(margin_text_in_cadre * 2) -13
     doc.lineJoin('miter')
         .rect(x_begin,y_cur , w_cadre,h_cadre)
         .stroke();
@@ -565,7 +609,7 @@ async function createFactPDF(fact,list_serv,mode){
     //Resaka patient ndray zao
     doc.text(t_pat_code,(w_cadre/2 - doc.widthOfString(t_pat_code)/2) + x_begin,y_cur+10)
     doc.font('fira_bold')
-    doc.text(fact.pat_nom_et_prenom,(w_cadre/2 - doc.widthOfString(fact.pat_nom_et_prenom)/2) + x_begin)
+    doc.text(pat_name,(w_cadre/2 - doc.widthOfString(pat_name)/2) + x_begin)
     doc.font('fira')
     doc.text(t_pat_adresse,(w_cadre/2 - doc.widthOfString(t_pat_adresse)/2) + x_begin)
 
