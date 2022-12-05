@@ -167,6 +167,7 @@ router.get('/encharge/print-pdf',require('../controller/encharge.controller').pr
 router.get('/encharge/:encharge_id',require('../controller/encharge.controller').getOne);
 
 router.put('/encharge',require('../controller/encharge.controller').update);
+router.put('/encharge/fact/state',require('../controller/encharge.controller').setStateFact);
 
 //Gestion des conslutation
 router.post('/consultation',require('../controller/cons.controller').register);
@@ -210,11 +211,18 @@ router.get('/mvmts/sortie',require('../controller/mvmt.controller').getSortie)
 //Resaka encaissement
 router.post('/encaissement',require('../controller/caisse.controller').encaissement)
 router.get('/encaissement/add-utils',require('../controller/caisse.controller').getAddUtils)
+router.get('/encaissement/add-utils/hosp',require('../controller/caisse.controller').getAddUtilsHosp)
+
 router.get('/encaissements',require('../controller/caisse.controller').getListEncaissement)
+router.get('/encaissements/hosp',require('../controller/caisse.controller').getListHosp)
+router.put('/encaissement/hosp/to-caisse',require('../controller/caisse.controller').hospToCaisse)
+router.put('/encaissement/hosp',require('../controller/caisse.controller').modifHosp)
+
 router.get('/encaissement/fact/unvalidate',require('../controller/caisse.controller').recupFactUnvalidate)
 router.get('/encaissement/set-pdf/:enc_id',require('../controller/caisse.controller').setPdfFact)
 router.get('/encaissement/download',require('../controller/caisse.controller').downloadFact)
 router.get('/encaissement/det/:enc_id',require('../controller/caisse.controller').getDetEncaissement)
+router.delete('/encaissement/:enc_id',require('../controller/caisse.controller').delEncaissement)
 
 //------
 module.exports = router

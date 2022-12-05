@@ -252,6 +252,8 @@ create table if not exists encharge(
     encharge_ent_payeur int null, 
     encharge_date_enreg datetime null default NOW(), 
     encharge_util_id int null,
+    encharge_fact_to_gest int null default 0,
+    encharge_fact_to_soc int null default 0,
     primary key (encharge_id)
 )Engine=InnoDB; 
  
@@ -370,14 +372,34 @@ create table if not exists encaissement(
     enc_date_enreg datetime default NOW(),
     enc_montant int null, -- montant total du truc
     enc_num_mvmt int null, -- Numéro du mouvement //je ne sais pas encore
-    enc_num_hosp varchar(255) null,
+    enc_num_hosp varchar(255) null, -- Ref hospitalisation
     enc_mode_paiement varchar(100) null,
-    enc_remboursement int null,
-    enc_date_validation datetime null,
+    enc_is_hosp int null default 0,
     enc_dep_id int null,
+    enc_remboursement int null,
+    enc_reste_paie int null,
+    enc_date_validation datetime null,
     enc_num_banque varchar(255) null,
     enc_fin varchar(255) null, -- Tena tsy azoko mintsy io an !!????
+    enc_date_entre datetime null default NOW(),
+    enc_date_sortie datetime null,
+    enc_total_avance int null default 0, -- Total des avances en mode Hosp
+    enc_result_final int null,
+    enc_to_caisse int null default 1,
+    enc_date_update datetime null,
+    enc_paie_final datetime null,
     primary key (enc_id)
+)Engine=InnoDB; 
+
+-- Table encaissement avance en mode hosp
+create table if not exists enc_avance(
+    encav_id int auto_increment not null, 
+    encav_util_id int null,
+    encav_enc_id int null,
+    encav_montant int null,
+    encav_date datetime null,
+    encav_date_enreg datetime default NOW(),
+    primary key (encav_id)
 )Engine=InnoDB; 
 
 -- Table encaissement_service // liaison entre encaissement et service
@@ -389,6 +411,7 @@ create table if not exists enc_serv(
     encserv_qt int null,
     encserv_montant int null,
     encserv_prix_unit int null,
+    encserv_date_enreg datetime default NOW(),
     primary key (encserv_id)
 )Engine=InnoDB; 
  

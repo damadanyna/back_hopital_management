@@ -600,6 +600,21 @@ class Encharge{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+    static async setStateFact(req,res){
+        try {
+            let k = req.body.key
+            let encharge_id = req.body.encharge_id
+            let up = {}
+            up[k] = 1
+
+            await D.updateWhere('encharge',up,{encharge_id})
+            return res.send({status:true})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
 }
 
 module.exports = Encharge;
