@@ -20,6 +20,7 @@ let _prep_enc_data = {
     enc_paie_final:{front_name:'enc_paie_final',fac:true},
     enc_date_sortie:{front_name:'enc_date_sortie',fac:true},
     enc_result_final:{front_name:'enc_result_final',fac:true},
+    enc_reste_paie:{front_name:'enc_reste_paie',fac:true},
     
 }
 let _prep_key = Object.keys(_prep_enc_data)
@@ -140,14 +141,20 @@ class Caisse{
             let d = (new Date(filters.date)).toLocaleDateString('fr-CA')
             let d2 = (new Date(filters.date2)).toLocaleDateString('fr-CA')
             
+
+            let pr = [d,d2]
+            if(filters.state != -1){
+                pr = [filters.state,...pr]
+            }
+            
             let list_enc = await D.exec_params(`select *, (select sum(encav_montant) from enc_avance where encav_enc_id = enc_id) as enc_avance from encaissement
             left join patient on pat_id = enc_pat_id
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
             left join departement on dep_id = enc_dep_id
-            where enc_is_hosp = 1 and date(enc_date) between ? and ?
-            order by enc_date desc
-            `,[d,d2])
+            where ${(filters.state != -1)?'enc_validate = ? and ':''} enc_is_hosp = 1 and date(${filters.date_by}) between ? and ?
+            order by ${filters.date_by} desc
+            `,pr)
 
             let nb_not_validate = (await D.exec_params(`select count(*) as nb from encaissement where enc_validate = 0`))[0].nb
             return res.send({status:true,list_enc,nb_not_validate})
@@ -256,7 +263,8 @@ class Caisse{
                 enc_is_pec:enc.enc_is_pec,
                 enc_montant:enc.enc_montant,
                 enc_total_avance:enc.enc_total_avance,
-                enc_paie_final:enc.enc_paie_final
+                enc_paie_final:enc.enc_paie_final,
+                enc_reste_paie:enc.enc_reste_paie
             }
 
             //Tonga de atao ny modification an'ilay encaissement
@@ -546,7 +554,7 @@ async function createFactPDF(fact,list_serv,mode){
     let t_paiement_final = 'Paiement final:'
     let t_somme_m = NumberToLetter(parseInt(fact.enc_montant).toString())
     let t_avance_s = (fact.enc_is_hosp)?parseInt(fact.enc_total_avance).toString():''
-    let t_paiement_final_s = (fact.enc_is_hosp)?(parseInt(fact.enc_montant) - parseInt(fact.enc_total_avance) ).toString():''
+    let t_paiement_final_s = (fact.enc_is_hosp)?(parseInt(fact.enc_reste_paie)).toString():''
     t_somme_m = t_somme_m.charAt(0).toUpperCase() + t_somme_m.slice(1) + ' Ariary'
 
     //-------------
