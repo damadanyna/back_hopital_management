@@ -21,6 +21,7 @@ let _prep_enc_data = {
     enc_date_sortie:{front_name:'enc_date_sortie',fac:true},
     enc_result_final:{front_name:'enc_result_final',fac:true},
     enc_reste_paie:{front_name:'enc_reste_paie',fac:true},
+    enc_to_caisse:{front_name:'enc_to_caisse',fac:true},
     
 }
 let _prep_key = Object.keys(_prep_enc_data)
