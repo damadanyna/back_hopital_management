@@ -65,6 +65,10 @@ class Caisse{
         enc.enc_date_entre.setMinutes((new Date()).getMinutes())
         //----------------------------
 
+        if(!enc.enc_is_hosp){
+            enc.enc_to_caisse = 1
+        }
+
         //ajout de prep_encaissemnet dans la base
         try {
             let _e = await D.set('encaissement',enc)
