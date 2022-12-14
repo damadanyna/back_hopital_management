@@ -30,6 +30,7 @@ create table if not exists util_access(
 create table if not exists module(
     module_id int auto_increment not null, 
     module_label varchar(100) null,
+    module_code varchar(100) null,
     base_link varchar(50) null,
     primary key (module_id)
 )Engine=InnoDB;

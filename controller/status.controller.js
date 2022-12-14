@@ -104,7 +104,7 @@ class Status{
 
 
                     //Récupétation des utils access
-                    let ua = await D.exec_params(`select module_label from util_access
+                    let ua = await D.exec_params(`select module_code from util_access
                     left join module on module_id = ua_module_id
                     where ua_util_id = ?`,_u.util_id)
 
@@ -112,7 +112,7 @@ class Status{
                         return res.send({status:false,message:"Vous n'avez accès à aucun module"})
                     }
 
-                    ua = ua.map(x => x.module_label)
+                    ua = ua.map(x => x.module_code)
 
                     res.cookie('x-access-token',token, options)
                     return res.send({status:true,message:"Connexion réussie.",u:_u,ua})

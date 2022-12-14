@@ -214,11 +214,13 @@ router.get('/encaissement/add-utils',require('../controller/caisse.controller').
 router.get('/encaissement/add-utils/hosp',require('../controller/caisse.controller').getAddUtilsHosp)
 
 router.get('/encaissements',require('../controller/caisse.controller').getListEncaissement)
+router.get('/encaissements/main',require('../controller/caisse.controller').getListEncaissementMain)
 router.get('/encaissements/hosp',require('../controller/caisse.controller').getListHosp)
 router.put('/encaissement/hosp/to-caisse',require('../controller/caisse.controller').hospToCaisse)
 router.put('/encaissement/hosp',require('../controller/caisse.controller').modifHosp)
 
 router.get('/encaissement/fact/unvalidate',require('../controller/caisse.controller').recupFactUnvalidate)
+
 router.get('/encaissement/set-pdf/:enc_id',require('../controller/caisse.controller').setPdfFact)
 router.get('/encaissement/download',require('../controller/caisse.controller').downloadFact)
 router.get('/encaissement/det/:enc_id',require('../controller/caisse.controller').getDetEncaissement)

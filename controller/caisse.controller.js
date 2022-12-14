@@ -135,6 +135,63 @@ class Caisse{
 
     }
 
+    //Récupération des listes des encaissements pour la caisse pricipale
+    static async getListEncaissementMain(req,res){
+        let filters = req.query
+        
+
+
+        // console.log(filters)
+
+        filters.page = (!filters.page )?1:parseInt(filters.page)
+        filters.limit = (!filters.limit)?100:parseInt(filters.limit)
+
+        try {
+            let d = (new Date(filters.date)).toLocaleDateString('fr-CA')
+            let d2 = (new Date(filters.date2)).toLocaleDateString('fr-CA')
+
+            let list_dep = await D.exec('select * from departement')
+            
+
+            filters.dep_id = (filters.dep_id)?filters.dep_id:list_dep[0].dep_id
+
+            let w = [
+                d,d2
+            ]
+
+            if(filters.dep_id != -1){
+                w.push(filters.dep_id)
+            }
+            if(filters.search){
+                w.push(`%${filters.search}%`)
+            }
+
+
+            let list_enc = await D.exec_params(`select * from encaissement
+            left join patient on pat_id = enc_pat_id
+            left join entreprise on ent_id = enc_ent_id
+            left join tarif on tarif_id = enc_tarif_id
+            left join departement on dep_id = enc_dep_id
+            where enc_to_caisse = 1 and date(enc_date) between ? and ? 
+            ${ (filters.dep_id != -1)?'and enc_dep_id = ?':'' }
+            ${ (filters.search)?`and ${filters.search_by} like ?`:'' }
+            order by enc_date desc
+            `,w)
+
+            let total_montant = (await D.exec_params(`select sum(enc_montant) as total from encaissement
+            where enc_to_caisse = 1 and date(enc_date) between ? and ? 
+            ${ (filters.dep_id != -1)?'and enc_dep_id = ?':'' }
+            ${ (filters.search)?`and ${filters.search_by} like ?`:'' }
+            `,w))[0].total
+            return res.send({status:true,list_enc,list_dep,total_montant})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+
+    }
+
+
     static async getListHosp(req,res){
         let filters = req.query
         // console.log(filters)
