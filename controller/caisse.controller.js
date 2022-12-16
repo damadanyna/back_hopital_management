@@ -471,7 +471,7 @@ class Caisse{
 
 
             //On enregistre le truc si c'est pas encore validée
-            if(!parseInt(fact.enc_validate)){
+            if(!parseInt(fact.enc_validate) && req.query.mode){
                 //Ici enregistrement des modifications
                 let up = {
                     enc_validate:1,
@@ -525,6 +525,94 @@ class Caisse{
 }
 
 
+//Génération PDF pour les détails des avances et les restates à payer
+async function generateDetFactPDF(fact,avance,list_serv){
+
+    let date_fact = new Date(fact.enc_date)
+    let f_date = date_fact.toLocaleDateString()
+    let f_time = date_fact.toLocaleTimeString().substr(0,5)
+
+
+    let opt = {
+        margin: 15, size: 'A4' ,
+    }   
+    let doc = new PDFDocument(opt)
+    //les fonts
+    doc.registerFont('fira', 'fonts/fira.ttf');
+    doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+    doc.font("fira")
+
+    //Ecriture du PDF
+    doc.pipe(fs.createWriteStream(`./files/det-fact.pdf`))
+
+
+    //les marges et le truc en bas
+    //______________________________________
+    let bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
+    doc.fontSize(8)
+
+    doc.text(
+        `Hôpital Andranomadio ${year_cur}`, 
+        0.5 * (doc.page.width - 300),
+        doc.page.height - 20,
+        {
+            width: 300,
+            align: 'center',
+            lineBreak: false,
+        })
+
+    // Reset text writer position
+    doc.text('', 15, 15);
+    doc.page.margins.bottom = bottom;
+    doc.on('pageAdded', () => {
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+    
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+    
+        // Reset text writer position
+        doc.text('', 50, 50);
+        doc.page.margins.bottom = bottom;
+    })
+    //-----------------___________________---------------
+
+    //-------------
+    let t_stat = 'Stat n ° 85113 12 200 60 00614'
+    let t_nif =  'NIF n ° 20000038126'
+
+    let nom_hop = 'HOPITALY LOTERANA ANDRANOMADIO'
+    let t_date = `${f_date} -- ${f_time}`
+    let t_caissier = `CAISSIER : ${fact.util_label}`
+    let t_pat_code = `Patient: ${(fact.pat_numero)?fact.pat_numero:'-'}`
+    let pat_name = (fact.pat_nom_et_prenom)?fact.pat_nom_et_prenom:'-'
+    let t_pat_adresse = (fact.pat_adresse)?fact.pat_adresse:'-'
+
+     //Définition des tailles
+    let margin = 25
+    let margin_middle = 15
+    let y_begin = 25
+    let w_cadre = (doc.page.width - (margin * 2) - (margin_middle * 2)) / 2
+    let y_cur = 0
+    let h_cadre = 0
+    let margin_text_in_cadre = 3
+    let x_begin = margin
+
+    //Placement du titre
+    
+
+}
+
+
 //Fonction pour la génération de PDF
 async function createFactPDF(fact,list_serv,mode){
 
@@ -532,7 +620,6 @@ async function createFactPDF(fact,list_serv,mode){
     const separateNumber = (n)=>{
         return (n)?n.toLocaleString('fr-CA'):''
     }
-
     let date_fact = new Date(fact.enc_date)
     let f_date = date_fact.toLocaleDateString()
     let f_time = date_fact.toLocaleTimeString().substr(0,5)
@@ -613,10 +700,10 @@ async function createFactPDF(fact,list_serv,mode){
     let t_somme = 'Soit la somme de:'
     let t_mode = 'Paiement:'
     let t_avance = 'Avance:'
-    let t_paiement_final = 'Paiement final:'
+    let t_paiement_final = (fact.enc_to_caisse)?'Paiement final:':'Reste à payer:'
     let t_somme_m = NumberToLetter(parseInt(fact.enc_montant).toString())
-    let t_avance_s = (fact.enc_is_hosp)?parseInt(fact.enc_total_avance).toString():''
-    let t_paiement_final_s = (fact.enc_is_hosp)?(parseInt(fact.enc_reste_paie)).toString():''
+    let t_avance_s = (fact.enc_is_hosp)?parseInt(fact.enc_total_avance).toLocaleString('fr-CA'):''
+    let t_paiement_final_s = (fact.enc_is_hosp)?(parseInt(fact.enc_reste_paie)).toLocaleString('fr-CA'):''
     t_somme_m = t_somme_m.charAt(0).toUpperCase() + t_somme_m.slice(1) + ' Ariary'
 
     //-------------

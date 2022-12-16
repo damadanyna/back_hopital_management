@@ -8,3 +8,6 @@ alter table encharge add encharge_fact_to_soc int null default 0;
 
 -- 01/12/22
 alter table encaissement add enc_is_hosp int null default 0;
+
+-- 15/12/22
+alter table encharge add encharge_printed int null default 0;

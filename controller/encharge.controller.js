@@ -217,6 +217,11 @@ class Encharge{
             
             fact_serv = [...fact_serv,...r]
 
+            //On modifie la ligne encharge_printed
+            if(!pec.encharge_printed){
+                await D.updateWhere('encharge',{encharge_printed:1},{encharge_id:pec.encharge_id})
+            }
+
             if(fact_serv.length == 0){
                 return res.send({status:false,message:"Facture pas complet"})
             }

@@ -254,7 +254,8 @@ create table if not exists encharge(
     encharge_date_enreg datetime null default NOW(), 
     encharge_util_id int null,
     encharge_fact_to_gest int null default 0,
-    encharge_fact_to_soc int null default 0,
+    encharge_fact_to_soc int null default 0
+    encharge_printed int null default 0,
     primary key (encharge_id)
 )Engine=InnoDB; 
  
