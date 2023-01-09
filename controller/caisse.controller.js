@@ -273,7 +273,7 @@ class Caisse{
                 enc = (await D.exec_params('select * from encaissement where enc_id = ?',[enc_id]))[0]
                 enc.patient = (await D.exec_params('select * from patient where pat_id = ?',[enc.enc_pat_id]))[0]
 
-
+                
                 encav = await D.exec_params(`select * from enc_avance
                 left join utilisateur on util_id = encav_util_id where encav_enc_id = ?`,[enc_id])
 

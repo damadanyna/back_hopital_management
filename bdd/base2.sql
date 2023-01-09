@@ -56,8 +56,8 @@ create table if not exists entreprise(
     ent_num_compte varchar(50) null, 
     ent_label varchar(50) null, 
     ent_code varchar(50) null, 
-    ent_pat_percent varchar(50),
-    ent_soc_percent varchar(50),
+    ent_pat_percent varchar(50), -- pourcentage aloanle patient
+    ent_soc_percent varchar(50), -- pourcentage aloanle e/se
     ent_adresse varchar(50) null, 
     ent_date_enreg datetime null default NOW(),
     ent_util_id int null,
@@ -65,15 +65,6 @@ create table if not exists entreprise(
 )Engine=InnoDB; 
  
 
--- Table Payement
-create table if not exists payement(
-    pai_id int auto_increment not null, 
-    pai_label varchar(50) null, 
-    pai_date_enreg datetime null default NOW(),
-    pai_util_id int null,
-    primary key (pai_id)
-)Engine=InnoDB; 
- 
 
 -- Table Service
 create table if not exists service(
@@ -416,5 +407,73 @@ create table if not exists enc_serv(
     encserv_date_enreg datetime default NOW(),
     primary key (encserv_id)
 )Engine=InnoDB; 
+
+
+-- LES TABLES POUR LE DENTISTERIE 07/01/2023
+
+-- Table Patient pour DENTISTERIE
+create table if not exists patient_dt(
+    pat_id int auto_increment not null, 
+    pat_nom_et_prenom varchar(150) null,
+    pat_date_naiss datetime null,
+    pat_date_enreg datetime null default NOW(), 
+    pat_adresse varchar(100) null, 
+    pat_profession varchar(50) null,  
+    pat_sexe varchar(55) null,
+    pat_numero varchar(20) null, 
+    pat_util_id int null,
+    pat_is_dt int null default 1,
+    pat_date_enreg datetime default NOW(),
+    primary key (pat_id)
+)Engine=InnoDB;
+
+-- Table pour le rendez-vous journalier
+create table if not exists rdv_dt(
+    rdv_id int auto_increment not null,
+    rdv_date datetime null default NOW(),
+    rdv_intervention int null,
+    rdv_arrived int null default 0,
+    rdv_med_id int null,
+    rdv_date datetime null,
+    rdv_pat_id int null, -- id du patient qui va faire le rendez vous,
+    rdv_date_enreg datetime default NOW(),
+    rdv_heure varchar(20) null,
+    primary key (rdv_id)
+)Engine=InnoDB;
+
+-- Table pour la liste des médecins
+create table if not exists med_dt(
+    med_id int auto_increment not null,
+    med_date_enreg datetime null default NOW(),
+    med_label varchar(255) null,
+    primary key (med_id)
+)Engine=InnoDB;
+
+-- Table pour la liste des interventions RDV
+create table if not exists inter_rdv_dt(
+    interdv_id int auto_increment not null,
+    interdv_date_enreg datetime null default NOW(),
+    interdv_label varchar(255) null,
+    primary key (intrdv_id)
+)Engine=InnoDB;
+
+-- table produits dentisterie
+create table if not exists produit_dt(
+    prod_id int auto_increment not null,
+    prod_date_enreg datetime null default NOW(),
+    pro_label varchar(255) null,
+    prod_code varchar(20) null,
+    prod_cum_appro varchar(100) null,
+    prod_unite varchar(50) null,
+    prod_nb_util int null,
+    prod_pr_personnel int null default 0, -- pr veut dire prix, ce sont les tarifs de ces produits écris à la main
+    prod_pr_retraite int null default 0,
+    prod_pr_enfcd int null default 0,
+    primary key (prod_id)
+)Engine=InnoDB;
+
+
+
+
  
  

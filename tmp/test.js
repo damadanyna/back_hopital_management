@@ -10,7 +10,7 @@ async function example() {
 
     let r = data.split('\r\n')
 
-    let dispo = ['pat_numero','pat_nom_et_prenom','pat_date_naiss','pat_sexe','pat_profession','pat_adresse','','']
+    let dispo = ['pat_numero','pat_nom_et_prenom','','pat_date_naiss','','pat_sexe','pat_profession','','']
 
     let data_to_insert = []
     let tmp_d = [], tmp_l = {}
@@ -35,7 +35,7 @@ async function example() {
     let list_data_n  = Object.keys(data_to_insert[0])
     console.log(data_to_insert)
 
-    let sql = `insert into patient (pat_numero,pat_nom_et_prenom,pat_date_naiss,pat_sexe,pat_profession,pat_adresse) values ?;`
+    let sql = `insert into patient_dt (pat_numero,pat_nom_et_prenom,pat_date_naiss,pat_sexe,pat_profession) values ?;`
 
     await D.exec_params(sql,[data_to_insert])
 

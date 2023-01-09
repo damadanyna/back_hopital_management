@@ -111,7 +111,6 @@ router.get('/versements',require('../controller/versement.controller').getList);
 router.put('/versement',require('../controller/versement.controller').update);
 
 /*  -- mar 25 --   */ 
-
 //Gestion des fournisseur
 router.post('/fournisseurs',require('../controller/fournisseur.controller').register);
 router.delete('/fournisseur/:fourn_id',require('../controller/fournisseur.controller').delete);
@@ -226,5 +225,17 @@ router.get('/encaissement/download',require('../controller/caisse.controller').d
 router.get('/encaissement/det/:enc_id',require('../controller/caisse.controller').getDetEncaissement)
 router.delete('/encaissement/:enc_id',require('../controller/caisse.controller').delEncaissement)
 
+
+//Routes pour le module dentisterie
+// -------------- DENTISTERIE  -----------------
+router.get('/dt/patients',require('../controller/dt-patient.controller').getList)
+
+
+//Gestion de RDV
+router.get('/dt/rdv/data-utils',require('../controller/dt-rdv.controller').getDataUtilsAdd)
+router.get('/dt/rdv',require('../controller/dt-rdv.controller').getList)
+router.post('/dt/rdv',require('../controller/dt-rdv.controller').addRdv)
+router.put('/dt/rdv',require('../controller/dt-rdv.controller').updateRdv)
+router.delete('/dt/rdv/:rdv_id',require('../controller/dt-rdv.controller').delRdv)
 //------
 module.exports = router
