@@ -41,7 +41,7 @@ class Caisse{
         
 
         if(_es.length <= 0){
-            return res.send({status:false,message:"Erreur d'insertion. La liste des dervices est vide."})
+            return res.send({status:false,message:"La liste des services est vide."})
         }
 
         //Objet pour le post

@@ -47,6 +47,12 @@ class Article{
             //     _data[v] = _d[_tmp.front_name]
             // })
 
+            //Détection de champs vide
+            if(!article.art_code || !article.art_label){
+                console.log('hahah');
+                return res.send({status:false,message:"Certains champs sont vide"})
+            }
+
             // Ajout article
             let _art = await D.set('article',article)
 

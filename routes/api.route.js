@@ -36,7 +36,7 @@ router.delete('/hosp/:ref',require('../controller/hospitalisation.controller').d
 
 //Gestion des utilisateur
 router.post('/users',require('../controller/utilisateur.controller').register);
-router.delete('/user',require('../controller/utilisateur.controller').delete);
+router.delete('/user/:util_id',require('../controller/utilisateur.controller').deleteUser);
 router.get('/users',require('../controller/utilisateur.controller').getList);
 router.put('/user/access/:util_id',require('../controller/utilisateur.controller').setAccess);
 router.get('/user/:id',require('../controller/utilisateur.controller').getDetailsUser);
@@ -76,6 +76,7 @@ router.get('/service/add-utils',require('../controller/service.controller').getA
 router.get('/service/utils-modif-prix',require('../controller/service.controller').getModifPrix);
 router.put('/service',require('../controller/service.controller').update);
 router.put('/service/modif-prix',require('../controller/service.controller').modifPrix);
+router.delete('/service/del-tarif/:tarif_id',require('../controller/service.controller').delTarif);
 
 router.get('/products/tarifs',require('../controller/service.controller').getListTarifsProducts)
 router.get('/products/utils-modif-prix',require('../controller/service.controller').getModifPrixProduct);

@@ -75,10 +75,10 @@ class Service{
             if(_data.service_parent_id){
                 list_tarif = await D.exec('select * from tarif')
                 if(list_tarif.length > 0){
-                    let sql = `insert into tarif_service (tserv_tarif_id,tserv_service_id,tserv_prix) values ?;`
+                    let sql = `insert into tarif_service (tserv_tarif_id,tserv_service_id,tserv_is_product,tserv_prix) values ?;`
                     let datas = []
                     for (let i = 0; i < list_tarif.length; i++) {
-                        datas.push([list_tarif[i].tarif_id,_serv.insertId,0])
+                        datas.push([list_tarif[i].tarif_id,_serv.insertId,0,0])
                     }
                     //insertion
                     await D.exec_params(sql,[datas])
@@ -140,7 +140,7 @@ class Service{
         let default_sort_by = 'service_id'
 
         filters.page = (!filters.page )?1:parseInt(filters.page)
-        filters.limit = (!filters.limit)?100:parseInt(filters.limit)
+        filters.limit = (!filters.limit)?1000:parseInt(filters.limit)
         filters.sort_by = (!filters.sort_by)?_obj_pat[default_sort_by]:_obj_pat[filters.sort_by]
 
         try { 
@@ -290,6 +290,24 @@ class Service{
             }
                 //Ici tous les fonctions sur l'enregistrement d'un service
                 return res.send({status:true,message:"Mise à jour, fait"})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    //Suppression d'un tarif
+    static async delTarif(req,res){
+        try {
+            let tarif_id = req.params.tarif_id
+
+            //Suppression des relations entra tarifs et services
+            await D.del('tarif_service',{tserv_tarif_id:tarif_id})
+
+            //suppression tarif
+            await D.del('tarif',{tarif_id})
+
+            return res.send({status:true})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

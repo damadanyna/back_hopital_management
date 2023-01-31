@@ -65,11 +65,16 @@ class Utilisateur{
 
     }
 
-    static async delete(req,res){
-        try {   
-            await D.del('utilisateur',req.body)
-            //Ici tous les fonctions sur l'enregistrement d'un utilisateur
-            return res.send({status:true,message:"user supprimé."})
+    static async deleteUser(req,res){
+        try { 
+
+            let util_id = req.params.util_id
+            let user_id = req.query.user_id
+
+
+            await D.del('utilisateur',{util_id})
+
+            return res.send({status:true,message:"Utilisateur bien supprimé"})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -177,6 +182,10 @@ class Utilisateur{
                 user.util_mdp = await utils.hash(mng_pass.pass)
             }else{
                 delete user.util_mdp
+            }
+
+            if(!user.util_login || !user.util_label){
+                return res.send({status:false,message:"Certains champs sont vide"})
             }
             
             await D.updateWhere('utilisateur',user,{util_id:user.util_id})

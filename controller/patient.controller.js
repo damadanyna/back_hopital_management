@@ -68,7 +68,7 @@ class Patient{
             let c = (await D.exec_params('select * from encaissement where enc_pat_id = ?',[pat_id]))[0]
             if(c != undefined){
                 //Suppresison relation caisse en encserv
-                await D.del('enc_ser',{encserv_enc_id:c.enc_id})
+                await D.del('enc_serv',{encserv_enc_id:c.enc_id})
                 //suppresison de la ligne caisse
                 await D.del('encaissement',{enc_id:c.enc_id})
             }
@@ -116,8 +116,12 @@ class Patient{
         filters.page = (!filters.page )?1:parseInt(filters.page)
         filters.limit = (!filters.limit)?10000:parseInt(filters.limit)
         filters.sort_by = (!filters.sort_by)?_obj_pat[default_sort_by]:_obj_pat[filters.sort_by]
-        filters.search = (!filters.search)?'%':`%${filters.search}%`
+        // filters.search = (!filters.search)?'%':`%${filters.search}%`
 
+        //test d'utilisation de regexp
+        let msearch = filters.search.trim().split(' ').map(x => (x)?`${x}.*`:'')
+        msearch = (msearch)?`${msearch.join('')}|${msearch.reverse().join('')}`:''
+        msearch = (msearch)?msearch:'.*'
         try { 
             //A reserver recherche par nom_prenom
             // let reponse = await D.exec_params(`select * from patient order by ${filters.sort_by} limit ? offset ?`,[
@@ -125,7 +129,8 @@ class Patient{
             //     (filters.page-1)*filters.limit
             // ])
 
-            let reponse = await D.exec_params(`select * from patient where pat_nom_et_prenom like ? order by ${filters.sort_by} limit ?`,[filters.search,filters.limit])
+            let reponse = await D.exec_params(`select * from patient where pat_nom_et_prenom REGEXP ? order by ${filters.sort_by} limit ?`,
+            [msearch,filters.limit])
 
             //Liste total des patient
             let nb_total_patient = (await D.exec('select count(*) as nb from patient'))[0].nb
