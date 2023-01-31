@@ -49,7 +49,7 @@ class Article{
 
             //Détection de champs vide
             if(!article.art_code || !article.art_label){
-                console.log('hahah');
+                // console.log('hahah');
                 return res.send({status:false,message:"Certains champs sont vide"})
             }
 
