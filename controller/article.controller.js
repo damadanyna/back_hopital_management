@@ -78,6 +78,7 @@ class Article{
                 }
                 //insertion
                 await D.exec_params(sql,[datas])
+
             }
 
             return res.send({status:true,message:"Article bien enregistrer."})
@@ -101,7 +102,7 @@ class Article{
             //suppression ny relation tarif et article
             await D.exec_params('delete from tarif_service where tserv_service_id = ? and tserv_is_product = 1',art_id)
             //Ici tous les fonctions sur l'enregistrement d'un article
-            return res.send({status:true,message:"article supprimé."})
+            return res.send({status:true,message:"Article bien supprimé."})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

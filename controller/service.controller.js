@@ -71,7 +71,6 @@ class Service{
             let list_tarif = []
 
             //Eto ndray ny création ana relation entre service et tarif
-
             if(_data.service_parent_id){
                 list_tarif = await D.exec('select * from tarif')
                 if(list_tarif.length > 0){
@@ -84,15 +83,12 @@ class Service{
                     await D.exec_params(sql,[datas])
                 }
             }
-
             //Ici tous les fonctions sur l'enregistrement d'un service
             return res.send({status:true,message:"Service bien enregistrer.",list_tarif})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
-
-
     }
 
     static async delete(req,res){
@@ -100,15 +96,27 @@ class Service{
 
             let {service_id} = req.params
             //Tokony mbola hisy vérification hoe relié amina table hafa ve sa tsia
+
+            let s = (await D.exec_params('select * from service where service_id = ?',[service_id]))[0]
+            if(s && !s.service_parent_id){
+                //recherche des enfants de la service
+
+                let ch = await D.exec_params('select * from service where service_parent_id = ?',[service_id])
+
+                if(ch.length > 0){
+                    return res.send({status:false,message:"Le Service contient des services enfants qui doivent être supprimé avant"})
+                }
+            }
+
+            //-suppression
             await D.del('service',{service_id})
             //On supprimer les relations des services et les autres tables
             
 
             //Suppression an'ny relation service et tarif
-
-            await D.exec_params('delete form tarif_service where tserv_service_id = ? and tserv_is_product = 0',service_id)
+            await D.exec_params('delete from tarif_service where tserv_service_id = ? and tserv_is_product = 0',service_id)
             //Ici tous les fonctions sur l'enregistrement d'un service
-            return res.send({status:true,message:"service supprimé."})
+            return res.send({status:true,message:"Service bien supprimé."})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -156,13 +164,12 @@ class Service{
             let srvs = await D.exec_params(`select * from service where service_label like ? order by service_code asc`,[filters.search])
 
             //Récupération des tarifs de chaque service
-
             for (let i = 0; i < srvs.length; i++) {
                 const e = srvs[i];
                 if(e.service_parent_id){
                     e.tarifs = await D.exec_params(`select * from tarif_service 
                     left join tarif on tserv_tarif_id = tarif_id
-                    where tserv_service_id = ?`,e.service_id)
+                    where tserv_service_id = ? and tserv_is_product = 0`,e.service_id)
                 }
             }
 
