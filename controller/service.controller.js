@@ -272,8 +272,25 @@ class Service{
                 return res.send({status:false,message:'Prix non correct'})
             }
 
-            await D.exec_params(`update tarif_service set tserv_prix = ? where tserv_tarif_id = ? and tserv_service_id = ? and tserv_is_product =  ?`,
-            [prix,t.tserv_tarif_id,t.tserv_service_id,t.tserv_is_product])
+            //Recherche d'abord si le truc existe dans la base ou non
+            let tserv_test = await D.exec_params(`select * from tarif_service where tserv_tarif_id = ? and tserv_service_id = ? and tserv_is_product = ?`,
+            [t.tserv_tarif_id,t.tserv_service_id,t.tserv_is_product])
+
+            if(tserv_test.length > 0){
+                await D.exec_params(`update tarif_service set tserv_prix = ? where tserv_tarif_id = ? and tserv_service_id = ? and tserv_is_product =  ?`,
+                [prix,t.tserv_tarif_id,t.tserv_service_id,t.tserv_is_product])
+            }else{
+                //On crée le truc
+                await D.set('tarif_service',{
+                    tserv_service_id:t.tserv_service_id,
+                    tserv_is_product:t.tserv_is_product,
+                    tserv_tarif_id:t.tserv_tarif_id,
+                    tserv_prix:t.tserv_prix
+                })
+            }
+
+            // await D.exec_params(`update tarif_service set tserv_prix = ? where tserv_tarif_id = ? and tserv_service_id = ? and tserv_is_product =  ?`,
+            // [prix,t.tserv_tarif_id,t.tserv_service_id,t.tserv_is_product])
 
             return res.send({status:true})
         } catch (e) {

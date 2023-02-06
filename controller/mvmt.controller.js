@@ -22,6 +22,10 @@ class Mouvement{
         //calcul an'ny montant total izay hampidirina ao am mvmt
         let total_montant = 0,tmp = {}
         let c_tmp = 0
+
+        if(list_mart.length <= 0){
+            return res.send({status:false,message:"La liste des articles est vide"})
+        }
         for(let i = 0; i<list_mart.length;i++){
             tmp = list_mart[i]
             c_tmp = parseInt(tmp.mart_montant)
@@ -179,7 +183,7 @@ class Mouvement{
             let sql = `select *,(select count(*) from mvmt_art where mart_mvmt_id = mvmt_id) as nb_art from mvmt 
             left join depot on mvmt_depot_dest = depot_id
             left join fournisseur on mvmt_tiers = fourn_id
-            where mvmt_date = ? and mvmt_action = 'entre'`
+            where DATE(mvmt_date) = DATE(?) and mvmt_action = 'entre'`
 
             let list = await D.exec_params(sql,[date])
 
@@ -202,7 +206,7 @@ class Mouvement{
             left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
             left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
             left join departement on mvmt_tiers = dep_id
-            where mvmt_date = ? and mvmt_action = 'sortie'`
+            where DATE(mvmt_date) = DATE(?) and mvmt_action = 'sortie'`
 
             let list = await D.exec_params(sql,[date])
 

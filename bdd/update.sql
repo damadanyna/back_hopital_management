@@ -11,3 +11,9 @@ alter table encaissement add enc_is_hosp int null default 0;
 
 -- 15/12/22
 alter table encharge add encharge_printed int null default 0;
+
+
+-- 6/02/2023
+alter table article add art_unite_stk2 varchar(50) null;
+alter table article add art_conditionnement2 varchar(50) null;
+alter table article add art_nb_box int null;
