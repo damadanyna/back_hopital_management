@@ -50,8 +50,8 @@ class Service{
             //Eto alo création anle code service
             //Raha misy ilay service parent de récupérérna ny enfant-ny farany 
             let code ='',pre_code = 3
-            console.error(_data.service_parent_id)
-            if(_data.service_parent_id){
+            // console.error(_data.service_parent_id)
+            if(parseInt(_data.service_parent_id)){
                 let c = await D.exec_params(`select * from service where service_parent_id = ? order by service_id desc limit 1`,_data.service_parent_id)
                 if(c.length > 0){
                     c = c[0]
