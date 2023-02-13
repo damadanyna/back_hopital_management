@@ -67,6 +67,8 @@ class Service{
             }
 
             _data.service_code = code
+            _data.service_parent_id = null
+            
             let _serv = await D.set('service',_data)
 
             let list_tarif = []
