@@ -200,8 +200,8 @@ class Caisse{
         filters.limit = (!filters.limit)?100:parseInt(filters.limit)
 
         try {
-            let d = (new Date(filters.date)).toLocaleDateString('fr-CA')
-            let d2 = (new Date(filters.date2)).toLocaleDateString('fr-CA')
+            let d = new Date(filters.date)
+            let d2 = new Date(filters.date2)
             
 
             let pr = [d,d2]
@@ -214,7 +214,7 @@ class Caisse{
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
             left join departement on dep_id = enc_dep_id
-            where ${(filters.state != -1)?'enc_validate = ? and ':''} enc_is_hosp = 1 and date(${filters.date_by}) between ? and ?
+            where ${(filters.state != -1)?'enc_validate = ? and ':''} enc_is_hosp = 1 and date(${filters.date_by}) between date(?) and date(?)
             order by ${filters.date_by} desc
             `,pr)
 
@@ -325,7 +325,7 @@ class Caisse{
                 enc_is_pec:enc.enc_is_pec,
                 enc_montant:enc.enc_montant,
                 enc_total_avance:enc.enc_total_avance,
-                enc_paie_final:enc.enc_paie_final,
+                enc_paie_final:(enc.enc_paie_final)?new Date(enc.enc_paie_final):null,
                 enc_reste_paie:enc.enc_reste_paie
             }
 
