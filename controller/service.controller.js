@@ -51,7 +51,7 @@ class Service{
             //Raha misy ilay service parent de récupérérna ny enfant-ny farany 
             let code ='',pre_code = 3
             // console.error(_data.service_parent_id)
-            if(parseInt(_data.service_parent_id)){
+            if(parseInt(_data.service_parent_id) != -1){
                 let c = await D.exec_params(`select * from service where service_parent_id = ? order by service_id desc limit 1`,_data.service_parent_id)
                 if(c.length > 0){
                     c = c[0]
