@@ -141,6 +141,8 @@ class Mouvement{
                  //De avy eo ajout an'ilay ligne dans mvmt_art
                  el.mart_mvmt_id = _mvmt.insertId
                  await D.set('mvmt_art',el)
+
+                 //Eto mise à jour an'ilay détails de stock
             }
 
             //Vita a 😎😉

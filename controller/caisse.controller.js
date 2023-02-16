@@ -448,6 +448,11 @@ class Caisse{
                 }
             }
 
+            if(index_med == -1){
+                list_serv.push({service_code:'MED',service_label:'MEDICAMENTS'})
+                index_med = list_serv.length - 1
+            }
+
             //et juste pour les médicaments -- Insertion des montants total dans médicaments
             for (let i = 0; i < fact_med.length; i++) {
                 const e = fact_med[i]
