@@ -122,6 +122,9 @@ class Patient{
         let msearch = filters.search.trim().split(' ').map(x => (x)?`${x}.*`:'')
         msearch = (msearch)?`${msearch.join('')}|${msearch.reverse().join('')}`:''
         msearch = (msearch)?msearch:'.*'
+
+        console.log(msearch)
+
         try { 
             //A reserver recherche par nom_prenom
             // let reponse = await D.exec_params(`select * from patient order by ${filters.sort_by} limit ? offset ?`,[
@@ -129,7 +132,7 @@ class Patient{
             //     (filters.page-1)*filters.limit
             // ])
 
-            let reponse = await D.exec_params(`select * from patient where pat_nom_et_prenom REGEXP ? order by ${filters.sort_by} limit ?`,
+            let reponse = await D.exec_params(`select * from patient where pat_nom_et_prenom REGEXP (?) order by ${filters.sort_by} limit ?`,
             [msearch,filters.limit])
 
             //Liste total des patient
