@@ -124,6 +124,7 @@ class Patient{
         msearch = (msearch)?msearch:'.*'
 
         console.log(msearch)
+        if(msearch == '|') msearch = '%%'
 
         try { 
             //A reserver recherche par nom_prenom
@@ -132,7 +133,7 @@ class Patient{
             //     (filters.page-1)*filters.limit
             // ])
 
-            let reponse = await D.exec_params(`select * from patient where pat_nom_et_prenom REGEXP (?) order by ${filters.sort_by} limit ?`,
+            let reponse = await D.exec_params(`select * from patient where pat_nom_et_prenom ${ (msearch == '%%')?'like ?':'REGEXP (?)' } order by ${filters.sort_by} limit ?`,
             [msearch,filters.limit])
 
             //Liste total des patient
