@@ -207,6 +207,7 @@ router.post('/mvmt',require('../controller/mvmt.controller').register)
 router.get('/mvmt/utils-add',require('../controller/mvmt.controller').getUtilsAdd)
 router.get('/mvmts/entre',require('../controller/mvmt.controller').getEntre)
 router.get('/mvmts/sortie',require('../controller/mvmt.controller').getSortie)
+router.get('/mvmt/details/:mvmt_id',require('../controller/mvmt.controller').getDetails)
 
 //Resaka encaissement
 router.post('/encaissement',require('../controller/caisse.controller').encaissement)

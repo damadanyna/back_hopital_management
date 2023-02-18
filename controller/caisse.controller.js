@@ -63,6 +63,12 @@ class Caisse{
         enc.enc_date_entre = new Date(enc.enc_date_entre)
         enc.enc_date_entre.setHours((new Date()).getHours())
         enc.enc_date_entre.setMinutes((new Date()).getMinutes())
+
+        if(enc.enc_date_sortie){
+            enc.enc_date_sortie = new Date(enc.enc_date_sortie)
+            enc.enc_date_sortie.setHours((new Date()).getHours())
+            enc.enc_date_sortie.setMinutes((new Date()).getMinutes())
+        }
         //----------------------------
 
         if(!enc.enc_is_hosp){

@@ -139,10 +139,17 @@ class Mouvement{
                 delete el.mart_art_label
                 
                  //De avy eo ajout an'ilay ligne dans mvmt_art
-                 el.mart_mvmt_id = _mvmt.insertId
-                 await D.set('mvmt_art',el)
 
-                 //Eto mise à jour an'ilay détails de stock
+                 ////Eto mise à jour an'ilay détails de stock
+
+                let rest_stock = await D.exec_params(`select * from depot 
+                left join stock_article on depot_id = stk_depot_id 
+                where stk_art_id = ?`,[el.mart_art_id])
+
+                el.mart_det_stock = JSON.stringify(rest_stock)
+
+                el.mart_mvmt_id = _mvmt.insertId
+                await D.set('mvmt_art',el)
             }
 
             //Vita a 😎😉
@@ -178,16 +185,17 @@ class Mouvement{
 
     static async getEntre(req,res){
         try {
-            let {date} = req.query
+            let {date,date2} = req.query
 
             date = new Date(date)
+            date2 = new Date(date2)
             
             let sql = `select *,(select count(*) from mvmt_art where mart_mvmt_id = mvmt_id) as nb_art from mvmt 
             left join depot on mvmt_depot_dest = depot_id
             left join fournisseur on mvmt_tiers = fourn_id
-            where DATE(mvmt_date) = DATE(?) and mvmt_action = 'entre'`
+            where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'entre'`
 
-            let list = await D.exec_params(sql,[date])
+            let list = await D.exec_params(sql,[date2,date])
 
             return res.send({status:true,list})
         } catch (e) {
@@ -198,9 +206,10 @@ class Mouvement{
 
     static async getSortie(req,res){
         try {
-            let {date} = req.query
+            let {date,date2} = req.query
 
             date = new Date(date)
+            date2 = new Date(date2)
             
             let sql = `select *,(select count(*) from mvmt_art where mart_mvmt_id = mvmt_id) as nb_art,
             d_dest.depot_label as depot_dest,d_exp.depot_label as depot_exp
@@ -208,11 +217,54 @@ class Mouvement{
             left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
             left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
             left join departement on mvmt_tiers = dep_id
-            where DATE(mvmt_date) = DATE(?) and mvmt_action = 'sortie'`
+            where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'sortie'`
 
-            let list = await D.exec_params(sql,[date])
+            let list = await D.exec_params(sql,[date2,date])
 
             return res.send({status:true,list})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getDetails(req,res){
+        try {
+            let {mvmt_id} = req.params
+            let {action} = req.query
+
+            // console.log(mvmt_id,action);
+
+            //récupération du mouvement
+            let mvmt = {}
+            if(action == 'entre'){
+                mvmt = await D.exec_params(`select *,(select count(*) from mvmt_art where mart_mvmt_id = mvmt_id) as nb_art from mvmt 
+                left join depot on mvmt_depot_dest = depot_id
+                left join fournisseur on mvmt_tiers = fourn_id 
+                where mvmt_id = ? and mvmt_action = 'entre'`,[mvmt_id])
+
+                mvmt = mvmt[0]
+            }else if(action == 'sortie'){
+                mvmt = await D.exec_params(`select *,(select count(*) from mvmt_art where mart_mvmt_id = mvmt_id) as nb_art,
+                d_dest.depot_label as depot_dest,d_exp.depot_label as depot_exp
+                from mvmt 
+                left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
+                left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
+                left join departement on mvmt_tiers = dep_id
+                where mvmt_id = ?  and mvmt_action = 'sortie'`,[mvmt_id])
+
+                mvmt = mvmt[0]
+            }
+
+
+
+            mvmt.mart = await D.exec_params(`select * from mvmt_art 
+            left join article on art_id = mart_art_id
+            where mart_mvmt_id = ?`,[mvmt_id])
+            let depot = await D.exec('select * from depot')
+
+
+            return res.send({status:true,mvmt,depot})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

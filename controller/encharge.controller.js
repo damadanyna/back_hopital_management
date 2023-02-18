@@ -10,7 +10,7 @@ class Encharge{
             encharge_tarif_id:{front_name:'encharge_tarif_id',fac:true}, 
             encharge_seq:{front_name:'encharge_seq',fac:true}, 
             encharge_date_entre :{front_name:'encharge_date_entre',fac:true,format:(a)=> new Date(a)},
-            encharge_date_sortie :{front_name:'encharge_date_sortie',fac:true},
+            encharge_date_sortie :{front_name:'encharge_date_sortie',fac:true,format:(a)=> new Date(a)},
             encharge_ent_id:{front_name:'encharge_ent_id',fac:true }, 
             encharge_util_id:{front_name:'encharge_util_id',fac:true },
             encharge_ent_payeur:{front_name:'encharge_ent_payeur',fac:true },  

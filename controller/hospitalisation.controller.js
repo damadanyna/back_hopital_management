@@ -15,7 +15,7 @@ class Hospitalisation{
             hops_total_avancer:{front_name:'hops_total_avancer',fac:false ,format:(a)=>parseInt(a)},
             hops_rest_apayer:{front_name:'hops_rest_apayer',fac:false ,format:(a)=>parseInt(a)},
             hosp_date_entrer :{front_name:'hosp_date_entrer',fac:true,format:(a)=> new Date(a)},
-            hosp_date_sorti :{front_name:'hosp_date_sorti',fac:true,format:(a)=> new Date(a)},
+            hosp_date_sortie :{front_name:'hosp_date_sortie',fac:true,format:(a)=> new Date(a)},
             hosp_date_enreg :{front_name:'hosp_date_enreg',fac:true,format:()=> new Date()},
             
         };

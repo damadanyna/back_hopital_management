@@ -18,5 +18,5 @@ alter table article add art_unite_stk2 varchar(50) null;
 alter table article add art_conditionnement2 varchar(50) null;
 alter table article add art_nb_box int null;
 
--- 15/02/2023
-alter table mvmt add mvmt_det_stock text null;
+-- 18/02/2023
+alter table mvmt_art add mart_det_stock text null;

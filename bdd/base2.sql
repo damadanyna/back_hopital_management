@@ -294,6 +294,7 @@ create table if not exists mvmt_art (
     mart_prix_unit int null,
     mart_date_enreg datetime null default NOW(),
     mart_montant int null,
+    mart_det_stock text null,
     primary key (mart_id)
 )Engine=InnoDB;
 
