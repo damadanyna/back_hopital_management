@@ -158,9 +158,11 @@ class Article{
             
             let a_size = articles.length
 
-            //Boucle pour récupérer les informations sur 
+            //Boucle pour récupérer les informations sur le stock
             for (let i = 0; i < a_size; i++) {
-                articles[i]['g_stock'] = await D.exec_params(`select * from stock_article left join depot on depot_id = stk_depot_id where stk_art_id = ? `,articles[i].art_id) 
+                //articles[i]['g_stock'] = await D.exec_params(`select * from stock_article left join depot on depot_id = stk_depot_id where stk_art_id = ? `,articles[i].art_id) 
+                articles[i]['g_stock'] = await D.exec_params(`select * from depot 
+                left join stock_article on depot_id = stk_depot_id where stk_art_id = ? `,articles[i].art_id) 
             }
 
 
