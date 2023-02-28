@@ -20,3 +20,16 @@ alter table article add art_nb_box int null;
 
 -- 18/02/2023
 alter table mvmt_art add mart_det_stock text null;
+
+-- 25/02/2023
+alter table encaissement add enc_percent_tarif int null; -- tsy mahazo mihoatra ny 100
+-- Table versement -- Mila fafana ilay versement ao taloha
+create table if not exists versement(
+    vt_id int auto_increment not null,
+    vt_enc_id int null,
+    vt_det text null, -- en format JSON
+    vt_total int null,
+    vt_remise int null,
+    vt_date_enreg datetime null default NOW(),
+    primary key (vt_id)
+)Engine=InnoDB; 

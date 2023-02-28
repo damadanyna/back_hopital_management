@@ -147,18 +147,13 @@ create table if not exists hospitalisation(
 
 -- Table versement
 create table if not exists versement(
-    versmnt_id int auto_increment not null,  
-    versmnt_date_versement datetime null,
-    dep_id int not null, 
-    versmnt_font_caisse int null,
-    versmnt_recette_esp int null,
-    versmnt_recette_total int null,
-    versmnt_total_cheque int null,
-    versmnt_total_versement int null,  
-    versmnt_rembourser int null,
-    versmnt_date_enreg datetime null default NOW(),
-    versmnt_util_id int null,
-    primary key (versmnt_id)
+    vt_id int auto_increment not null,
+    vt_enc_id int null,
+    vt_det text null, -- en format JSON
+    vt_total int null,
+    vt_remise int null,
+    vt_date_enreg datetime null default NOW(),
+    primary key (vt_id)
 )Engine=InnoDB; 
  
 -- mardi 25 oct 2022
@@ -385,6 +380,7 @@ create table if not exists encaissement(
     enc_to_caisse int null default 1,
     enc_date_update datetime null,
     enc_paie_final datetime null,
+    enc_percent_tarif int null, -- tsy mahazo mihoatra ny 100%
     primary key (enc_id)
 )Engine=InnoDB; 
 

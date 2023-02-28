@@ -227,6 +227,10 @@ router.get('/encaissement/download',require('../controller/caisse.controller').d
 router.get('/encaissement/det/:enc_id',require('../controller/caisse.controller').getDetEncaissement)
 router.delete('/encaissement/:enc_id',require('../controller/caisse.controller').delEncaissement)
 
+//pour les versement
+router.get('/encaissement/vt/:enc_id',require('../controller/caisse.controller').getVersementByEnc)
+router.post('/encaissement/vt/:enc_id',require('../controller/caisse.controller').postVersement)
+
 
 //Routes pour le module dentisterie
 // -------------- DENTISTERIE  -----------------

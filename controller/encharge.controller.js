@@ -586,6 +586,13 @@ class Encharge{
                 montant_total_soc += serv[i].montant_soc
             }
 
+            if(index_med == -1){
+                serv.push({service_code:'MED',service_label:'MEDICAMENTS',montant_pat:0,montant_soc:0})
+                index_med = serv.length - 1
+            }
+
+            console.log(index_med);
+
             //Eto ny momba ny médicament
             for (let i = 0; i < fact_med.length; i++) {
                 const fs = fact_med[i]; 

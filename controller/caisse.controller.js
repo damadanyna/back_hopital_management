@@ -22,6 +22,7 @@ let _prep_enc_data = {
     enc_result_final:{front_name:'enc_result_final',fac:true},
     enc_reste_paie:{front_name:'enc_reste_paie',fac:true},
     enc_to_caisse:{front_name:'enc_to_caisse',fac:true},
+    enc_percent_tarif:{front_name:'enc_percent_tarif',fac:true}
     
 }
 let _prep_key = Object.keys(_prep_enc_data)
@@ -128,6 +129,7 @@ class Caisse{
             left join patient on pat_id = enc_pat_id
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
+            left join versement on vt_enc_id = enc_id
             where enc_to_caisse = 1 and date(enc_date) between ? and ?
             order by enc_date desc
             `,[d,d2])
@@ -177,6 +179,7 @@ class Caisse{
             left join patient on pat_id = enc_pat_id
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
+            left join versement on vt_enc_id = enc_id
             left join departement on dep_id = enc_dep_id
             where enc_to_caisse = 1 and date(enc_date) between ? and ? 
             ${ (filters.dep_id != -1)?'and enc_dep_id = ?':'' }
@@ -189,6 +192,13 @@ class Caisse{
             ${ (filters.dep_id != -1)?'and enc_dep_id = ?':'' }
             ${ (filters.search)?`and ${filters.search_by} like ?`:'' }
             `,w))[0].total
+
+            total_montant = 0
+            for (let i = 0; i < list_enc.length; i++) {
+                const e = list_enc[i];
+                total_montant += (e.enc_percent_tarif && e.enc_percent_tarif != 100)?(parseInt(e.enc_montant) * e.enc_percent_tarif / 100):parseInt(e.enc_montant)
+            }
+
             return res.send({status:true,list_enc,list_dep,total_montant})
         } catch (e) {
             console.error(e)
@@ -409,6 +419,7 @@ class Caisse{
 
             await D.del('enc_serv',{encserv_enc_id:enc_id})
             await D.del('encaissement',{enc_id})
+            await D.del('versement',{vt_enc_id:enc_id})
 
             return res.send({status:true})
         } catch (e) {
@@ -528,6 +539,50 @@ class Caisse{
             let list_serv = [...fact_serv,...fact_med]
 
             return res.send({status:true,list_serv})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getVersementByEnc(req,res){
+        try {
+            let {enc_id} = req.params
+
+            let vt = await D.exec_params('select * from versement where vt_enc_id = ?',[enc_id])
+
+            vt = (vt.length == 0)?undefined:vt[0]
+
+            return res.send({status:true,vt})
+
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async postVersement(req,res){
+        try {
+            let {enc_id} = req.params
+
+            let {vt} = req.body
+
+            if(vt.vt_id){
+                vt = {
+                    vt_id:vt.vt_id,
+                    vt_det:vt.vt_det,
+                    vt_total:vt.vt_total,
+                    vt_remise:vt.vt_remise
+                }
+                await D.updateWhere('versement',vt,{vt_id:vt.vt_id})
+            }else{
+                vt.vt_enc_id = enc_id
+                await D.set('versement',vt)
+            }
+            return res.send({status:true})
+
+
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -712,10 +767,10 @@ async function createFactPDF(fact,list_serv,mode){
     let t_mode = 'Paiement:'
     let t_avance = 'Avance:'
     let t_paiement_final = (fact.enc_to_caisse)?'Paiement final:':'Reste à payer:'
-    let t_somme_m = NumberToLetter(parseInt(fact.enc_montant).toString())
+    let t_somme_m = NumberToLetter((fact.enc_percent_tarif)?(fact.enc_percent_tarif * parseInt(fact.enc_montant) / 100):parseInt(fact.enc_montant).toString()) 
     let t_avance_s = (fact.enc_is_hosp)?parseInt(fact.enc_total_avance).toLocaleString('fr-CA'):''
     let t_paiement_final_s = (fact.enc_is_hosp)?(parseInt(fact.enc_reste_paie)).toLocaleString('fr-CA'):''
-    t_somme_m = t_somme_m.charAt(0).toUpperCase() + t_somme_m.slice(1) + ' Ariary'
+    t_somme_m = t_somme_m.charAt(0).toUpperCase() + t_somme_m.slice(1) + ' Ariary' + ((fact.enc_percent_tarif && fact.enc_percent_tarif != 100)?`  (${fact.enc_percent_tarif})%`:'')
 
     //-------------
     let t_stat = 'Stat n ° 85113 12 200 60 00614'
@@ -805,7 +860,7 @@ async function createFactPDF(fact,list_serv,mode){
     }
 
     _datas.push({
-        desc:'TOTAL',
+        desc:'TOTAL ' + ((fact.enc_percent_tarif && fact.enc_percent_tarif != 100)?` : ${ separateNumber(fact.enc_percent_tarif * parseInt(fact.enc_montant) / 100) } (${fact.enc_percent_tarif})%`:''),
         montant:separateNumber(fact.enc_montant),
     })
 
