@@ -91,6 +91,7 @@ router.put('/detail',require('../controller/detail.controller').update);
 router.post('/tarifs',require('../controller/tarif.controller').register);
 router.delete('/tarif/:tarif_id',require('../controller/tarif.controller').delete);
 router.get('/tarifs',require('../controller/tarif.controller').getList);
+router.get('/tarif/no-percent',require('../controller/tarif.controller').getListNoPercent)
 router.put('/tarif',require('../controller/tarif.controller').update);
 
 //Gestion des departement
@@ -130,6 +131,10 @@ router.put('/categorie_article',require('../controller/categorie_article.control
 router.get('/articles/search',require('../controller/article.controller').searchByLabel)
 router.get('/articles',require('../controller/article.controller').getList);
 router.put('/article',require('../controller/article.controller').update);
+
+//Impression des listes des articles
+router.get('/article/print/all',require('../controller/article.controller').printList)
+router.get('/article/download',require('../controller/article.controller').downloadArticleList)
 
 //Article avec tarif
 // router.get('/article/tarif',require('../controller/article.controller').getArtWithTarif);
@@ -176,6 +181,7 @@ router.delete('/consultation/:cons_id',require('../controller/cons.controller').
 router.get('/consultation',require('../controller/cons.controller').getList);
 router.put('/consultation',require('../controller/cons.controller').update);
 router.get('/consultation/:date',require('../controller/cons.controller').get_date_to);
+
 
 
 //Gestion des facture
@@ -228,13 +234,17 @@ router.get('/encaissement/det/:enc_id',require('../controller/caisse.controller'
 router.delete('/encaissement/:enc_id',require('../controller/caisse.controller').delEncaissement)
 
 //pour les versement
-router.get('/encaissement/vt/:enc_id',require('../controller/caisse.controller').getVersementByEnc)
-router.post('/encaissement/vt/:enc_id',require('../controller/caisse.controller').postVersement)
+router.get('/encaissement/vt',require('../controller/caisse.controller').getVersement)
+router.post('/encaissement/vt',require('../controller/caisse.controller').postVersement)
 
 
 //Routes pour le module dentisterie
 // -------------- DENTISTERIE  -----------------
 router.get('/dt/patients',require('../controller/dt-patient.controller').getList)
+router.post('/dt/patient',require('../controller/dt-patient.controller').register)
+router.delete('/dt/patient/:pat_id',require('../controller/dt-patient.controller').delete)
+router.put('/dt/patient',require('../controller/dt-patient.controller').update)
+
 
 
 //Gestion de RDV

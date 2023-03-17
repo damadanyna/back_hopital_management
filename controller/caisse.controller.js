@@ -129,7 +129,6 @@ class Caisse{
             left join patient on pat_id = enc_pat_id
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
-            left join versement on vt_enc_id = enc_id
             where enc_to_caisse = 1 and date(enc_date) between ? and ?
             order by enc_date desc
             `,[d,d2])
@@ -174,12 +173,10 @@ class Caisse{
                 w.push(`%${filters.search}%`)
             }
 
-
             let list_enc = await D.exec_params(`select * from encaissement
             left join patient on pat_id = enc_pat_id
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
-            left join versement on vt_enc_id = enc_id
             left join departement on dep_id = enc_dep_id
             where enc_to_caisse = 1 and date(enc_date) between ? and ? 
             ${ (filters.dep_id != -1)?'and enc_dep_id = ?':'' }
@@ -419,7 +416,7 @@ class Caisse{
 
             await D.del('enc_serv',{encserv_enc_id:enc_id})
             await D.del('encaissement',{enc_id})
-            await D.del('versement',{vt_enc_id:enc_id})
+            // await D.del('versement',{vt_enc_id:enc_id})
 
             return res.send({status:true})
         } catch (e) {
@@ -562,26 +559,74 @@ class Caisse{
         }
     }
 
+    static async getVersement(req,res){
+        try {
+            let {date_verse} = req.query
+            date_verse = new Date(date_verse)
+            date_verse.setHours(8)
+            date_verse.setMinutes(0)
+            date_verse.setSeconds(0)
+
+            //La date suivante
+            let date_verse1 = new Date(date_verse)
+            date_verse1.setDate(date_verse1.getDate() + 1)
+            date_verse1.setHours(8)
+            date_verse1.setMinutes(0)
+            date_verse1.setSeconds(0)
+
+            // console.log(date_verse,date_verse1)
+
+            //Ici on va chercher les encaissements entre les 2 dates
+            let enc_list = await D.exec_params(`select * from encaissement
+
+            where enc_date_validation between ? and ?`,[date_verse,date_verse1])
+
+            //Préparation de la récupération de la liste des encserv
+
+            let ids_enc = enc_list.map( x => parseInt(x.enc_id) )
+            //Récupération deds encservs avec l'idée de l'encaissement
+            //Encserv pour les services 
+
+            //Encserv pour les produits
+
+
+            //On va faire d'abord la somme 
+
+            let somme_total = 0, somme_chq = 0, somme_esp = 0
+            for (let i = 0; i < enc_list.length; i++) {
+                const e = enc_list[i];
+
+                if(e.enc_mode_paiement == 'chq'){
+                    somme_chq += parseInt(e.enc_montant)
+                }else if(e.enc_mode_paiement == 'esp'){
+                    somme_esp += parseInt(e.enc_montant)
+                }
+                somme_total += parseInt(e.enc_montant)
+            }
+
+
+            let vt = await D.exec_params(`select * from versement where date(vt_date) = date(?)`,[date_verse])
+
+            vt = (vt.length > 0)?vt[0]:false
+            return res.send({status:true,vt,enc_list,somme_total,somme_chq,somme_esp})
+
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
     static async postVersement(req,res){
         try {
-            let {enc_id} = req.params
+            let {vt,date_verse,ids_enc} = req.body
 
-            let {vt} = req.body
+            vt.vt_date = new Date(date_verse)
+            const vr = await D.set('versement',vt)
 
-            if(vt.vt_id){
-                vt = {
-                    vt_id:vt.vt_id,
-                    vt_det:vt.vt_det,
-                    vt_total:vt.vt_total,
-                    vt_remise:vt.vt_remise
-                }
-                await D.updateWhere('versement',vt,{vt_id:vt.vt_id})
-            }else{
-                vt.vt_enc_id = enc_id
-                await D.set('versement',vt)
-            }
+            //Modification des encaissements comme versé
+            await D.exec_params(`update encaissement set enc_versement = ? where enc_id in (?)`,[vr.insertId,ids_enc])
             return res.send({status:true})
-
 
         } catch (e) {
             console.error(e)

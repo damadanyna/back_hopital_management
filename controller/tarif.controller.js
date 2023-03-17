@@ -6,6 +6,8 @@ class Tarif{
         let _d= req.body; 
         let tarif_data={
             tarif_label:{front_name:'tarif_label',fac:false}, 
+            tarif_percent:{front_name:'tarif_percent',fac:true}, 
+            tarif_link_id:{front_name:'tarif_link_id',fac:true}, 
             tarif_date_enreg :{front_name:'tarif_date_enreg',fac:true,format:()=> new Date()},
         };
 
@@ -41,30 +43,72 @@ class Tarif{
             //l'objet tarif est rempli maintenant
             // on l'insert dans la base de donnée
 
-            let _tarif = await D.set('tarif',_data)
+            // console.log(_d)
+            // console.log(_data)
 
-            //Eto ny insertion ny relation entre service sy tarifs
-            let list_service = await D.exec('select * from service where service_parent_id is not null')
-            let datas = []
-
-            if(list_service.length > 0){
-                let sql = `insert into tarif_service (tserv_tarif_id,tserv_service_id,tserv_prix) values ?;`
-                for (let i = 0; i < list_service.length; i++) {
-                    datas.push([_tarif.insertId,list_service[i].service_id,0])
-                }
-
-                await D.exec_params(sql,[datas])
+            if(!_d.tarif_percent || ! _d.tarif_link_id){
+                _data.tarif_percent = null
+                _data.tarif_link_id = null
             }
 
-            //Eto ny insertion entre produits (médicaments) sy tarif
-            datas = []
-            let list_med = await D.exec('select * from article')
-            if(list_med.length > 0){
-                let sql = `insert into tarif_service (tserv_tarif_id,tserv_service_id,tserv_prix,tserv_is_product) values ?;`
-                for (let i = 0; i < list_med.length; i++) {
-                    datas.push([_tarif.insertId,list_med[i].art_id,0,1])
+            let _tarif = await D.set('tarif',_data)
+
+            if(_d.tarif_link_id == null){
+                //Eto ny insertion ny relation entre service sy tarifs
+                let list_service = await D.exec('select * from service where service_parent_id is not null')
+                let datas = []
+
+                if(list_service.length > 0){
+                    let sql = `insert into tarif_service (tserv_tarif_id,tserv_service_id,tserv_prix) values ?;`
+                    for (let i = 0; i < list_service.length; i++) {
+                        datas.push([_tarif.insertId,list_service[i].service_id,0])
+                    }
+
+                    await D.exec_params(sql,[datas])
                 }
-                await D.exec_params(sql,[datas])
+
+                //Eto ny insertion entre produits (médicaments) sy tarif
+                datas = []
+                let list_med = await D.exec('select * from article')
+                if(list_med.length > 0){
+                    let sql = `insert into tarif_service (tserv_tarif_id,tserv_service_id,tserv_prix,tserv_is_product) values ?;`
+                    for (let i = 0; i < list_med.length; i++) {
+                        datas.push([_tarif.insertId,list_med[i].art_id,0,1])
+                    }
+                    await D.exec_params(sql,[datas])
+                }
+            }else{
+
+
+                //Pour les services alony
+                let list_serv = await D.exec_params(`select * from tarif_service where tserv_tarif_id = ? and tserv_is_product = 0`,[_d.tarif_link_id])
+                let dt = []
+
+                // console.log(list_serv)
+
+                if(list_serv.length > 0){
+                    let sql = `insert into tarif_service (tserv_tarif_id,tserv_service_id,tserv_prix,tserv_is_product) values ?;`
+
+                    for (let i = 0; i < list_serv.length; i++) {
+                        const e = list_serv[i];
+                        dt.push([_tarif.insertId,e.tserv_service_id, parseInt(_d.tarif_percent) * parseInt(e.tserv_prix) /100 ,0])
+                    }
+
+                    await D.exec_params(sql,[dt])
+                }
+
+                //Pour les médicaments
+                let list_med = await D.exec_params(`select * from tarif_service where tserv_tarif_id = ? and tserv_is_product = 1`,[_d.tarif_link_id]) 
+                dt = []
+                if(list_med.length > 0){
+                    let sql = `insert into tarif_service (tserv_tarif_id,tserv_service_id,tserv_prix,tserv_is_product) values ?;`
+
+                    for (let i = 0; i < list_med.length; i++) {
+                        const e = list_med[i];
+                        dt.push([_tarif.insertId,e.tserv_service_id, parseInt(_d.tarif_percent) * parseInt(e.tserv_prix) /100 ,1])
+                    }
+                    await D.exec_params(sql,[dt])
+                }
             }
 
 
@@ -86,6 +130,8 @@ class Tarif{
             //Suppression anle relation entre tarif_service sy tarif
             await D.del('tarif_service',{tserv_tarif_id:tarif_id})
 
+            //Modification de tous les tarifs avec un pourcentage du tarif
+            await D.exec_params(`update set tarif_percent = null, tarif_link_id = null where tarif_link_id = ?`,[tarif_id])
 
             //Ici tous les fonctions sur l'enregistrement d'un tarif
             return res.send({status:true,message:"tarif supprimé."})
@@ -121,6 +167,17 @@ class Tarif{
             let nb_total_tarif = (await D.exec('select count(*) as nb from tarif'))[0].nb
 
             return res.send({status:true,reponse,nb_total_tarif})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getListNoPercent(req,res){
+        try {
+            let tarifs = await D.exec_params('select * from tarif where tarif_percent is null')
+
+            res.send({status:true,tarifs})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

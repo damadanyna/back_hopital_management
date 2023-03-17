@@ -48,7 +48,7 @@ class Patient{
             //l'objet patient est rempli maintenant
             // on l'insert dans la base de donnée
 
-            await D.set('patient',_data)
+            await D.set('patient_dt',_data)
             //Ici tous les fonctions sur l'enregistrement d'un patient
             return res.send({status:true,message:"patient bien enregistrer."})
         } catch (e) {
@@ -65,35 +65,37 @@ class Patient{
 
             //suppresion de l'insertion de l'utilisateur dans caisse
             //Récupération de la caisse alony
-            let c = (await D.exec_params('select * from encaissement where enc_pat_id = ?',[pat_id]))[0]
-            if(c != undefined){
-                //Suppresison relation caisse en encserv
-                await D.del('enc_ser',{encserv_enc_id:c.enc_id})
-                //suppresison de la ligne caisse
-                await D.del('encaissement',{enc_id:c.enc_id})
-            }
+            // let c = (await D.exec_params('select * from encaissement where enc_pat_id = ?',[pat_id]))[0]
+            // if(c != undefined){
+            //     //Suppresison relation caisse en encserv
+            //     await D.del('enc_ser',{encserv_enc_id:c.enc_id})
+            //     //suppresison de la ligne caisse
+            //     await D.del('encaissement',{enc_id:c.enc_id})
+            // }
 
-            //atao tahaka an'io ko ny prise en charge
-            let pec = (await D.exec_params('select * from encharge where encharge_pat_id = ?',[pat_id]))[0]
-            if(pec != undefined){
-                //Suppresison relation caisse en encserv
-                await D.del('encharge',{encharge_id:pec.encharge_id})
-                //Récupération facture
-                let f = (await D.exec_params('select * from facture where fact_encharge_id = ?',[pec.encharge_id]))[0]
-                await D.del('fact_service',{fserv_fact_id:f.fact_id})
-                //Suppression facture
-                await D.del('facture',{fact_id:f.fact_id})
-            }
+            // //atao tahaka an'io ko ny prise en charge
+            // let pec = (await D.exec_params('select * from encharge where encharge_pat_id = ?',[pat_id]))[0]
+            // if(pec != undefined){
+            //     //Suppresison relation caisse en encserv
+            //     await D.del('encharge',{encharge_id:pec.encharge_id})
+            //     //Récupération facture
+            //     let f = (await D.exec_params('select * from facture where fact_encharge_id = ?',[pec.encharge_id]))[0]
+            //     await D.del('fact_service',{fserv_fact_id:f.fact_id})
+            //     //Suppression facture
+            //     await D.del('facture',{fact_id:f.fact_id})
+            // }
 
-            //Mbola misy consulaltion
-            let cons = (await D.exec_params('select * from consultation where cons_pat_id = ?',[pat_id]))[0]
-            if(cons != undefined){
-                await D.del('consultation',{cons_id:cons.cons_id})
-            }
+            // //Mbola misy consulaltion
+            // let cons = (await D.exec_params('select * from consultation where cons_pat_id = ?',[pat_id]))[0]
+            // if(cons != undefined){
+            //     await D.del('consultation',{cons_id:cons.cons_id})
+            // }
+
+
             //zay vao vita ny suppresion ana Patient
 
             //Suppression du patient dans la grande liste
-            await D.del('patient',{pat_id})
+            await D.del('patient_dt',{pat_id})
             //Ici tous les fonctions sur l'enregistrement d'un patient
             return res.send({status:true,message:"patient supprimé."})
         } catch (e) {
@@ -143,7 +145,7 @@ class Patient{
         delete p.pat_date_enreg
         p.pat_date_naiss = (p.pat_date_naiss)?new Date(p.pat_date_naiss):null
         try {
-            await D.updateWhere('patient',p,{pat_id:p.pat_id})
+            await D.updateWhere('patient_dt',p,{pat_id:p.pat_id})
                 //Ici tous les fonctions sur l'enregistrement d'un patient
             return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {

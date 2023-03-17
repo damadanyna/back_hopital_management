@@ -1,4 +1,6 @@
 const { updateWhere } = require('../models/data');
+let PDFDocument = require("pdfkit-table");
+let fs = require('fs')
 let D = require('../models/data')
 
 class Article{
@@ -239,6 +241,287 @@ class Article{
             where art_label like ? ${(q.id_not_in)?'and art_id not in (?)':''}`,[`%${q.search}%`,q.id_not_in])
 
             return res.send({status:true,articles})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async printList(req,res){
+        try {
+
+
+            //Récupération des données à imprimer
+            let articles = await D.exec_params(`select * from article`)
+            
+            let a_size = articles.length
+
+            //Boucle pour récupérer les informations sur le stock
+            for (let i = 0; i < a_size; i++) {
+                //articles[i]['g_stock'] = await D.exec_params(`select * from stock_article left join depot on depot_id = stk_depot_id where stk_art_id = ? `,articles[i].art_id) 
+                articles[i]['g_stock'] = await D.exec_params(`select * from depot 
+                left join stock_article on depot_id = stk_depot_id where stk_art_id = ? `,articles[i].art_id) 
+            }
+
+            let list_depot = await D.exec('select * from depot')
+
+
+
+            let year_cur = new Date().getFullYear()
+            const separateNumber = (n)=>{
+                return (n)?n.toLocaleString('fr-CA'):''
+            }
+
+
+            //Les options du PDF
+            //Création de pdf amzay e, 
+            let opt = {
+                margin: 15, size: 'A4' ,layout:'landscape'
+            }   
+            let doc = new PDFDocument(opt)
+
+            //les fonts
+            doc.registerFont('fira', 'fonts/fira.ttf');
+            doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+            doc.font("fira")
+
+
+
+            //Ecriture du PDF
+            doc.pipe(fs.createWriteStream(`./files/article.pdf`))
+
+            //les marges et le truc en bas
+            //______________________________________
+
+            let bottom = doc.page.margins.bottom;
+            doc.page.margins.bottom = 0;
+
+            doc.fontSize(8)
+
+            doc.text(
+                `Hôpital Andranomadio ${year_cur}`, 
+                0.5 * (doc.page.width - 300),
+                doc.page.height - 20,
+                {
+                    width: 300,
+                    align: 'center',
+                    lineBreak: false,
+                })
+
+            // Reset text writer position
+            doc.text('', 15, 15);
+            doc.page.margins.bottom = bottom;
+            doc.on('pageAdded', () => {
+                let bottom = doc.page.margins.bottom;
+                doc.page.margins.bottom = 0;
+            
+                doc.text(
+                    `Hôpital Andranomadio ${year_cur}`, 
+                    0.5 * (doc.page.width - 300),
+                    doc.page.height - 20,
+                    {
+                        width: 300,
+                        align: 'center',
+                        lineBreak: false,
+                    })
+            
+                // Reset text writer position
+                doc.text('', 50, 50);
+                doc.page.margins.bottom = bottom;
+            })
+            //-----------------___________________---------------
+
+            //Définition des tailles
+            let margin = 25
+            
+
+            //Insertion ana tableau amzay
+            let _head = [
+                { label:"code", property: 'art_code',renderer: null ,width:50},
+                { label:"Désignation", property: 'art_label', renderer: null,align: "left" ,headerAlign:"center" ,width:200},
+                { label:"Unité", property: 'art_unite_stk', renderer: null,align: "left" ,headerAlign:"center" ,width:70},
+                { label:"Conditionnement", property: 'art_conditionnement', renderer: null,align: "right" ,headerAlign:"center" ,width:100},
+                { label:"Nb boîte", property: 'art_nb_box', renderer: null,align: "right" ,headerAlign:"center" ,width:50},
+                { label:"Stock Total", property: 'stock_total', renderer: null,align: "right" ,headerAlign:"center" ,width:100},
+                { label:list_depot[0].depot_label, property: 'depot_1', renderer: null,align: "right" ,headerAlign:"center" ,width:100},
+                { label:list_depot[1].depot_label, property: `depot_2`, renderer: null,align: "right" ,headerAlign:"center" ,width:100},
+            ]
+
+            //les datas
+            let _datas = [],cur_d = {}
+
+            function getStockTotal(g_stock){
+                if(g_stock.length <= 0) return 0
+
+                let s = 0
+                //Calcul kely
+                for (let i = 0; i < list_depot.length; i++) {
+                    const d = list_depot[i];
+                    for (let j = 0; j < g_stock.length; j++) {
+                        const st = g_stock[j];
+                        if(st.depot_id == d.depot_id){
+                            s += parseInt(st.stk_actuel)
+                            break
+                        }
+                    }
+                }
+
+                return s
+            }
+
+            function getDepotStock(g_stock,dp_id){
+                if(g_stock.length <= 0) return 0
+
+                for (let j = 0; j < g_stock.length; j++) {
+                    const st = g_stock[j];
+                    if(st.depot_id == dp_id){
+                        return parseInt(st.stk_actuel)
+                        
+                    }
+                }
+
+                return 0
+            }
+
+            //Boucle sur le facture
+            for (let i = 0; i < articles.length; i++) {
+                const e = articles[i];
+                _datas.push({
+                    art_code: e.art_code,
+                    art_label:e.art_label,
+                    art_unite_stk:(e.art_unite_stk)?e.art_unite_stk:'-',
+                    art_conditionnement:(e.art_conditionnement)?e.art_conditionnement:'-',
+                    art_nb_box:(e.art_nb_box)?e.art_nb_box:'-',
+                    stock_total:getStockTotal(e.g_stock).toLocaleString('fr-CA'),
+                    depot_1:getDepotStock(e.g_stock,list_depot[0].depot_id).toLocaleString('fr-CA'),
+                    depot_2:getDepotStock(e.g_stock,list_depot[1].depot_id).toLocaleString('fr-CA'),
+                })
+            }
+
+            //Insertion des écritures
+            doc.font('fira')
+            doc.fontSize(10)
+            doc.text('INVENTAIRE')
+            doc.text(`Le ${new Date().toLocaleDateString()}`)
+
+            doc.moveDown()
+
+
+            // Table du truc
+            const table = {
+                // complex headers work with ROWS and DATAS  
+                headers: _head,
+                // complex content
+                datas:_datas,
+                options:{
+                    padding:5,
+                    align:'center',
+                    divider: {
+                        header: { disabled: false, width: 1, opacity: 0.5 },
+                        horizontal: { disabled: false, width: 0.5, opacity: 0 },
+                        vertical: { disabled: false, width: 0.5, opacity: 0.5 },
+                    },
+                    prepareHeader: () => {
+                        doc.font("fira_bold").fontSize(8)
+                        doc.fillAndStroke('#575a61')
+                    },
+                    prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
+                        doc.font("fira").fontSize(8)
+                        doc.fillAndStroke('#47494d')
+                        //#47494d
+
+                        const {x, y, width, height} = rectCell;
+                        let head_h = 17
+
+                        // first line 
+                        if(indexColumn === 0){
+                            doc
+                            .lineWidth(.5)
+                            .moveTo(x, y)
+                            .lineTo(x, y + height+1)
+                            .stroke();
+                        }
+
+                        if(indexRow == 0 && indexColumn === 0){
+                            doc
+                            .lineWidth(.5)
+                            .moveTo(x, y)
+                            .lineTo(x, y - head_h)
+                            .stroke(); 
+
+                            doc
+                            .lineWidth(.5)
+                            .moveTo(x+width, y)
+                            .lineTo(x+width, y - head_h)
+                            .stroke(); 
+
+                            doc
+                            .lineWidth(.5)
+                            .moveTo(x, y-head_h)
+                            .lineTo(x+width, y - head_h)
+                            .stroke();
+
+
+                        }else if(indexRow == 0){
+                            doc
+                            .lineWidth(.5)
+                            .moveTo(x+width, y)
+                            .lineTo(x+width, y - head_h)
+                            .stroke(); 
+
+                            doc
+                            .lineWidth(.5)
+                            .moveTo(x, y-head_h)
+                            .lineTo(x+width, y - head_h)
+                            .stroke();
+                        }
+
+                        doc
+                        .lineWidth(.5)
+                        .moveTo(x + width, y)
+                        .lineTo(x + width, y + height+1)
+                        .stroke();
+
+                        if(indexRow == _datas.length-1){
+                            doc
+                            .lineWidth(.5)
+                            .moveTo(x, y)
+                            .lineTo(x + width, y)
+                            .stroke();
+
+                            doc
+                            .lineWidth(.5)
+                            .moveTo(x, y+height)
+                            .lineTo(x + width, y+height)
+                            .stroke();
+
+                            doc.font("fira_bold")
+                        }
+                        // doc.fontSize(10).fillColor('#292929');
+                    },
+                },
+                // simple content (works fine!)
+            }
+
+            await doc.table(table, { /* options */ });
+
+            //Famaranana an'ilay document
+            doc.end();
+
+            return res.send({status:true})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async downloadArticleList(req,res){
+        try {
+            let data = fs.readFileSync(`./files/article.pdf`)
+            res.contentType("application/pdf")
+            // console.log(data)
+            // res.download(`./facture.pdf`)
+            res.send(data);
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

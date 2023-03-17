@@ -110,6 +110,8 @@ create table if not exists detail(
 create table if not exists tarif(
     tarif_id int auto_increment not null, 
     tarif_label varchar(50) null,
+    tarif_percent int null,
+    tarif_link_id int null,
     tarif_date_enreg datetime null default NOW(),
     tarif_util_id int null,
     primary key (tarif_id)
@@ -381,6 +383,7 @@ create table if not exists encaissement(
     enc_date_update datetime null,
     enc_paie_final datetime null,
     enc_percent_tarif int null, -- tsy mahazo mihoatra ny 100%
+    enc_versement int null,
     primary key (enc_id)
 )Engine=InnoDB; 
 

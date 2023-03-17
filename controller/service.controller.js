@@ -285,6 +285,8 @@ class Service{
             if(tserv_test.length > 0){
                 await D.exec_params(`update tarif_service set tserv_prix = ? where tserv_tarif_id = ? and tserv_service_id = ? and tserv_is_product =  ?`,
                 [prix,t.tserv_tarif_id,t.tserv_service_id,t.tserv_is_product])
+
+
             }else{
                 //On crée le truc
                 await D.set('tarif_service',{
@@ -293,6 +295,9 @@ class Service{
                     tserv_tarif_id:t.tserv_tarif_id,
                     tserv_prix:t.tserv_prix
                 })
+
+
+                
             }
 
             // await D.exec_params(`update tarif_service set tserv_prix = ? where tserv_tarif_id = ? and tserv_service_id = ? and tserv_is_product =  ?`,

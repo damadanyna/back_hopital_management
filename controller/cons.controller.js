@@ -98,15 +98,30 @@ class Consutlation{
             let reponse = await D.exec_params(`select *,TIME(cons_date_enreg) as cons_time from consultation 
             left join patient on pat_id = cons_pat_id
             left join entreprise on ent_id = cons_ent_id
+            where date(cons_date_enreg) = date(?)
             order by ${filters.sort_by} desc limit ? offset ?`,[
+                new Date(filters.date),
                 filters.limit,
                 (filters.page-1)*filters.limit
             ])
 
+            let nb_total_calc = 0,nb_total_esp = 0
+
+            for (let i = 0; i < reponse.length; i++) {
+                const e = reponse[i];
+                if(e.cons_montant){
+                    nb_total_esp += parseInt(e.cons_montant)
+                }
+                if(e.cons_montant_calc){
+                    nb_total_calc += parseInt(e.cons_montant_calc)
+                }
+            }
+
             //Liste total des consultation
             let nb_total_consultation = (await D.exec('select count(*) as nb from consultation'))[0].nb
 
-            return res.send({status:true,reponse,nb_total_consultation})
+            return res.send({status:true,reponse,nb_total_consultation,nb_total_calc,nb_total_esp})
+            
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
