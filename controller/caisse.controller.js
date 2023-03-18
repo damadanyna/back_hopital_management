@@ -373,6 +373,8 @@ class Caisse{
         try {
             let {enc,encserv,encav} = req.body
 
+            
+
             //Insertion des modifs pour l'encaissement tout court
             let up_enc = {
                 enc_date_sortie:(enc.enc_date_sortie)?new Date(enc.enc_date_sortie):null,
@@ -386,6 +388,9 @@ class Caisse{
                 enc_paie_final:(enc.enc_paie_final)?new Date(enc.enc_paie_final):null,
                 enc_reste_paie:enc.enc_reste_paie
             }
+
+
+            // console.log(up_enc)
 
             //Tonga de atao ny modification an'ilay encaissement
             await D.updateWhere('encaissement',up_enc,{enc_id:enc.enc_id})
