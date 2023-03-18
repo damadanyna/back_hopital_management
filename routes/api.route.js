@@ -233,6 +233,9 @@ router.get('/encaissement/download',require('../controller/caisse.controller').d
 router.get('/encaissement/det/:enc_id',require('../controller/caisse.controller').getDetEncaissement)
 router.delete('/encaissement/:enc_id',require('../controller/caisse.controller').delEncaissement)
 
+router.get('/caisse/search/prod-serv',require('../controller/caisse.controller').searchProdServ)
+router.get('/caisse/tarif-prod',require('../controller/caisse.controller').getTarifProd)
+
 //pour les versement
 router.get('/encaissement/vt',require('../controller/caisse.controller').getVersement)
 router.post('/encaissement/vt',require('../controller/caisse.controller').postVersement)

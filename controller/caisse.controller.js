@@ -2,6 +2,7 @@ let D = require('../models/data')
 let PDFDocument = require("pdfkit-table");
 let fs = require('fs')
 const { NumberToLetter } = require("convertir-nombre-lettre");
+const { isFloat32Array } = require('util/types');
 
 let _prep_enc_data = {
     enc_pat_id:{front_name:'enc_pat_id',fac:true,},
@@ -104,6 +105,48 @@ class Caisse{
             
 
             return res.send({status:true,message:"Préparation encaissement bien insérée"})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    //Recherche de poduits et de services en même temps
+    static async searchProdServ(req,res){
+        try {
+            
+            let filters = req.query
+            filters.limit = 50
+
+            let list_serv = await D.exec_params(`select * from service 
+            where service_label like ? and service_parent_id is not null limit ?`,[
+                `%${filters.search}%`,filters.limit
+            ])
+
+            let list_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from article 
+            where art_label like ? limit ? `,[
+                `%${filters.search}%`,filters.limit
+            ])
+
+            let list = [...list_serv,...list_med]
+
+            res.send({status:true,list})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getTarifProd(req,res){
+        try {
+            let t = req.query
+
+            let tserv = await D.exec_params(`select * from tarif_service where tserv_service_id = ? and tserv_is_product = ?
+            and tserv_tarif_id = ?`,[t.service_id,parseInt(t.is_product),t.tarif_id])
+
+            tserv = (tserv.length > 0)?tserv[0]:{tserv_prix:0}
+
+            return res.send({status:true,tserv})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -382,6 +425,25 @@ class Caisse{
             if(encav.del && encav.del.length > 0){
                 await D.exec_params('delete from enc_avance where encav_enc_id = ? and encav_id in (?) ',[enc.enc_id,encav.del])
             }
+
+            //Modification multiple ana service
+            let serv_code = Object.keys(encserv.modif)
+
+            if(serv_code.length > 0){
+                let sql = ''
+
+                for (let i = 0; i < serv_code.length; i++) {
+                    const e = serv_code[i];
+                    const es = encserv.modif[e]
+                    sql+=`update enc_serv set encserv_qt = ${es.encserv_qt}, encserv_montant = ${es.encserv_montant} 
+                    where encserv_enc_id = ${enc.enc_id} and encserv_serv_id = ${es.encserv_serv_id} and encserv_is_product = ${es.encserv_is_product}`
+                }
+
+                await D.exec(sql)
+            }
+
+
+            // console.log(encserv.modif)
 
 
             //? mety mbola hisy modification

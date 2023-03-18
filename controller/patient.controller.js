@@ -123,7 +123,7 @@ class Patient{
         msearch = (msearch)?`${msearch.join('')}|${msearch.reverse().join('')}`:''
         msearch = (msearch)?msearch:'.*'
 
-        console.log(msearch)
+        // console.log(msearch)
         if(msearch == '|') msearch = '%%'
 
         try { 
@@ -133,8 +133,8 @@ class Patient{
             //     (filters.page-1)*filters.limit
             // ])
 
-            let reponse = await D.exec_params(`select * from patient where pat_nom_et_prenom ${ (msearch == '%%')?'like ?':'REGEXP (?)' } order by ${filters.sort_by} limit ?`,
-            [msearch,filters.limit])
+            let reponse = await D.exec_params(`select * from patient where pat_nom_et_prenom ${ (msearch == '%%')?'like ?':'REGEXP (?)' } or pat_numero like ? order by ${filters.sort_by} limit ?`,
+            [msearch,`%${filters.search}%`,filters.limit])
 
             //Liste total des patient
             let nb_total_patient = (await D.exec('select count(*) as nb from patient'))[0].nb

@@ -131,15 +131,72 @@ class Facture{
         }
     }
 
-    static async update(req,res){ 
-        let f = req.body
+    static async update(req,res){  
         try {  
-            f.fact_date = new Date()
-            //
+            
+            let {f,del,modif,add} = req.body
+
+            console.log(del,add)
+            
             delete f.fact_date_enreg
             delete f.fact_serv
-            //
+            f.fact_date = new Date(f.fact_date)
+
+            //Modification de la facture
             await D.updateWhere('facture',f,{fact_id:f.fact_id})
+
+            //Suppression des éléments fact_service
+            let del_k = Object.keys(del)
+
+            let sql = ''
+            if(del_k.length > 0){
+                sql = ''
+                for (let i = 0; i < del_k.length; i++) {
+                    const e = del_k[i];
+                    const es = del[e]
+
+                    sql+=`delete from fact_service where fserv_serv_id = ${es.fserv_serv_id} and fserv_is_product = ${es.fserv_is_product} and fserv_fact_id = ${f.fact_id};`
+                }
+
+                await D.exec(sql)
+
+                console.log(sql)
+            }
+
+            //Ajout des nouveaux
+            let add_k = Object.keys(add)
+            if(add_k.length > 0){
+                sql = ''
+                for (let i = 0; i < add_k.length; i++) {
+                    const e = add_k[i]
+                    const es = add[e]
+
+                    sql+=`insert into fact_service (fserv_serv_id,fserv_is_product,fserv_fact_id,fserv_qt,fserv_montant,fserv_prix_unitaire,fserv_prix_patient,fserv_prix_societe) 
+                    values (${es.fserv_serv_id},${es.fserv_is_product},${f.fact_id},${es.fserv_qt},${es.fserv_montant},${es.fserv_prix_unitaire},${es.fserv_prix_patient},
+                        ${es.fserv_prix_societe});`
+                }
+
+                await D.exec(sql)
+            }
+
+
+            //Modification des fserv
+            let modif_k = Object.keys(modif)
+            if(modif_k.length > 0){
+                sql = ''
+                for (let i = 0; i < modif_k.length; i++) {
+                    const e = modif_k[i];
+                    const es = modif[e]
+
+                    sql+=`update fact_service set fserv_qt = ${es.fserv_qt}, fserv_montant = ${es.fserv_montant}, fserv_prix_patient = ${es.fserv_prix_patient},
+                    fserv_prix_societe = ${es.fserv_prix_societe} where fserv_serv_id = ${es.fserv_serv_id} and fserv_is_product = ${es.fserv_is_product} and fserv_fact_id = ${f.fact_id}`
+                }
+
+                await D.exec(sql)
+            }
+            
+            //vita daholo izay ny modification
+
             //Ici tous les fonctions sur l'enregistrement d'un facture
             return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
