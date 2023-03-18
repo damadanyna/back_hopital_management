@@ -2,7 +2,6 @@ let D = require('../models/data')
 let PDFDocument = require("pdfkit-table");
 let fs = require('fs')
 const { NumberToLetter } = require("convertir-nombre-lettre");
-const { isFloat32Array } = require('util/types');
 
 let _prep_enc_data = {
     enc_pat_id:{front_name:'enc_pat_id',fac:true,},
