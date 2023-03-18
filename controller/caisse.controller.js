@@ -18,7 +18,7 @@ let _prep_enc_data = {
     enc_dep_id:{front_name:'enc_dep_id',fac:true},
     enc_is_hosp:{front_name:'enc_is_hosp',fac:true},
     enc_total_avance:{front_name:'enc_total_avance',fac:true},
-    enc_paie_final:{front_name:'enc_paie_final',fac:true},
+    enc_paie_final:{front_name:'enc_paie_final',fac:true,},
     enc_date_sortie:{front_name:'enc_date_sortie',fac:true},
     enc_result_final:{front_name:'enc_result_final',fac:true},
     enc_reste_paie:{front_name:'enc_reste_paie',fac:true},
@@ -76,6 +76,8 @@ class Caisse{
         if(!enc.enc_is_hosp){
             enc.enc_to_caisse = 1
         }
+
+        enc.enc_paie_final = (enc.enc_paie_final)?new Date(enc.enc_paie_final):null
 
         //ajout de prep_encaissemnet dans la base
         try {
