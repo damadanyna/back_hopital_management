@@ -631,14 +631,14 @@ class Caisse{
         try {
             let {date_verse} = req.query
             date_verse = new Date(date_verse)
-            date_verse.setHours(8)
+            date_verse.setHours(7)
             date_verse.setMinutes(0)
             date_verse.setSeconds(0)
 
             //La date suivante
             let date_verse1 = new Date(date_verse)
             date_verse1.setDate(date_verse1.getDate() + 1)
-            date_verse1.setHours(8)
+            date_verse1.setHours(7)
             date_verse1.setMinutes(0)
             date_verse1.setSeconds(0)
 
