@@ -659,7 +659,6 @@ class Caisse{
 
 
             //On va faire d'abord la somme 
-
             let somme_total = 0, somme_chq = 0, somme_esp = 0
             for (let i = 0; i < enc_list.length; i++) {
                 const e = enc_list[i];
