@@ -1,5 +1,52 @@
 let D = require('../models/data')
 
+let PDFDocument = require("pdfkit-table");
+let fs = require('fs')
+const { NumberToLetter } = require("convertir-nombre-lettre");
+
+
+let stock = {
+    mvmt_action:[
+        {l:'Entrée',k:'entre'},
+        {l:'Sortie',k:'sortie'},
+    ],
+    mvmt_type_entre:[
+        {l:'Achat',k:'achat'},
+    ],
+    mvmt_type_sortie:[
+        {l:'Sortie Interne',k:'sortie-interne'},
+        {l:'Transfert',k:'transfert'},
+        {l:'Vente',k:'vente'},
+        {l:'Produits périmés',k:'produits-perimes'},
+        {l:'Accord',k:'don'},
+    ],
+    prefix_num:{
+        'achat':'AC',
+        'sortie-interne':'SI',
+        'transfert':'TR',
+        'vente':'VE',
+        'produits-perimes':'PP',
+        'don':'DO'
+    }
+}
+
+function getTypeEntre(t){
+    for (let i = 0; i < stock.mvmt_type_entre.length; i++) {
+        const e = stock.mvmt_type_entre[i];
+        if(e.k == t){
+            return e.l
+        }
+    }
+}
+function getTypeSortie(t){
+    for (let i = 0; i < stock.mvmt_type_sortie.length; i++) {
+        const e = stock.mvmt_type_sortie[i];
+        if(e.k == t){
+            return e.l
+        }
+    }
+}
+
 class Mouvement{
 
     //Enregistrement d'un mouvement pour le stock
@@ -270,6 +317,371 @@ class Mouvement{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+    static async setPDFDetMvmt(req,res){
+        try {
+            let {mvmt_id} = req.params
+            let {action} = req.query
+
+            // console.log(mvmt_id,action);
+
+            //récupération du mouvement
+            let mvmt = {}
+            if(action == 'entre'){
+                mvmt = await D.exec_params(`select *,(select count(*) from mvmt_art where mart_mvmt_id = mvmt_id) as nb_art from mvmt 
+                left join depot on mvmt_depot_dest = depot_id
+                left join fournisseur on mvmt_tiers = fourn_id 
+                where mvmt_id = ? and mvmt_action = 'entre'`,[mvmt_id])
+
+                mvmt = mvmt[0]
+            }else if(action == 'sortie'){
+                mvmt = await D.exec_params(`select *,(select count(*) from mvmt_art where mart_mvmt_id = mvmt_id) as nb_art,
+                d_dest.depot_label as depot_dest,d_exp.depot_label as depot_exp
+                from mvmt 
+                left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
+                left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
+                left join departement on mvmt_tiers = dep_id
+                where mvmt_id = ?  and mvmt_action = 'sortie'`,[mvmt_id])
+
+                mvmt = mvmt[0]
+            }
+
+
+
+            mvmt.mart = await D.exec_params(`select * from mvmt_art 
+            left join article on art_id = mart_art_id
+            where mart_mvmt_id = ?`,[mvmt_id])
+            let depot = await D.exec('select * from depot')
+
+
+            creatPDFDetMvmt(mvmt,depot)
+
+            return res.send({status:true})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async downDetMvmt(req,res){
+        try {
+            let data = fs.readFileSync(`./files/det-mvmt.pdf`)
+            res.contentType("application/pdf")
+            // res.download(`./facture.pdf`)
+            res.send(data);
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
 }
+
+// ------------ /// ---------------- ffffff
+//Options pour les tableaux
+function opt_tab (head,datas,doc){
+    return {
+        // complex headers work with ROWS and DATAS  
+        headers: head,
+        // complex content
+        datas:datas,
+        options:{
+            padding:5,
+            align:'center',
+            divider: {
+                header: { disabled: false, width: 1, opacity: 0.5 },
+                horizontal: { disabled: false, width: 0.5, opacity: 0 },
+                vertical: { disabled: false, width: 0.5, opacity: 0.5 },
+            },
+            prepareHeader: () => {
+                doc.font("fira_bold").fontSize(8)
+                doc.fillAndStroke('#575a61')
+            },
+            prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
+                doc.font("fira").fontSize(8)
+                doc.fillAndStroke('#47494d')
+                //#47494d
+
+                const {x, y, width, height} = rectCell;
+                let head_h = 17
+
+                // first line 
+                if(indexColumn === 0){
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y)
+                    .lineTo(x, y + height+1)
+                    .stroke();
+                }
+
+                if(indexRow == 0 && indexColumn === 0){
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y)
+                    .lineTo(x, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x+width, y)
+                    .lineTo(x+width, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y-head_h)
+                    .lineTo(x+width, y - head_h)
+                    .stroke();
+
+
+                }else if(indexRow == 0){
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x+width, y)
+                    .lineTo(x+width, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y-head_h)
+                    .lineTo(x+width, y - head_h)
+                    .stroke();
+                }
+
+                doc
+                .lineWidth(.5)
+                .moveTo(x + width, y)
+                .lineTo(x + width, y + height+1)
+                .stroke();
+
+                if(indexRow == datas.length-1){
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y)
+                    .lineTo(x + width, y)
+                    .stroke();
+
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y+height)
+                    .lineTo(x + width, y+height)
+                    .stroke();
+
+                    //doc.font("fira_bold")
+                }
+                // doc.fontSize(10).fillColor('#292929');
+            },
+        },
+        // simple content (works fine!)
+    } //Fin table options
+} // --- fonction sur l'option des tables dans PDF kit
+
+async function creatPDFDetMvmt(mt,depot){
+
+
+    let year_cur = new Date().getFullYear()
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //Les options du PDF
+    //Création de pdf amzay e 🤣😂, 
+    let opt = {
+        margin: 15, size: 'A4',
+    }   
+    let doc = new PDFDocument(opt)
+
+    //les fonts
+    doc.registerFont('fira', 'fonts/fira.ttf');
+    doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+    doc.font("fira")
+
+    //Ecriture du PDF
+    doc.pipe(fs.createWriteStream(`./files/det-mvmt.pdf`))
+
+    //les marges et le truc en bas
+    //______________________________________
+    let bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
+    doc.fontSize(8)
+
+    doc.text(
+        `Hôpital Andranomadio ${year_cur}`, 
+        0.5 * (doc.page.width - 300),
+        doc.page.height - 20,
+        {
+            width: 300,
+            align: 'center',
+            lineBreak: false,
+        })
+
+    // Reset text writer position
+    doc.text('', 15, 15);
+    doc.page.margins.bottom = bottom;
+    doc.on('pageAdded', () => {
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+    
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+    
+        // Reset text writer position
+        doc.text('', 50, 50);
+        doc.page.margins.bottom = bottom;
+    })
+    //-----------------___________________---------------
+    //------------- Ajout des titres en haut
+
+    //Toutes les textes dans le PDF
+    let nom_hop = 'HOPITALY LOTERANA - ANDRANOMADIO'
+    let title_pdf = `détails Mouvement - ${(mt.mvmt_type == 'entre')?'entrées':'sorties'} `.toUpperCase()
+    let date_label = `Journée du : `
+    let date_value = new Date(mt.mvmt_date).toLocaleDateString()
+
+    // ----- LES TITRES D'EN HAUT ------------
+    doc.font("fira_bold")
+    let y_ttl = doc.y
+    doc.text(nom_hop,{underline:true})
+
+    let ttl_w = doc.widthOfString(title_pdf)
+    
+    doc.text(title_pdf,doc.page.width/2 - ttl_w/2,y_ttl)
+    let ddl_w = doc.widthOfString(date_label)
+    let ddlv_w = doc.widthOfString(date_value)
+    doc.text(date_label,doc.page.width - (ddl_w + ddlv_w) - opt.margin,y_ttl)
+    
+    doc.text(date_value,doc.page.width - ddlv_w - opt.margin,y_ttl)
+
+    y_ttl += 15
+    //La ligne au dessous
+    doc.lineWidth(.5)
+    .moveTo(opt.margin, y_ttl)
+    .lineTo(doc.page.width - opt.margin, y_ttl)
+    .stroke();
+
+    // ------- FIN HEADER
+
+    doc.moveDown(3)
+    doc.font('fira')
+
+    let y_cur = doc.y
+    let dist_info = 200
+    let padding_cadre_info = 5
+    let x_origin_info = opt.margin + padding_cadre_info
+
+    let y_origin_info = y_cur
+
+    doc.text('Numéro',x_origin_info,y_cur,{underline:true})
+    doc.text(mt.mvmt_num)
+
+    doc.text('Type',x_origin_info + dist_info ,y_cur,{underline:true})
+    doc.text((mt.mvmt_action == 'entre')?getTypeEntre(mt.mvmt_type):getTypeSortie(mt.mvmt_type))
+
+    doc.moveDown(2)
+    y_cur = doc.y
+
+    //Pour les sorties
+    if(mt.mvmt_action == 'sortie'){
+        doc.text('Dépôt de depart',x_origin_info,y_cur,{underline:true})
+        doc.text(mt.depot_exp)
+
+        doc.text('Dépôt de déstination',x_origin_info + dist_info ,y_cur,{underline:true})
+        doc.text((mt.mvmt_type == 'transfert')?mt.depot_dest:mt.dep_label)
+
+    }else if(mt.mvmt_action == 'entre'){
+        doc.text('Fournisseur',x_origin_info,y_cur,{underline:true})
+        doc.text((mt.fourn_label)?mt.fourn_label:'-')
+
+        doc.text('Dépôt',x_origin_info + dist_info ,y_cur,{underline:true})
+        doc.text(mt.depot_label)
+    }
+
+    doc.lineJoin().rect(x_origin_info - padding_cadre_info,y_origin_info - padding_cadre_info/2,
+        doc.page.width - (opt.margin * 2),(doc.y + (padding_cadre_info) - y_origin_info)).stroke()
+    
+    let w_im = doc.y - (padding_cadre_info) - y_origin_info
+    doc.image('statics/icon.png',doc.page.width - w_im - opt.margin*2,y_origin_info ,{width:w_im})
+
+
+    //Les tableaux amzay
+    let _head = []
+    let _datas = []
+    // --------
+
+    doc.moveDown(3)
+    doc.text('',opt.margin,doc.y)
+
+    _head = [
+        { label:"CODE", width:50, property: 'code',renderer: null ,headerAlign:"center",},
+        { label:"DESIGNATION", width:245, property: 'desc',renderer: null ,headerAlign:"center",},
+        { label:"quantité".toUpperCase(), width:70, property: 'qt',renderer: null ,headerAlign:"center",align:"right"},
+    ]
+
+    //ajout des dépots
+    for (let i = 0; i < depot.length; i++) {
+        const e = depot[i];
+        //this.list_label.push({label:e.depot_label,key:`dp:${e.depot_id}`})
+
+        _head.push({ label:e.depot_label, width:100, property: `dp:${e.depot_id}`,renderer: null ,headerAlign:"center",align:"right"})
+    }
+
+    _datas = []
+    let tmp_d = {}
+    for (var i = 0; i < mt.mart.length; i++) {
+        const ma = mt.mart[i]
+        tmp_d = {}
+        tmp_d['code'] = ma.art_code
+        tmp_d['desc'] = ma.art_label
+        tmp_d['qt'] = ma.mart_qt.toLocaleString('fr-CA')
+
+        for(var j = 0;j < depot.length;j++){
+            const de = depot[j]
+            tmp_d[`dp:${de.depot_id}`] = getStockArt(de.depot_id,ma)
+        }
+
+        _datas.push(tmp_d)
+
+    }
+
+    await doc.table(opt_tab(_head,_datas,doc), { /* options */ });
+
+    doc.end()
+}
+
+function getStockArt(id,mart){
+    let depot_id = id
+
+    if(mart.mart_det_stock == null){
+        return '-'
+    }
+
+    let stk = JSON.parse(mart.mart_det_stock)
+
+    if(Array.isArray(stk)){
+        if(stk.length == 0){
+            return '-'
+        }else{
+            for (let i = 0; i < stk.length; i++) {
+                const e = stk[i];
+                if(e.depot_id == depot_id){
+                    return e.stk_actuel.toLocaleString('fr-CA')
+                }
+            }
+            return '-'
+        }
+    }else{
+        return '-'
+    }
+}
+
+
 
 module.exports = Mouvement

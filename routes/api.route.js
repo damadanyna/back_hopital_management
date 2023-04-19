@@ -129,6 +129,7 @@ router.put('/categorie_article',require('../controller/categorie_article.control
 //Gestion des article
 //Recherche d'article
 router.get('/articles/search',require('../controller/article.controller').searchByLabel)
+router.get('/articles/mvmt/search',require('../controller/article.controller').searchInMvmt)
 router.get('/articles',require('../controller/article.controller').getList);
 router.put('/article',require('../controller/article.controller').update);
 
@@ -214,6 +215,8 @@ router.get('/mvmt/utils-add',require('../controller/mvmt.controller').getUtilsAd
 router.get('/mvmts/entre',require('../controller/mvmt.controller').getEntre)
 router.get('/mvmts/sortie',require('../controller/mvmt.controller').getSortie)
 router.get('/mvmt/details/:mvmt_id',require('../controller/mvmt.controller').getDetails)
+router.get('/mvmt/details/:mvmt_id/pdf',require('../controller/mvmt.controller').setPDFDetMvmt)
+router.get('/mvmt/details/pdf/down',require('../controller/mvmt.controller').downDetMvmt)
 
 //Resaka encaissement
 router.post('/encaissement',require('../controller/caisse.controller').encaissement)
@@ -230,7 +233,12 @@ router.get('/encaissement/fact/unvalidate',require('../controller/caisse.control
 
 router.get('/encaissement/set-pdf/:enc_id',require('../controller/caisse.controller').setPdfFact)
 router.get('/encaissement/download',require('../controller/caisse.controller').downloadFact)
-router.get('/encaissement/det/:enc_id',require('../controller/caisse.controller').getDetEncaissement)
+
+
+router.get('/encaissement/det/:enc_id',require('../controller/caisse.controller').getDetEncaissement) //détails encaissement ito
+router.get('/encaissement/det/:enc_id/print',require('../controller/caisse.controller').setPDFDetEncaissement)
+router.get('/encaissement/det/download/fact',require('../controller/caisse.controller').downDetFact) //création PDF détails encaissment ito
+
 router.delete('/encaissement/:enc_id',require('../controller/caisse.controller').delEncaissement)
 
 router.get('/caisse/search/prod-serv',require('../controller/caisse.controller').searchProdServ)
@@ -238,6 +246,8 @@ router.get('/caisse/tarif-prod',require('../controller/caisse.controller').getTa
 
 //pour les versement
 router.get('/encaissement/vt',require('../controller/caisse.controller').getVersement)
+router.get('/encaissement/vt/rapport',require('../controller/caisse.controller').setRapportVt)
+router.get('/encaissement/vt/rapport/down',require('../controller/caisse.controller').downRapportVt)
 router.post('/encaissement/vt',require('../controller/caisse.controller').postVersement)
 
 

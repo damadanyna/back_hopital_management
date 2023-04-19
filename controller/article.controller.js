@@ -247,6 +247,20 @@ class Article{
         }
     }
 
+    static async searchInMvmt(req,res){
+        try {
+            let filters = req.query
+            filters.search = (filters.search)?filters.search:''
+
+            let articles = await D.exec_params(`select * from article where 
+                art_label like ? limit 50`,[`%${filters.search}%`])
+            return res.send({status:true,articles})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
     static async printList(req,res){
         try {
 

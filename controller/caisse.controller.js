@@ -28,6 +28,129 @@ let _prep_enc_data = {
 let _prep_key = Object.keys(_prep_enc_data)
 
 
+
+//Options pour les tableaux
+function opt_tab (head,datas,doc){
+    return {
+        // complex headers work with ROWS and DATAS  
+        headers: head,
+        // complex content
+        datas:datas,
+        options:{
+            padding:5,
+            align:'center',
+            divider: {
+                header: { disabled: false, width: 1, opacity: 0.5 },
+                horizontal: { disabled: false, width: 0.5, opacity: 0 },
+                vertical: { disabled: false, width: 0.5, opacity: 0.5 },
+            },
+            prepareHeader: () => {
+                doc.font("fira_bold").fontSize(5)
+                doc.fillAndStroke('#575a61')
+            },
+            prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
+                doc.font("fira").fontSize(5)
+                doc.fillAndStroke('#47494d')
+                //#47494d
+
+                const {x, y, width, height} = rectCell;
+                let head_h = 17
+
+                // first line 
+                if(indexColumn === 0){
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y)
+                    .lineTo(x, y + height+1)
+                    .stroke();
+                }
+
+                if(indexRow == 0 && indexColumn === 0){
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y)
+                    .lineTo(x, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x+width, y)
+                    .lineTo(x+width, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y-head_h)
+                    .lineTo(x+width, y - head_h)
+                    .stroke();
+
+
+                }else if(indexRow == 0){
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x+width, y)
+                    .lineTo(x+width, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y-head_h)
+                    .lineTo(x+width, y - head_h)
+                    .stroke();
+                }
+
+                doc
+                .lineWidth(.5)
+                .moveTo(x + width, y)
+                .lineTo(x + width, y + height+1)
+                .stroke();
+
+                if(indexRow == datas.length-1){
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y)
+                    .lineTo(x + width, y)
+                    .stroke();
+
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y+height)
+                    .lineTo(x + width, y+height)
+                    .stroke();
+
+                    //doc.font("fira_bold")
+                }
+                // doc.fontSize(10).fillColor('#292929');
+            },
+        },
+        // simple content (works fine!)
+    } //Fin table options
+} // --- fonction sur l'option des tables dans PDF kit
+
+//Taille d'un cadre de chiffre
+let num_w = 50
+
+//fonction qui écrit du texte dans un cadre
+function drawTextCadre(text,x,y,doc){
+    let m = 5
+
+    x +=m
+
+    doc.font('fira_bold')
+    doc.text(text,x+num_w - doc.widthOfString(text) - m,y)
+
+    y -= m/2
+
+    doc.lineWidth(1)
+    doc.lineJoin('miter')
+        .rect(x, y,
+        num_w , doc.heightOfString(text) + m)
+        .stroke();
+
+    doc.font('fira')
+}
+
+
 class Caisse{
     static async encaissement(req,res){ //Insertion d'encaissement eto
         //Ici on ajoute l'encaissement de puis le front-end
@@ -75,6 +198,10 @@ class Caisse{
         if(!enc.enc_is_hosp){
             enc.enc_to_caisse = 1
         }
+
+        /**
+         * Merde cette machine est vraiment lente
+         */
 
         enc.enc_paie_final = (enc.enc_paie_final)?new Date(enc.enc_paie_final):null
 
@@ -157,8 +284,6 @@ class Caisse{
     //Récupértion de la liste de prep_encaissement
     static async getListEncaissement(req,res){
         let filters = req.query
-        
-
 
         // console.log(filters)
 
@@ -173,12 +298,24 @@ class Caisse{
             left join patient on pat_id = enc_pat_id
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
+            left join departement on dep_id = enc_dep_id
             where enc_to_caisse = 1 and date(enc_date) between ? and ?
             order by enc_date desc
             `,[d,d2])
 
+            //Calcul montant total encaissé
+            let total_encaisse = 0
+            for (var i = 0; i < list_enc.length; i++) {
+                const le = list_enc[i]
+                if(le.enc_validate){
+                    total_encaisse += parseInt(le.enc_montant)
+                }
+            }
+
+            // ------- 
+
             let nb_not_validate = (await D.exec_params(`select count(*) as nb from encaissement where enc_validate = 0 and enc_to_caisse = 1`))[0].nb
-            return res.send({status:true,list_enc,nb_not_validate})
+            return res.send({status:true,list_enc,nb_not_validate,total_encaisse})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -297,7 +434,9 @@ class Caisse{
                 last_mvmt = parseInt(last_mvmt[0].enc_num_mvmt)
             }
 
-            return res.send({status:true,soc,tarif,last_mvmt})
+            let dep = await D.exec('select * from departement')
+
+            return res.send({status:true,soc,tarif,last_mvmt,dep})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -496,14 +635,22 @@ class Caisse{
     static async setPdfFact(req,res){
         try {
             let enc_id = req.params.enc_id
+            let { util_id } = req.query
+
+            //console.log(util_id)
 
             //Récupération des listes des services parents
             let list_serv = await D.exec(`select * from service where service_parent_id is null`)
 
+            //Modification de la facture pour modifier l'utilisateur qui sera rattaché à l'encaissement
+            if(util_id){
+                await D.updateWhere('encaissement',{enc_util_validate_id:util_id},{enc_id})
+            }
+
             //récupération de la facture
             let fact = (await D.exec_params(`select * from encaissement
             left join patient on pat_id = enc_pat_id
-            left join utilisateur on util_id = enc_util_id
+            left join utilisateur on enc_util_validate_id = enc_util_id
             where enc_id = ?`,[enc_id]))[0]
 
             //Récupération de la liste des produits liés à la facture
@@ -535,12 +682,11 @@ class Caisse{
                 index_med = list_serv.length - 1
             }
 
+            list_serv[index_med].montant_total = 0
             //et juste pour les médicaments -- Insertion des montants total dans médicaments
             for (let i = 0; i < fact_med.length; i++) {
                 const e = fact_med[i]
-                if(e.service_parent_id == null){
-                    list_serv[index_med].montant_total += (e.encserv_montant)?parseInt(e.encserv_montant):0
-                }
+                list_serv[index_med].montant_total += (e.encserv_montant)?parseInt(e.encserv_montant):0
             }
 
             //conception anle PDF amzay eto an,
@@ -589,6 +735,7 @@ class Caisse{
         }
     }
 
+    //Détails an'ilay encaissement eto
     static async getDetEncaissement(req,res){
         try {
             let enc_id = req.params.enc_id
@@ -610,17 +757,71 @@ class Caisse{
         }
     }
 
-    static async getVersementByEnc(req,res){
+    //Création du PDF du détails encaissement eto
+    static async setPDFDetEncaissement(req,res){
         try {
+            /*
+                Tena ho lava be ty 😂😂😂,
+            */
+
             let {enc_id} = req.params
 
-            let vt = await D.exec_params('select * from versement where vt_enc_id = ?',[enc_id])
+            //On va d'abord récupérer la liste des services parents
+            let serv_p = await D.exec_params(`select * from service where service_parent_id is null`)
 
-            vt = (vt.length == 0)?undefined:vt[0]
+            //ensuite la liste des services dans enc_service
+            let enc_serv = await D.exec_params(`select * from enc_serv
+            left join service on service_id = encserv_serv_id
+            where encserv_enc_id = ? and encserv_is_product = 0`,[enc_id])
 
-            return res.send({status:true,vt})
+            //puis la liste des produits dans encser
+            let enc_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_serv
+            left join article on art_id = encserv_serv_id
+            where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
+
+            //Regroupement des services dans le service parent //juste pour les services
+            for (var i = 0; i < serv_p.length; i++) {
+                const sp = serv_p[i]
+
+                for (var j = 0; j < enc_serv.length; j++) {
+                    const es = enc_serv[j]
+
+                    if(sp.service_id == es.service_parent_id){
+
+                        if(serv_p[i]['child']){
+                            serv_p[i]['child'].push(es)
+                        }else{
+                            serv_p[i]['child'] = [es]
+                        }
+
+                    }
+                }
+            }
+            //Regroupement pour les médicaments
+            serv_p.push({service_id:123456,service_label:'MEDICAMENTS',service_code:'MED',child:(enc_med.length > 0)?enc_med:undefined})
 
 
+            //Récupération an'ilay encaissement
+            let enc = (await D.exec_params(`select * from encaissement
+            left join patient on pat_id = enc_pat_id
+            where enc_id = ?`,[enc_id]))[0]
+            //Eto amzay ny création an'ilay PDF            
+
+            await createDetFactPDF(serv_p,'det-fact-caisse',enc)
+            return res.send({status:true,link:'/api/encaissement/det/download/fact',message:"PDF bien générer"})
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async downDetFact(req,res){
+        try {
+            let data = fs.readFileSync(`./files/det-fact-caisse.pdf`)
+            res.contentType("application/pdf")
+            // res.download(`./facture.pdf`)
+            res.send(data);
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -700,29 +901,159 @@ class Caisse{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+    static async setRapportVt(req,res){
+        try {
+            let {vt_id} = req.query
+
+            let vt = (await D.exec_params(`select * from versement
+                where vt_id = ?`,[vt_id]))[0]
+
+            //Récupération des encaissements dans le versememnt
+            let enc = await D.exec_params(`select * from encaissement
+                where enc_versement = ?`,[vt_id])
+
+
+
+            //calcul des sommes espèces et chèques
+            for (var i = 0; i < enc.length; i++) {
+                const en = enc[i]
+                if(en.enc_mode_paiement == 'esp'){
+                    vt.recette_esp = (vt.recette_esp)?vt.recette_esp + parseInt(en.enc_montant):parseInt(en.enc_montant) 
+                }else{
+                    vt.recette_chq = (vt.recette_chq)?vt.recette_esp + parseInt(en.enc_montant):parseInt(en.enc_montant) 
+                }
+            }
+
+            //Liste des département
+            //Qlques Gestions
+            let dep = await D.exec('select * from departement')
+            //dep_code d'un département autre est : C999
+            let dep_code_autre = "C999"
+            let dep_autre_in = false
+            for (let i = 0; i < dep.length; i++) {
+                const de = dep[i];
+                if(de.dep_code == dep_code_autre){
+                    dep_autre_in = true
+                    break
+                }
+            }
+
+            if(!dep_autre_in) dep.push({dep_label:"AUTRES",dep_code:dep_code_autre,dep_id:-1})
+
+            let enc_ids = enc.map( x => parseInt(x.enc_id) )
+            // Fin gestion département
+
+            //Récupération de la liste des encserv
+            let list_serv = await D.exec_params(`select * from enc_serv
+            left join service on service_id = encserv_serv_id
+            where encserv_enc_id in (?) and encserv_is_product = 0`,[enc_ids])
+
+            let list_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_serv
+            left join article on art_id = encserv_serv_id
+            where encserv_enc_id in (?) and encserv_is_product = 1`,[enc_ids])
+
+
+            //Ici on va supposé que le index (ID) du service médicaments et de  [s500]
+            let id_med = 's500'
+
+            let serv_p = await D.exec_params('select * from service where service_parent_id is null')
+            serv_p.push({service_id:id_med,service_label:'MEDICAMENTS',service_code:'MED',service_parent_id:null})
+
+
+            // répartition des montants par département
+            for (var i = 0; i < enc.length; i++) {
+                const e = enc[i]
+
+                //parcours département
+                for(var j = 0; j < dep.length; j++){
+                    const de = dep[j]
+
+                    //parcours list_service
+                    for(var k = 0; k < list_serv.length; k++){
+                        const ls = list_serv[k]
+
+                        if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && ls.encserv_enc_id == e.enc_id){
+                            dep[j][ls.service_parent_id] = (dep[j][ls.service_parent_id])?dep[j][ls.service_parent_id]+parseInt(ls.encserv_montant):parseInt(ls.encserv_montant)
+                        }
+                    }
+
+                    //parcours des médicaments
+                    for(var k = 0; k < list_med.length; k++){
+                        const ls = list_med[k]
+
+                        if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && ls.encserv_enc_id == e.enc_id){
+                            dep[j][id_med] = (dep[j][id_med])?dep[j][id_med]+parseInt(ls.encserv_montant):parseInt(ls.encserv_montant)
+                        }
+                    }
+
+                    //Insertion avance
+                    if(e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)){
+                        dep[j]['avance'] = (e.enc_total_avance)?e.enc_total_avance:0
+
+                        const t_net = e.enc_montant - dep[j]['avance']
+
+                        dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + t_net:t_net
+
+
+                        dep[j]['esp'] = (e.enc_mode_paiement == 'esp')?((dep[j]['esp'])?dep[j]['esp']+t_net:t_net):0
+                        dep[j]['chq'] = (e.enc_mode_paiement == 'chq')?(dep[j]['chq']?dep[j]['chq']+t_net:t_net):0
+                    }
+
+                }
+            }
+
+            let dt = {enc,serv_p,dep,vt}
+
+            await createRapportVt(dt)
+
+            return res.send({status:true,vt,enc,list_serv,list_med})
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async downRapportVt(req,res){
+        try {
+            let data = fs.readFileSync(`./files/rapport-vt.pdf`)
+            res.contentType("application/pdf")
+            // res.download(`./facture.pdf`)
+            res.send(data);
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
 }
 
-
-//Génération PDF pour les détails des avances et les restates à payer
-async function generateDetFactPDF(fact,avance,list_serv){
-
-    let date_fact = new Date(fact.enc_date)
-    let f_date = date_fact.toLocaleDateString()
-    let f_time = date_fact.toLocaleTimeString().substr(0,5)
+async function createRapportVt(dt){
+    let {enc,serv_p,dep,vt} = dt
 
 
+    let year_cur = new Date().getFullYear()
+    let year_enc = new Date(enc.enc_date_enreg).getFullYear()
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //Les options du PDF
+    //Création de pdf amzay e 🤣😂, 
     let opt = {
         margin: 15, size: 'A4' ,
+        layout:'landscape'
     }   
     let doc = new PDFDocument(opt)
+
     //les fonts
     doc.registerFont('fira', 'fonts/fira.ttf');
     doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
     doc.font("fira")
 
     //Ecriture du PDF
-    doc.pipe(fs.createWriteStream(`./files/det-fact.pdf`))
-
+    doc.pipe(fs.createWriteStream(`./files/rapport-vt.pdf`))
 
     //les marges et le truc en bas
     //______________________________________
@@ -763,31 +1094,524 @@ async function generateDetFactPDF(fact,avance,list_serv){
         doc.page.margins.bottom = bottom;
     })
     //-----------------___________________---------------
+    //------------- Ajout des titres en haut
 
-    //-------------
-    let t_stat = 'Stat n ° 85113 12 200 60 00614'
-    let t_nif =  'NIF n ° 20000038126'
+    //Toutes les textes dans le PDF
+    let nom_hop = 'HOPITALY LOTERANA - ANDRANOMADIO'
+    let title_pdf = 'RAPPPORT DE VERSEMENT JOURNALIER'
+    let date_label = `Journée du : `
+    let date_value = new Date(vt.vt_date).toLocaleDateString()
 
-    let nom_hop = 'HOPITALY LOTERANA ANDRANOMADIO'
-    let t_date = `${f_date} -- ${f_time}`
-    let t_caissier = `CAISSIER : ${fact.util_label}`
-    let t_pat_code = `Patient: ${(fact.pat_numero)?fact.pat_numero:'-'}`
-    let pat_name = (fact.pat_nom_et_prenom)?fact.pat_nom_et_prenom:'-'
-    let t_pat_adresse = (fact.pat_adresse)?fact.pat_adresse:'-'
+    let total_esp_l = 'TOTAL ESP'
+    let fd_caisse = 'Fond de Caisse'
+    let rec_esp = 'RECETTE ESPECE'
+    let vers_chq = 'VERSEMENT CHQ'
+    let total_vers = 'TOTAL VERSEMENT'
 
-     //Définition des tailles
-    let margin = 25
-    let margin_middle = 15
-    let y_begin = 25
-    let w_cadre = (doc.page.width - (margin * 2) - (margin_middle * 2)) / 2
-    let y_cur = 0
-    let h_cadre = 0
-    let margin_text_in_cadre = 3
-    let x_begin = margin
+    // ----- LES TITRES D'EN HAUT ------------
+    doc.font("fira_bold")
+    let y_ttl = doc.y
+    doc.text(nom_hop,{underline:true})
 
-    //Placement du titre
+    let ttl_w = doc.widthOfString(title_pdf)
+    
+    doc.text(title_pdf,doc.page.width/2 - ttl_w/2,y_ttl)
+    let ddl_w = doc.widthOfString(date_label)
+    let ddlv_w = doc.widthOfString(date_value)
+    doc.text(date_label,doc.page.width - (ddl_w + ddlv_w) - opt.margin,y_ttl)
+    
+    doc.text(date_value,doc.page.width - ddlv_w - opt.margin,y_ttl)
+
+    y_ttl += 15
+    //La ligne au dessous
+    doc.lineWidth(.5)
+    .moveTo(opt.margin, y_ttl)
+    .lineTo(doc.page.width - opt.margin, y_ttl)
+    .stroke();
+
+    // ------- FIN HEADER 
+
+    let _head = []
+    let _datas = []
+    let table = {}
+
+    // ------ DEBUT INSERTION DE TABLEAU DE BILLETAGE
+    //
+    let sz_nbr = 20,sz_billet = 50,sz_montant = 70
+    _head = [
+        { label:"Nbr", width:sz_nbr, property: 'nb',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Billets", width:sz_billet, property: 'billet',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Montant", width:sz_montant, property: 'montant',renderer: null ,headerAlign:"center",align:"right"},
+    ]
+
+    let billetage_w = 140
+
+    let billetage = JSON.parse(vt.vt_det)
+    let list_pc = Object.keys(billetage).reverse().map(x => parseInt(x) )
+
+    for (let i = 0; i < list_pc.length; i++) {
+        const p = list_pc[i];
+        _datas.push({nb:billetage[p]?billetage[p].toLocaleString('fr-CA'):'',billet:p.toLocaleString('fr-CA'),
+        montant:(parseInt(p) * parseInt(billetage[p]))?(parseInt(p) * parseInt(billetage[p])).toLocaleString('fr-CA'):''})
+    }
+
+    doc.moveDown(3)
+    let y_infos = doc.y
+    doc.text('',opt.margin)
+    table = opt_tab(_head,_datas,doc)
+    await doc.table(table, { /* options */ });
+
+    // écriture esp
+    y_ttl = doc.y
+    doc.text(total_esp_l)
+    let total_esp_v = vt.vt_total.toLocaleString('fr-CA')
+    drawTextCadre(total_esp_v,(sz_nbr+sz_billet+sz_montant) + opt.margin - num_w - 5,y_ttl,doc)
+
+    //écriture des infos au milieu
+    let x_infos_mid1 = opt.margin + billetage_w + 40
+    let x_infos_mid2 = x_infos_mid1 + doc.widthOfString(total_vers) + 10
+
+    //Fond de caisse
+    doc.text(fd_caisse,x_infos_mid1,y_infos)
+    drawTextCadre(vt.vt_remise.toLocaleString('fr-CA'),x_infos_mid2,y_infos,doc)
+
+    //Recette espèce
+    doc.moveDown()
+    y_infos = doc.y
+    doc.text(rec_esp,x_infos_mid1,y_infos)
+    drawTextCadre(vt.recette_esp.toLocaleString('fr-CA'),x_infos_mid2,y_infos,doc)
+
+    //Recette chèque
+    doc.moveDown()
+    y_infos = doc.y
+    doc.text(vers_chq,x_infos_mid1,y_infos)
+    drawTextCadre((vt.recette_chq)?vt.recette_chq.toLocaleString('fr-CA'):' ',x_infos_mid2,y_infos,doc)
+    
+    //Total versement
+    doc.moveDown()
+    y_infos = doc.y
+    doc.text(total_vers,x_infos_mid1,y_infos)
+    drawTextCadre((vt.recette_chq)?(vt.recette_chq + vt.recette_esp).toLocaleString('fr-CA'):vt.recette_esp.toLocaleString('fr-CA'),x_infos_mid2,y_infos,doc)
+
+    //Montant versé ( en toute lettre )
+    doc.moveDown(5)
+    y_infos = doc.y
+    doc.text('Montant versé (en toute lettre) :',x_infos_mid1,y_infos)
+    doc.moveDown()
+    doc.lineWidth(1)
+    doc.lineJoin().rect(x_infos_mid1,doc.y,200,35).stroke()
+    let vers_lettre = NumberToLetter((vt.recette_chq)?(vt.recette_chq + vt.recette_esp):vt.recette_esp).toUpperCase()
+    doc.font('fira_bold')
+    doc.text(vers_lettre,x_infos_mid1 + 5,doc.y+5,{width:190})
+
+    //OBSERVATION
+    //y_infos = doc.y
+    doc.font('fira')
+    doc.text('OBSERVATION',x_infos_mid1 + 210,y_infos)
+    doc.moveDown()
+    doc.lineWidth(1)
+    doc.lineJoin().rect(doc.x,doc.y,150,35).stroke()
+    
     
 
+
+    // ------ DEBUT TABLEAU REPARTITION PAR DEPARTEMENT -------- 
+    doc.text('',opt.margin,y_ttl)
+    doc.moveDown(5)
+
+    doc.font('fira')
+    doc.fontSize(8)
+    doc.text('Répartition par département',opt.margin)
+
+    doc.moveDown()
+
+    //Gestion de taille des colonnes
+    let t_desc = 100
+    let t_total = 60 //colonne de fin
+
+    let t_dep = (doc.page.width - (opt.margin * 2) - (t_desc + t_total))/dep.length
+
+    _head = [
+        { label:"DESIGNATION", width:t_desc, property: 'desc',renderer: null ,headerAlign:"center"},
+    ]
+
+    for (var i = 0; i < dep.length; i++) {
+        const de = dep[i]
+        _head.push({ label:de.dep_label, width:t_dep, property: de.dep_id,renderer: null ,headerAlign:"center",align:"right"},)
+    }
+    //Un autre head aussi pour le total
+    _head.push({ label:"TOTAL", width:t_total, property: 'total',renderer: null ,headerAlign:"center",align:"right"},)
+
+    _datas = []
+    let tmp_d = {}
+    let ttl = 0
+    for(var i= 0;i <serv_p.length;i++){
+        const sp = serv_p[i]
+        tmp_d = {}
+        tmp_d['desc'] = sp.service_label
+        tmp_d['total'] = 0
+        for (var j = 0; j < dep.length; j++) {
+            const de = dep[j]
+            tmp_d[de.dep_id] = (de[sp.service_id])?de[sp.service_id].toLocaleString('fr-CA'):'-'
+            tmp_d['total'] += (de[sp.service_id])?de[sp.service_id]:0
+            dep[j]['total_brut'] = (dep[j]['total_brut'])?dep[j]['total_brut'] + (dep[j][sp.service_id] || 0 ):(dep[j][sp.service_id] || 0 )
+        }
+        tmp_d['total'] = (tmp_d['total'])?tmp_d['total'].toLocaleString('fr-CA'):'-'
+        _datas.push(tmp_d)
+    }
+    //Les
+
+    //Insertion pour la totale brut
+    tmp_d = {}
+    tmp_d['desc'] = 'TOTAL BRUT ...'
+    tmp_d['total'] = 0
+    for (let i = 0; i < dep.length; i++) {
+        const de = dep[i];
+        tmp_d[de.dep_id] =  (de['total_brut'])?de['total_brut'].toLocaleString('fr-CA'):'-'
+        tmp_d['total'] += (de['total_brut'])?de['total_brut']:0
+    }
+    tmp_d['total'] = (tmp_d['total'])?tmp_d['total'].toLocaleString('fr-CA'):'-'
+    _datas.push(tmp_d)
+    //fin inserrtion total brut
+
+    //Insertion avance
+    tmp_d = {}
+    tmp_d['desc'] = 'AVANCE ...'
+    tmp_d['total'] = 0
+    for (let i = 0; i < dep.length; i++) {
+        const de = dep[i];
+        tmp_d[de.dep_id] =  (de['avance'])?'-'+de['avance'].toLocaleString('fr-CA'):'-'
+        tmp_d['total'] += (de['avance'])?de['avance']:0
+    }
+    tmp_d['total'] = (tmp_d['total'])?'-'+tmp_d['total'].toLocaleString('fr-CA'):'-'
+    _datas.push(tmp_d)
+    //fin insertion avance
+
+    //Insertion total net
+    tmp_d = {}
+    tmp_d['desc'] = 'TOTAL NET ...'
+    tmp_d['total'] = 0
+    for (let i = 0; i < dep.length; i++) {
+        const de = dep[i];
+        tmp_d[de.dep_id] =  (de['total_net'])?de['total_net'].toLocaleString('fr-CA'):'-'
+        tmp_d['total'] += (de['total_net'])?de['total_net']:0
+    }
+    tmp_d['total'] = (tmp_d['total'])?tmp_d['total'].toLocaleString('fr-CA'):'-'
+    _datas.push(tmp_d)
+    //fin insertion total net
+
+    //Insertion espèce
+    tmp_d = {}
+    tmp_d['desc'] = 'Dont ESPECE ...'
+    tmp_d['total'] = 0
+    for (let i = 0; i < dep.length; i++) {
+        const de = dep[i];
+        tmp_d[de.dep_id] =  (de['esp'])?de['esp'].toLocaleString('fr-CA'):'-'
+        tmp_d['total'] += (de['esp'])?de['esp']:0
+    }
+    tmp_d['total'] = (tmp_d['total'])?tmp_d['total'].toLocaleString('fr-CA'):'-'
+    _datas.push(tmp_d)
+    //fin insertion espèce
+
+    //Insertion chèque
+    tmp_d = {}
+    tmp_d['desc'] = 'Dont CHEQUE ...'
+    tmp_d['total'] = 0
+    for (let i = 0; i < dep.length; i++) {
+        const de = dep[i];
+        tmp_d[de.dep_id] =  (de['chq'])?de['chq'].toLocaleString('fr-CA'):'-'
+        tmp_d['total'] += (de['chq'])?de['chq']:0
+    }
+    tmp_d['total'] = (tmp_d['total'])?tmp_d['total'].toLocaleString('fr-CA'):'-'
+    _datas.push(tmp_d)
+    //fin insertion chèque
+
+
+    table = opt_tab(_head,_datas,doc)
+
+    await doc.table(table, { /* options */ });
+
+    doc.end()
+}
+
+async function createDetFactPDF(list_serv,pdf_name,enc){
+    let year_cur = new Date().getFullYear()
+    let year_enc = new Date(enc.enc_date_enreg).getFullYear()
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //Les options du PDF
+    //Création de pdf amzay e , 
+    let opt = {
+        margin: 15, size: 'A4' ,
+    }   
+    let doc = new PDFDocument(opt)
+
+    //les fonts
+    doc.registerFont('fira', 'fonts/fira.ttf');
+    doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+    doc.font("fira")
+
+    //Ecriture du PDF
+    doc.pipe(fs.createWriteStream(`./files/${pdf_name}.pdf`))
+
+    //les marges et le truc en bas
+    //______________________________________
+    let bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
+    doc.fontSize(8)
+
+    doc.text(
+        `Hôpital Andranomadio ${year_cur}`, 
+        0.5 * (doc.page.width - 300),
+        doc.page.height - 20,
+        {
+            width: 300,
+            align: 'center',
+            lineBreak: false,
+        })
+
+    // Reset text writer position
+    doc.text('', 15, 15);
+    doc.page.margins.bottom = bottom;
+    doc.on('pageAdded', () => {
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+    
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+    
+        // Reset text writer position
+        doc.text('', 50, 50);
+        doc.page.margins.bottom = bottom;
+    })
+    //-----------------___________________---------------
+    //------------- Ajout des titres en haut
+    doc.fontSize(14)
+    let y_line_title = doc.x
+    doc.text('HOPITALY LOTERANA')
+    doc.fontSize(10)
+    doc.text('Andranomadio - Antsirabe',{underline:true})
+    doc.moveDown()
+    doc.text('Stat n ° 85113 12 200 60 00614')
+    doc.text('NIF n ° 20000038126')
+
+
+    //Insertion d'image ici
+    let w_im = 70
+    doc.image('statics/icon.png',doc.page.width - w_im - opt.margin,opt.margin + 50,{width:w_im})
+
+
+    
+    // doc.lineWidth(1)
+    // doc.lineJoin('miter')
+    //     .rect(50, 100, 50, 50)
+    //     .stroke();
+
+
+    //--------- Affichage du nom du patient
+    doc.moveDown()
+
+    let y_line_pat = doc.y
+    doc.font('fira_bold')
+    doc.text('Patient :',{underline:true})
+    doc.font('fira')
+    doc.text(enc.pat_nom_et_prenom.toUpperCase())
+
+    //Insertion du care u titre à droite
+    let title_1 = 'ORDONNANCE ET FACTURE'
+    let w_cadre_title = doc.page.width - 300 - 15
+    let h_cadre_title = doc.heightOfString(title_1) +10
+    doc.lineJoin('miter')
+    .rect(300, y_line_title, w_cadre_title,h_cadre_title)
+    .stroke();
+    doc.text(title_1,300+(w_cadre_title/4),y_line_title+5)
+
+    //Cadre numéro et date
+    let num = (enc.enc_num_mvmt)?`N° ${year_enc.toString().substr(2)}/${enc.enc_num_mvmt.toString().padStart(5,0)}`:'-'
+    let date = (new Date()).toLocaleDateString()
+    doc.lineJoin('miter')
+    .rect(300, y_line_title + h_cadre_title, w_cadre_title /2,doc.heightOfString(num) + 10)
+    .stroke();
+    doc.text(num,300+5,y_line_title + h_cadre_title+5)
+    doc.lineJoin('miter')
+    .rect(300+(w_cadre_title /2), y_line_title + h_cadre_title, w_cadre_title /2,doc.heightOfString(num) + 10)
+    .stroke();
+    doc.text(date,300+(w_cadre_title/2+5),y_line_title + h_cadre_title+5)
+
+    //---------- Affichage de la société
+    doc.font('fira_bold')
+    doc.text('',300,y_line_pat,{underline:true})
+    doc.font('fira')
+    doc.text(``)
+
+
+    doc.moveDown(2)
+    let y_table = doc.y + 15
+    doc.text('',15,y_table)
+
+    //création des tableaux
+    let _head = [
+        { label:"DESIGNATION", width:435, property: 'desc',renderer: null ,headerAlign:"center"},
+        { label:"QTE", property: 'qt',width:50, renderer: null ,align: "right",headerAlign:"center"},
+        { label:"MONTANT", property: 'mnt',width:80,renderer: null,align: "right" ,headerAlign:"center" },
+    ]
+
+    //les datas
+    let _datas = [],cur_d = {}
+
+    //Boucle sur le facture
+    for (let i = 0; i < list_serv.length; i++) {
+        const ls = list_serv[i]
+
+        if(!ls.child) continue
+
+        _datas.push({desc:`----- ${ls.service_label} ----`,qt:'',mnt:''})
+        for(let j = 0;j < ls.child.length;j++){
+            const ch = ls.child[j]
+            _datas.push({desc:`    ${ch.service_label}`,qt:ch.encserv_qt,mnt:separateNumber(ch.encserv_montant)})
+        }
+    }
+
+    _datas.push({desc:'TOTAL',qt:'',mnt:separateNumber(enc.enc_montant)})
+
+    // Table du truc
+    const table = {
+        // complex headers work with ROWS and DATAS  
+        headers: _head,
+        // complex content
+        datas:_datas,
+        options:{
+            padding:5,
+            align:'center',
+            divider: {
+                header: { disabled: false, width: 1, opacity: 0.5 },
+                horizontal: { disabled: true, width: 0.5, opacity: 0 },
+                vertical: { disabled: false, width: 0.5, opacity: 0.5 },
+            },
+            prepareHeader: () => {
+                doc.font("fira_bold").fontSize(8)
+                doc.fillAndStroke('#575a61')
+            },
+            prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
+                doc.font("fira").fontSize(8)
+                doc.fillAndStroke('#47494d')
+                //#47494d
+
+                const {x, y, width, height} = rectCell;
+                let head_h = 17
+
+                // first line 
+                if(indexColumn === 0){
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y)
+                    .lineTo(x, y + height+1)
+                    .stroke();
+                }
+
+                if(indexRow == 0 && indexColumn === 0){
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y)
+                    .lineTo(x, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x+width, y)
+                    .lineTo(x+width, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y-head_h)
+                    .lineTo(x+width, y - head_h)
+                    .stroke();
+
+
+                }else if(indexRow == 0){
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x+width, y)
+                    .lineTo(x+width, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y-head_h)
+                    .lineTo(x+width, y - head_h)
+                    .stroke();
+                }
+
+                doc
+                .lineWidth(.5)
+                .moveTo(x + width, y)
+                .lineTo(x + width, y + height+1)
+                .stroke();
+
+                if(indexRow == _datas.length-1){
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y)
+                    .lineTo(x + width, y)
+                    .stroke();
+
+                    doc
+                    .lineWidth(.5)
+                    .moveTo(x, y+height)
+                    .lineTo(x + width, y+height)
+                    .stroke();
+
+                    doc.font("fira_bold")
+                }
+                // doc.fontSize(10).fillColor('#292929');
+            },
+        },
+        // simple content (works fine!)
+    }
+
+
+
+    await doc.table(table, { /* options */ });
+
+    doc.moveDown(2)
+    doc.font('fira')
+
+    let somme_t = 'Sois la somme de :'
+    let y_pos_cur = doc.y
+    doc.text(somme_t,{underline:true})
+    let somme_label = NumberToLetter(parseInt(enc.enc_montant))
+    doc.text(somme_label,doc.widthOfString(somme_t)+opt.margin+10,y_pos_cur)
+
+    //Ajout des trucs pour la signature
+
+    doc.font('fira_bold')
+
+    doc.moveDown(2)
+    let y_sign = doc.y
+    // atao 70 % ny largeur totale ny largeur misy anle signature
+    let w_sign = doc.page.width * 0.7
+
+    let x_begin = doc.page.width /2 - w_sign/2
+
+    let t = ['Le Medecin Chef,',`L'Employé,`,`La Société,`]
+
+    doc.text(t[0],x_begin,y_sign,{underline:true})
+    /*doc.text(t[1], doc.page.width /2 - doc.widthOfString(t[1])/2 ,y_sign,{underline:true})
+    doc.text(t[2], (doc.page.width /2 + w_sign/2) - doc.widthOfString(t[1]) ,y_sign,{underline:true})*/
+
+    doc.end();
 }
 
 
@@ -795,6 +1619,7 @@ async function generateDetFactPDF(fact,avance,list_serv){
 async function createFactPDF(fact,list_serv,mode){
 
     let year_cur = new Date().getFullYear()
+    let year_enc = new Date(fact.enc_date_enreg).getFullYear()
     const separateNumber = (n)=>{
         return (n)?n.toLocaleString('fr-CA'):''
     }
@@ -869,7 +1694,7 @@ async function createFactPDF(fact,list_serv,mode){
 
     //Toutes les textes
     let nom_hop = 'HOPITALY LOTERANA ANDRANOMADIO'
-    let t_caisse = (fact.enc_is_hosp)?`FACTURE DEFINITIVE - N° ${fact.enc_num_hosp}`:`RECU DE CAISSE - N° ${fact.enc_num_mvmt}`
+    let t_caisse = (fact.enc_is_hosp)?`FACTURE DEFINITIVE - N° ${fact.enc_num_hosp}`:`FACTURE CAISSE - N° ${year_enc.toString().substr(2)}/${fact.enc_num_mvmt.toString().padStart(5,0)}`
     let t_date = `${f_date} -- ${f_time}`
     let t_caissier = `CAISSIER : ${fact.util_label}`
     let t_pat_code = `Patient: ${(fact.pat_numero)?fact.pat_numero:'-'}`
@@ -880,8 +1705,8 @@ async function createFactPDF(fact,list_serv,mode){
     let t_avance = 'Avance:'
     let t_paiement_final = (fact.enc_to_caisse)?'Paiement final:':'Reste à payer:'
     let t_somme_m = NumberToLetter((fact.enc_percent_tarif)?(fact.enc_percent_tarif * parseInt(fact.enc_montant) / 100):parseInt(fact.enc_montant).toString()) 
-    let t_avance_s = (fact.enc_is_hosp)?parseInt(fact.enc_total_avance).toLocaleString('fr-CA'):''
-    let t_paiement_final_s = (fact.enc_is_hosp)?(parseInt(fact.enc_reste_paie)).toLocaleString('fr-CA'):''
+    let t_avance_s = (fact.enc_total_avance)?parseInt(fact.enc_total_avance).toLocaleString('fr-CA'):''
+    let t_paiement_final_s = (fact.enc_total_avance)?(parseInt(fact.enc_reste_paie)).toLocaleString('fr-CA'):''
     t_somme_m = t_somme_m.charAt(0).toUpperCase() + t_somme_m.slice(1) + ' Ariary' + ((fact.enc_percent_tarif && fact.enc_percent_tarif != 100)?`  (${fact.enc_percent_tarif})%`:'')
 
     //-------------
@@ -1082,7 +1907,7 @@ async function createFactPDF(fact,list_serv,mode){
     doc.font("fira")
     doc.text(t_somme_m,doc.widthOfString(t_somme)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_somme) -5 })
 
-    if(!fact.enc_is_hosp){
+    if(!fact.enc_total_avance){
         doc.moveDown()
         y_cur = doc.y
         doc.font("fira_bold")
@@ -1189,7 +2014,7 @@ async function createFactPDF(fact,list_serv,mode){
     doc.font("fira")
     doc.text(t_somme_m,doc.widthOfString(t_somme)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_somme) -5 })
 
-    if(!fact.enc_is_hosp){
+    if(!fact.enc_total_avance){
         doc.moveDown()
         y_cur = doc.y
         doc.font("fira_bold")
@@ -1211,7 +2036,6 @@ async function createFactPDF(fact,list_serv,mode){
         doc.text(t_paiement_final, hxx,y_cur,{underline:true})
         doc.font("fira")
         doc.text(t_paiement_final_s,hxx + doc.widthOfString(t_paiement_final)+5,y_cur,{width:w_cadre - (hxx + doc.widthOfString(t_paiement_final) -5) })
-
     }
 
 
@@ -1222,6 +2046,13 @@ async function createFactPDF(fact,list_serv,mode){
         .lineTo(doc.page.width/2, doc.y)
         .dash(5, {space: 10})
         .stroke();
+
+
+    //Dessin logo
+    let w_im = 30
+    doc.image('statics/icon.png',doc.page.width/2 - (w_im + opt.margin) ,100 ,{width:w_im})
+
+    doc.image('statics/icon.png',doc.page.width - (w_im + margin) ,100 ,{width:w_im})
 
     //Famaranana an'ilay document
     doc.end();
