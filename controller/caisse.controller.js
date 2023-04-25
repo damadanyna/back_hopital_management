@@ -2036,6 +2036,7 @@ async function createFactPDF(fact,list_serv,mode){
         doc.text(t_paiement_final, hxx,y_cur,{underline:true})
         doc.font("fira")
         doc.text(t_paiement_final_s,hxx + doc.widthOfString(t_paiement_final)+5,y_cur,{width:w_cadre - (hxx + doc.widthOfString(t_paiement_final) -5) })
+
     }
 
 
@@ -2046,13 +2047,6 @@ async function createFactPDF(fact,list_serv,mode){
         .lineTo(doc.page.width/2, doc.y)
         .dash(5, {space: 10})
         .stroke();
-
-
-    //Dessin logo
-    let w_im = 30
-    doc.image('statics/icon.png',doc.page.width/2 - (w_im + opt.margin) ,100 ,{width:w_im})
-
-    doc.image('statics/icon.png',doc.page.width - (w_im + margin) ,100 ,{width:w_im})
 
     //Famaranana an'ilay document
     doc.end();

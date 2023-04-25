@@ -211,6 +211,10 @@ router.get('/import_temp',require('../controller/impor_export/importation.contro
 
 //Gestion des mouvements dans le stock
 router.post('/mvmt',require('../controller/mvmt.controller').register)
+
+router.get('/mvmts/print/es',require('../controller/mvmt.controller').printMvmt)
+router.get('/mvmts/print/es/down',require('../controller/mvmt.controller').downListMvmt)
+
 router.get('/mvmt/utils-add',require('../controller/mvmt.controller').getUtilsAdd)
 router.get('/mvmts/entre',require('../controller/mvmt.controller').getEntre)
 router.get('/mvmts/sortie',require('../controller/mvmt.controller').getSortie)

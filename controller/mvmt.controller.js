@@ -354,7 +354,7 @@ class Mouvement{
             let depot = await D.exec('select * from depot')
 
 
-            creatPDFDetMvmt(mvmt,depot)
+            await creatPDFDetMvmt(mvmt,depot)
 
             return res.send({status:true})
         } catch (e) {
@@ -366,6 +366,67 @@ class Mouvement{
     static async downDetMvmt(req,res){
         try {
             let data = fs.readFileSync(`./files/det-mvmt.pdf`)
+            res.contentType("application/pdf")
+            // res.download(`./facture.pdf`)
+            res.send(data);
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+
+    static async printMvmt(req,res){
+        try {
+            let {action,date,date2} = req.query
+
+            date = new Date(date)
+            date2 = new Date(date2)
+            
+            let sql = ``
+
+            if(action == 'entre'){
+                sql = `select * from mvmt_art 
+                left join mvmt on mvmt_id = mart_mvmt_id
+                left join depot on mvmt_depot_dest = depot_id
+                left join fournisseur on mvmt_tiers = fourn_id
+                left join article on art_id = mart_art_id
+                where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'entre'`
+            }else{
+                sql = `select *,d_dest.depot_label as depot_dest,d_exp.depot_label as depot_exp
+                from mvmt_art 
+                left join mvmt on mvmt_id = mart_mvmt_id
+                left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
+                left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
+                left join departement on mvmt_tiers = dep_id
+                left join article on art_id = mart_art_id
+                where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'sortie'`
+            }
+
+            let mvmts = await D.exec_params(sql,[date2,date])
+
+
+            let mt = {
+                mart:mvmts,
+                action
+            }
+            let depot = await D.exec('select * from depot')
+
+            await creatPDFMvmt(mt,depot,date,date2)
+
+
+            return res.send({status:true})
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+
+    }
+
+    static downListMvmt(req,res){
+        try {
+            let data = fs.readFileSync(`./files/mvmt.pdf`)
             res.contentType("application/pdf")
             // res.download(`./facture.pdf`)
             res.send(data);
@@ -606,9 +667,6 @@ async function creatPDFDetMvmt(mt,depot){
 
     doc.lineJoin().rect(x_origin_info - padding_cadre_info,y_origin_info - padding_cadre_info/2,
         doc.page.width - (opt.margin * 2),(doc.y + (padding_cadre_info) - y_origin_info)).stroke()
-    
-    let w_im = doc.y - (padding_cadre_info) - y_origin_info
-    doc.image('statics/icon.png',doc.page.width - w_im - opt.margin*2,y_origin_info ,{width:w_im})
 
 
     //Les tableaux amzay
@@ -641,6 +699,211 @@ async function creatPDFDetMvmt(mt,depot){
         tmp_d['code'] = ma.art_code
         tmp_d['desc'] = ma.art_label
         tmp_d['qt'] = ma.mart_qt.toLocaleString('fr-CA')
+
+        for(var j = 0;j < depot.length;j++){
+            const de = depot[j]
+            tmp_d[`dp:${de.depot_id}`] = getStockArt(de.depot_id,ma)
+        }
+
+        _datas.push(tmp_d)
+
+    }
+
+    await doc.table(opt_tab(_head,_datas,doc), { /* options */ });
+
+    doc.end()
+}
+
+//Impression des mouvements selon la date
+async function creatPDFMvmt(mt,depot,date,date2){
+
+    let year_cur = new Date().getFullYear()
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //Les options du PDF
+    //Création de pdf amzay e 🤣😂, 
+    let opt = {
+        margin: 15, size: 'A4',layout:'landscape'
+    }   
+    let doc = new PDFDocument(opt)
+
+    //les fonts
+    doc.registerFont('fira', 'fonts/fira.ttf');
+    doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+    doc.font("fira")
+
+    //Ecriture du PDF
+    doc.pipe(fs.createWriteStream(`./files/mvmt.pdf`))
+
+    //les marges et le truc en bas
+    //______________________________________
+    let bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
+    doc.fontSize(8)
+
+    doc.text(
+        `Hôpital Andranomadio ${year_cur}`, 
+        0.5 * (doc.page.width - 300),
+        doc.page.height - 20,
+        {
+            width: 300,
+            align: 'center',
+            lineBreak: false,
+        })
+
+    // Reset text writer position
+    doc.text('', 15, 15);
+    doc.page.margins.bottom = bottom;
+    doc.on('pageAdded', () => {
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+    
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+    
+        // Reset text writer position
+        doc.text('', 50, 50);
+        doc.page.margins.bottom = bottom;
+    })
+    //-----------------___________________---------------
+    //------------- Ajout des titres en haut
+
+    //Toutes les textes dans le PDF
+    let nom_hop = 'HOPITALY LOTERANA - ANDRANOMADIO'
+    let title_pdf = `détails Mouvement - ${(mt.action == 'entre')?'entrées':'sorties'}`.toUpperCase()
+    let date_label = `Journée du : `
+    let date_value = `${new Date(date2).toLocaleDateString()} au ${new Date(date).toLocaleDateString()}`
+
+
+    
+
+    // ----- LES TITRES D'EN HAUT ------------
+    doc.font("fira_bold")
+    let y_ttl = doc.y
+    doc.text(nom_hop,{underline:true})
+
+    let ttl_w = doc.widthOfString(title_pdf)
+    
+    doc.text(title_pdf,doc.page.width/2 - ttl_w/2,y_ttl)
+    let ddl_w = doc.widthOfString(date_label)
+    let ddlv_w = doc.widthOfString(date_value)
+    doc.text(date_label,doc.page.width - (ddl_w + ddlv_w) - opt.margin,y_ttl)
+    
+    doc.text(date_value,doc.page.width - ddlv_w - opt.margin,y_ttl)
+
+    y_ttl += 15
+    //La ligne au dessous
+    doc.lineWidth(.5)
+    .moveTo(opt.margin, y_ttl)
+    .lineTo(doc.page.width - opt.margin, y_ttl)
+    .stroke();
+
+    // ------- FIN HEADER
+
+    doc.moveDown(3)
+    doc.font('fira')
+
+    let y_cur = doc.y
+    let dist_info = 200
+    let padding_cadre_info = 5
+    let x_origin_info = opt.margin + padding_cadre_info
+
+    let y_origin_info = y_cur
+
+    /*doc.text('Numéro',x_origin_info,y_cur,{underline:true})
+    doc.text(mt.mvmt_num)
+
+    doc.text('Type',x_origin_info + dist_info ,y_cur,{underline:true})
+    doc.text((mt.mvmt_action == 'entre')?getTypeEntre(mt.mvmt_type):getTypeSortie(mt.mvmt_type))*/
+
+    doc.moveDown(2)
+    y_cur = doc.y
+
+    //Pour les sorties
+    /*if(mt.mvmt_action == 'sortie'){
+        doc.text('Dépôt de depart',x_origin_info,y_cur,{underline:true})
+        doc.text(mt.depot_exp)
+
+        doc.text('Dépôt de déstination',x_origin_info + dist_info ,y_cur,{underline:true})
+        doc.text((mt.mvmt_type == 'transfert')?mt.depot_dest:mt.dep_label)
+
+    }else if(mt.mvmt_action == 'entre'){
+        doc.text('Fournisseur',x_origin_info,y_cur,{underline:true})
+        doc.text((mt.fourn_label)?mt.fourn_label:'-')
+
+        doc.text('Dépôt',x_origin_info + dist_info ,y_cur,{underline:true})
+        doc.text(mt.depot_label)
+    }
+
+    doc.lineJoin().rect(x_origin_info - padding_cadre_info,y_origin_info - padding_cadre_info/2,
+        doc.page.width - (opt.margin * 2),(doc.y + (padding_cadre_info) - y_origin_info)).stroke() */
+
+
+    //Les tableaux amzay
+    let _head = []
+    let _datas = []
+    // --------
+
+    doc.moveDown(3)
+    doc.text('',opt.margin,doc.y)
+
+    _head = [
+        { label:"Numéro".toUpperCase(), width:50, property: 'num',renderer: null ,headerAlign:"center",},
+        { label:"CODE", width:50, property: 'code',renderer: null ,headerAlign:"center",},
+        { label:"DESIGNATION", width:245, property: 'desc',renderer: null ,headerAlign:"center",},        
+        { label:"quantité".toUpperCase(), width:70, property: 'qt',renderer: null ,headerAlign:"center",align:"right"},
+    ]
+
+    // LE HEAD SI SORTIE
+    if(mt.action == 'sortie'){
+        _head.push({ label:"Dépôt départ".toUpperCase(), width:120, property: 'exp',renderer: null ,headerAlign:"center",})
+        _head.push({ label:"Dépôt déstination".toUpperCase(), width:100, property: 'dest',renderer: null ,headerAlign:"center",})
+    }else{ // LE HEAD SI ENTREE
+        _head.push({ label:"Fournisseur".toUpperCase(), width:120, property: 'fourn',renderer: null ,headerAlign:"center",})
+        _head.push({ label:"Dépôt".toUpperCase(), width:100, property: 'dep',renderer: null ,headerAlign:"center",})
+    }
+
+    //ajout des dépots
+    for (let i = 0; i < depot.length; i++) {
+        const e = depot[i];
+        //this.list_label.push({label:e.depot_label,key:`dp:${e.depot_id}`})
+        _head.push({ label:e.depot_label, width:90, property: `dp:${e.depot_id}`,renderer: null ,headerAlign:"center",align:"right"})
+    }
+
+    _datas = []
+    let tmp_d = {}
+
+    
+
+    for (var i = 0; i < mt.mart.length; i++) {
+        const ma = mt.mart[i]
+        tmp_d = {}
+        tmp_d['code'] = ma.art_code
+        tmp_d['num'] = ma.mvmt_num
+        tmp_d['desc'] = ma.art_label
+        tmp_d['qt'] = ma.mart_qt.toLocaleString('fr-CA')
+
+
+        if(mt.action == 'sortie'){
+            tmp_d['exp'] = ma.depot_exp
+            tmp_d['dest'] = (ma.mvmt_type == 'transfert')?ma.depot_dest:ma.dep_label
+        }else{
+
+            //quelque calcul pour la mise en  forme du nom fournisseur
+            tmp_d['fourn'] = (ma.fourn_label)? (doc.widthOfString(ma.fourn_label) > 80)?ma.fourn_label.substr(0,15)+'...':ma.fourn_label :'-'
+            tmp_d['dep'] = ma.depot_label
+        }
 
         for(var j = 0;j < depot.length;j++){
             const de = depot[j]
