@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt')
+const D = require('../models/data')
 
 class Utils{
     static async hash(p){
@@ -61,7 +62,6 @@ class Utils{
                     stk_ids.splice(0,1)
                     //Suppression des autres occurences
                     await  D.exec_params('delete from stock_article where stk_id in (?)',[stk_ids])
-                    
 
                     console.log(`Rec : ${ar.art_label}, occ : ${link.length}`)
                 }
