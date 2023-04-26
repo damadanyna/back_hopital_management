@@ -17,7 +17,7 @@ async function delete_occor_stkarticle(){
             const de = depot[j];
         
             //Détection des doublons pour le truc
-            let link = await D.exec_params('select * from stock_article where stk_depot_id = ? and stk_art_id = ?',[de.dep_id,ar.art_id])
+            let link = await D.exec_params('select * from stock_article where stk_depot_id = ? and stk_art_id = ?',[de.depot_id,ar.art_id])
 
             if(link.length > 1){
                 //Suppression des autres
