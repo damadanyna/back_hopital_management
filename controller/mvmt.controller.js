@@ -210,6 +210,182 @@ class Mouvement{
         }
     }
 
+
+    static async getEncMvmt(req,res){
+        try{
+
+            let nbEncMvmt = (await D.exec_params(`select count(*) as nb from encmvmt 
+                where em_validate = 0 and date(em_date_enreg) = date(?)`,[new Date()]))[0].nb
+
+            return res.send({status:true,nbEncMvmt})
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getEncMvmtPat(req,res){
+        try{
+            let filters = req.query.filters
+
+            let list_pat = await D.exec_params(`select * from encmvmt
+                left join encaissement on enc_id = em_enc_id
+                left join patient on pat_id = enc_pat_id where date(em_date_enreg) = date(?)`,[new Date(filters.date)])
+
+            return res.send({status:true,list_pat})
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getEncMvmtListMed(req,res){
+        try{
+            let {enc_id} = req.query
+
+            let list_med = await D.exec_params(`select * from enc_serv
+            left join article on art_id = encserv_serv_id
+            where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
+
+            return res.send({status:true,list_med})
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async validateEncMvmt(req,res){
+        try{
+            let {enc_id,util_id} = req.query
+
+            let list_med = await D.exec_params(`select * from enc_serv
+            left join article on art_id = encserv_serv_id
+            where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
+
+
+
+
+            //ici on va vraiment créer un mouvement de sortie
+            let action = 'sortie',type = 'sortie-interne'
+            //Récupération des dérniers mvmt de même type et action
+            let mvmt_last = await D.exec_params('select * from mvmt where mvmt_action = ? and mvmt_type = ? order by mvmt_id desc limit 1',[action,type])
+
+            //préparation de l'enregistrement
+            let mvmt_num = ''
+            if(mvmt_last.length > 0){
+                mvmt_last = mvmt_last[0]
+                mvmt_num = 'SI-'+((parseInt(mvmt_last.mvmt_num.split('-')[1]) + 1).toString().padStart(4,'0'))
+            }else{
+                mvmt_num = 'SI-'+('1'.padStart(4,'0'))
+            }
+
+
+
+            //Récupération du dépot
+            let depot  = await D.exec('select * from depot')
+
+            let depot_exp = -1
+            for (var i = 0; i < depot.length; i++) {
+                const e = depot[i]
+                if(e.depot_code == 'M01'){
+                    depot_exp = e.depot_id
+                    break
+                }
+            }
+            // --------------------
+
+
+
+            //faut s'occuper aussi du département
+            let dep = await D.exec_params('select * from departement where dep_label like ?',[`%disp%`])
+
+            let dep_id = -1
+            if(dep.length > 0){
+                dep_id = dep[0].dep_id
+            }
+            // -----------------
+            //Récupération de l'encaissement
+
+            let enc = ( await D.exec_params('select * from  encaissement where enc_id = ?',[enc_id]) )[0]
+            //
+
+
+
+
+            let mt = {
+                mvmt_action:action,
+                mvmt_type:type,
+                mvmt_num,
+                mvmt_depot_exp:depot_exp, //Très dangereux de faire ça
+                mvmt_tiers:dep_id,
+                mvmt_caisse:1,
+                mvmt_util_id:util_id,
+                mvmt_date:new Date(),
+                mvmt_montant:enc.enc_montant
+            }
+
+            //Eto ndray ny insertion an'ilay mouvement
+            let _mvmt = await D.set('mvmt',mt) 
+
+            // Vita iny aloha
+            //Manipulation dépôt ndray eto
+
+            //Parcours an'ilay list anle medicaments
+            // Marihina fa ito zavatra ito dia Modification fotsiny ny stock
+            for (var i = 0; i < list_med.length; i++) {
+                const el = list_med[i]
+
+                //On vérifie d'abord si le lien existe
+                let link = await D.exec_params('select * from stock_article where stk_depot_id = ? and stk_art_id = ?',[mt.mvmt_depot_exp,el.art_id])
+                if(link.length > 0){
+                    //Angalana ny depot d'expédition satri izy no mandefa an'ilay fanfody
+                    await D.exec_params(`update stock_article set stk_actuel = stk_actuel - ?
+                    where stk_depot_id = ? and stk_art_id = ?`,[el.encserv_qt,mt.mvmt_depot_exp,el.art_id])
+                }else{
+                    
+                    //si non on crée le lien
+                    await D.set('stock_article',{
+                        stk_actuel:0,
+                        stk_depot_id:mt.mvmt_depot_exp,
+                        stk_art_id:el.art_id
+                    })
+                }
+
+                //
+
+                let rest_stock = await D.exec_params(`select * from depot 
+                left join stock_article on depot_id = stk_depot_id 
+                where stk_art_id = ?`,[el.art_id])
+
+                await D.set('mvmt_art',{
+                    mart_det_stock:JSON.stringify(rest_stock),
+                    mart_mvmt_id:_mvmt.insertId,
+                    mart_qt:el.encserv_qt,
+                    mart_art_id:el.art_id,
+                    mart_prix_unit:el.encserv_prix_unit,
+                    mart_montant:el.encserv_montant,
+                })
+                
+            }
+
+            //Mise à jour an'ilay ENCMVMT
+            await D.updateWhere('encmvmt',{
+                em_mvmt_id:_mvmt.insertId,
+                em_validate:1
+            },{em_enc_id:enc_id})
+
+            //zay vao vita aaa 😂😂😂
+
+            return res.send({status:true})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
     static async getUtilsAdd(req,res){
         try {
 
@@ -884,7 +1060,6 @@ async function creatPDFMvmt(mt,depot,date,date2){
     _datas = []
     let tmp_d = {}
 
-    
 
     for (var i = 0; i < mt.mart.length; i++) {
         const ma = mt.mart[i]
@@ -897,7 +1072,7 @@ async function creatPDFMvmt(mt,depot,date,date2){
 
         if(mt.action == 'sortie'){
             tmp_d['exp'] = ma.depot_exp
-            tmp_d['dest'] = (ma.mvmt_type == 'transfert')?ma.depot_dest:ma.dep_label
+            tmp_d['dest'] = (ma.mvmt_type == 'transfert')?ma.depot_dest:ma.depot_label
         }else{
 
             //quelque calcul pour la mise en  forme du nom fournisseur
@@ -913,6 +1088,7 @@ async function creatPDFMvmt(mt,depot,date,date2){
         _datas.push(tmp_d)
 
     }
+    //console.log(_datas)
 
     await doc.table(opt_tab(_head,_datas,doc), { /* options */ });
 

@@ -42,3 +42,17 @@ alter table encaissement add enc_versement int null;
 -- modification de la tarification pour le faire coller à une mode de pourcentage
 alter table tarif add tarif_percent int null;
 alter table tarif add tarif_link_id int null;
+
+
+-- MODIF MAJEURE
+create table if not exists encmvmt(
+    em_id int auto_increment not null,
+    em_enc_id int null,
+    em_mvmt_id int null, 
+    em_validate int null default 0,
+    em_date_enreg datetime null default NOW(),
+    primary key (em_id)
+)Engine=InnoDB; 
+
+alter table mvmt add mvmt_caisse int null;
+

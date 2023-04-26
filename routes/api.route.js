@@ -204,13 +204,14 @@ router.delete('/fact_service/:fserv_id',require('../controller/fact_service.cont
 router.get('/fact_service',require('../controller/fact_service.controller').getList);
 router.put('/fact_service',require('../controller/fact_service.controller').update); 
 
-//Gestion des importation des fichier
-router.get('/article',require('../controller/impor_export/importation.controller').article); 
-router.get('/export',require('../controller/impor_export/importation.controller').export); 
-router.get('/import_temp',require('../controller/impor_export/importation.controller').import_temp);
-
 //Gestion des mouvements dans le stock
 router.post('/mvmt',require('../controller/mvmt.controller').register)
+
+//Récupération du nombre d'encaissement avec des médicaments
+router.get('/mvmt/enc-med/nb',require('../controller/mvmt.controller').getEncMvmt)
+router.get('/mvmt/encmvmt/pat',require('../controller/mvmt.controller').getEncMvmtPat)
+router.get('/mvmt/encmvmt/list-med',require('../controller/mvmt.controller').getEncMvmtListMed)
+router.get('/mvmt/encmvmt/validate',require('../controller/mvmt.controller').validateEncMvmt)
 
 router.get('/mvmts/print/es',require('../controller/mvmt.controller').printMvmt)
 router.get('/mvmts/print/es/down',require('../controller/mvmt.controller').downListMvmt)
@@ -221,6 +222,7 @@ router.get('/mvmts/sortie',require('../controller/mvmt.controller').getSortie)
 router.get('/mvmt/details/:mvmt_id',require('../controller/mvmt.controller').getDetails)
 router.get('/mvmt/details/:mvmt_id/pdf',require('../controller/mvmt.controller').setPDFDetMvmt)
 router.get('/mvmt/details/pdf/down',require('../controller/mvmt.controller').downDetMvmt)
+
 
 //Resaka encaissement
 router.post('/encaissement',require('../controller/caisse.controller').encaissement)
