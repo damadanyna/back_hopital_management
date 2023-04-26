@@ -44,7 +44,7 @@ alter table tarif add tarif_percent int null;
 alter table tarif add tarif_link_id int null;
 
 
--- MODIF MAJEURE
+-- MODIF MAJEURE 26/04/2023
 create table if not exists encmvmt(
     em_id int auto_increment not null,
     em_enc_id int null,

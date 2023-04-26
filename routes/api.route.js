@@ -133,6 +133,9 @@ router.get('/articles/mvmt/search',require('../controller/article.controller').s
 router.get('/articles',require('../controller/article.controller').getList);
 router.put('/article',require('../controller/article.controller').update);
 
+//suppression d'un article // fait à la va vite
+router.delete('/article/:art_id',require('../controller/article.controller').delete);
+
 //Impression des listes des articles
 router.get('/article/print/all',require('../controller/article.controller').printList)
 router.get('/article/download',require('../controller/article.controller').downloadArticleList)

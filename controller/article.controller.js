@@ -102,7 +102,14 @@ class Article{
             
             //On doit aussi supprimer les relations entre l'article et les autres tables
             //suppression ny relation tarif et article
-            await D.exec_params('delete from tarif_service where tserv_service_id = ? and tserv_is_product = 1',art_id)
+            await D.exec_params('delete from tarif_service where tserv_service_id = ? and tserv_is_product = 1',[art_id])
+
+            //suppression dans mart
+            await D.exec_params('delete from mvmt_art where mart_art_id = ?',[art_id])
+
+            //suppression dans stock
+            await D.exec_params('delete from stock_article where stk_art_id = ?',[art_id])
+
             //Ici tous les fonctions sur l'enregistrement d'un article
             return res.send({status:true,message:"Article bien supprimé."})
         } catch (e) {
