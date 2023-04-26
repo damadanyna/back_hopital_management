@@ -657,7 +657,7 @@ class Caisse{
             //récupération de la facture
             let fact = (await D.exec_params(`select * from encaissement
             left join patient on pat_id = enc_pat_id
-            left join utilisateur on enc_util_validate_id = enc_util_id
+            left join utilisateur on enc_util_validate_id = util_id
             where enc_id = ?`,[enc_id]))[0]
 
             //Récupération de la liste des produits liés à la facture
