@@ -2,6 +2,7 @@ const { updateWhere } = require('../models/data');
 let PDFDocument = require("pdfkit-table");
 let fs = require('fs')
 let D = require('../models/data')
+let U = require('../utils/utils')
 
 class Article{
     static async register(req,res){ 
@@ -82,6 +83,9 @@ class Article{
                 await D.exec_params(sql,[datas])
 
             }
+
+            //Suppression des occurences
+            await U.delOccurStk()
 
             return res.send({status:true,message:"Article bien enregistrer."})
         } catch (e) {
@@ -231,6 +235,9 @@ class Article{
                     })
                 }
             }
+
+            //Suppression des occurences
+            await U.delOccurStk()
 
             //Ici tous les fonctions sur l'enregistrement d'un article
             return res.send({status:true,message:"Mise à jour, fait"})

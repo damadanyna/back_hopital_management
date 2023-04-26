@@ -1,4 +1,5 @@
 let D = require('../models/data')
+let U = require('../utils/utils')
 
 let PDFDocument = require("pdfkit-table");
 let fs = require('fs')
@@ -220,6 +221,8 @@ class Mouvement{
             //Vita a 😎😉
             //Ouf zay vaot vita ny insertion an'ireny article reny ao am table mvmt_art
             
+            //Suppression des occurences
+            await U.delOccurStk()
 
             return res.send({status:true})
         } catch (e) {
@@ -396,6 +399,9 @@ class Mouvement{
             },{em_enc_id:enc_id})
 
             //zay vao vita aaa 😂😂😂
+
+            //Suppression des occurences
+            await U.delOccurStk()
 
             return res.send({status:true})
         } catch (e) {
