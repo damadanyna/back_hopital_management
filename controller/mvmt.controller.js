@@ -128,6 +128,16 @@ class Mouvement{
 
                     //si existe en met à jour
                     if(link.length > 0){
+                        if(link.length > 1){
+                            //Suppression des autres
+                            let stk_ids = link.map(x => x.stk_id )
+                            stk_ids.splice(0,1)
+
+
+                            //Suppression des autres occurences
+                            await  D.exec_params('delete from stock_article where stk_id in (?)',[stk_ids])
+
+                        }
                         await D.exec_params(`update stock_article set  stk_actuel = stk_actuel + ?
                         where stk_depot_id = ? and stk_art_id = ?`,[el.mart_qt,mvmt.mvmt_depot_dest,el.mart_art_id])
                     }else{
@@ -146,6 +156,14 @@ class Mouvement{
                     //On vérifie d'abord si le lien existe
                     let link = await D.exec_params('select * from stock_article where stk_depot_id = ? and stk_art_id = ?',[mvmt.mvmt_depot_exp,el.mart_art_id])
                     if(link.length > 0){
+                        if(link.length > 1){
+                            //Suppression des autres
+                            let stk_ids = link.map(x => x.stk_id )
+                            stk_ids.splice(0,1)
+                            //Suppression des autres occurences
+                            await  D.exec_params('delete from stock_article where stk_id in (?)',[stk_ids])
+                            
+                        }
                         //Angalana ny depot d'expédition satri izy no mandefa an'ilay fanfody
                         await D.exec_params(`update stock_article set stk_actuel = stk_actuel - ?
                         where stk_depot_id = ? and stk_art_id = ?`,[el.mart_qt,mvmt.mvmt_depot_exp,el.mart_art_id])
