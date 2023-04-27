@@ -46,6 +46,7 @@ create table if not exists patient(
     pat_sexe varchar(55) null,
     pat_numero varchar(20) null, 
     pat_util_id int null,
+    pat_dernier_viste datetime null,
     primary key (pat_id)
 )Engine=InnoDB;
  

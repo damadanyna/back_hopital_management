@@ -56,3 +56,12 @@ create table if not exists encmvmt(
 
 alter table mvmt add mvmt_caisse int null;
 
+-- Modif 27/04/2023
+alter table patient add pat_dernier_visite datetime null;
+-- Alors ici on va ajouter une case à cocher côté encaissement pour pouvoir ajouté les 
+-- Patient externe, ce qui veut dire que ce sont des patients pas dans la base de donnée
+alter table encaissement add enc_is_externe int null;
+alter table encaissement add enc_pat_externe varchar(255) null;
+
+
+

@@ -14,6 +14,8 @@ class Patient{
             pat_profession:{front_name:'pat_profession',fac:false}, 
             pat_sexe:{front_name:'pat_sexe',fac:false}, 
             pat_numero:{front_name:'pat_numero',fac:false}, 
+            pat_dernier_visite:{front_name:'pat_dernier_visite',fac:true,format:(a)=> new Date(a)},
+
         };
 
         //Vérification du patient
@@ -151,6 +153,8 @@ class Patient{
 
         delete p.pat_date_enreg
         p.pat_date_naiss = (p.pat_date_naiss)?new Date(p.pat_date_naiss):null
+        p.pat_dernier_visite = (p.pat_dernier_visite)?new Date(p.pat_dernier_visite):null
+
         try {
             await D.updateWhere('patient',p,{pat_id:p.pat_id})
                 //Ici tous les fonctions sur l'enregistrement d'un patient

@@ -22,7 +22,9 @@ let _prep_enc_data = {
     enc_result_final:{front_name:'enc_result_final',fac:true},
     enc_reste_paie:{front_name:'enc_reste_paie',fac:true},
     enc_to_caisse:{front_name:'enc_to_caisse',fac:true},
-    enc_percent_tarif:{front_name:'enc_percent_tarif',fac:true}
+    enc_percent_tarif:{front_name:'enc_percent_tarif',fac:true},
+    enc_is_externe:{front_name:'enc_is_externe',fac:true},
+    enc_pat_externe:{front_name:'enc_pat_externe',fac:true}
     
 }
 let _prep_key = Object.keys(_prep_enc_data)
@@ -1716,8 +1718,8 @@ async function createFactPDF(fact,list_serv,mode){
     let t_caisse = (fact.enc_is_hosp)?`FACTURE DEFINITIVE - N° ${fact.enc_num_hosp}`:`FACTURE CAISSE - N° ${year_enc.toString().substr(2)}/${fact.enc_num_mvmt.toString().padStart(5,0)}`
     let t_date = `${f_date} -- ${f_time}`
     let t_caissier = `CAISSIER : ${fact.util_label}`
-    let t_pat_code = `Patient: ${(fact.pat_numero)?fact.pat_numero:'-'}`
-    let pat_name = (fact.pat_nom_et_prenom)?fact.pat_nom_et_prenom:'-'
+    let t_pat_code = `Patient: ${(fact.pat_numero)?fact.pat_numero:(fact.enc_is_externe)?'EXTERNE':'-'}`
+    let pat_name = (fact.pat_nom_et_prenom)?fact.pat_nom_et_prenom:(fact.enc_is_externe)?fact.enc_pat_externe:'-'
     let t_pat_adresse = (fact.pat_adresse)?fact.pat_adresse:'-'
     let t_somme = 'Soit la somme de:'
     let t_mode = 'Paiement:'
