@@ -51,7 +51,7 @@ function opt_tab (head,datas,doc){
                 doc.fillAndStroke('#575a61')
             },
             prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
-                doc.font("fira").fontSize(8)
+                doc.font("fira").fontSize(7)
                 doc.fillAndStroke('#47494d')
                 //#47494d
 
