@@ -1199,7 +1199,7 @@ async function createRapportVt(dt){
 
     // ------ DEBUT INSERTION DE TABLEAU DE BILLETAGE
     //
-    let sz_nbr = 20,sz_billet = 50,sz_montant = 70
+    let sz_nbr = 40,sz_billet = 50,sz_montant = 70
     _head = [
         { label:"Nbr", width:sz_nbr, property: 'nb',renderer: null ,headerAlign:"center",align:"right"},
         { label:"Billets", width:sz_billet, property: 'billet',renderer: null ,headerAlign:"center",align:"right"},
