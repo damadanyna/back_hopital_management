@@ -36,4 +36,38 @@ async function delete_occor_stkarticle(){
     console.log('-- FIN --');
 }
 
-delete_occor_stkarticle()
+// delete_occor_stkarticle()
+
+//Modificaation des numéros des encaissement s'il y a des répétitions
+async function correctNumMvmt(){
+
+    //récupération des listes d'encaissements
+    let encs = await D.exec_params('select * from encaissement')
+    let nb = 0
+
+    let last_mvmt = await D.exec('select enc_num_mvmt from encaissement where enc_num_mvmt is not null order by enc_id desc limit 1')
+    last_mvmt = (last_mvmt.length <= 0)?0:parseInt(last_mvmt[0].enc_num_mvmt)
+
+    for (let i = 0; i < encs.length; i++) {
+        const e1 = encs[i];
+
+        for (let j = 0; j < encs.length; j++) {
+            const e2 = encs[j];
+            
+
+            if(e2.enc_num_mvmt == e1.enc_num_mvmt && e2.enc_id != e1.enc_id && e2.enc_to_caisse && e1.enc_to_caisse){
+                last_mvmt += 1
+                encs[j].enc_num_mvmt = last_mvmt
+                await D.updateWhere('encaissement',{enc_num_mvmt:last_mvmt},{enc_id:e2.enc_id})
+
+                console.log(e2.enc_num_mvmt+' -- '+e1.enc_num_mvmt)
+            }
+        }
+
+        console.log('-- * -- * --');
+    }
+
+    console.log('-- FIN --');
+}
+
+correctNumMvmt()

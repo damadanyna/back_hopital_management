@@ -313,18 +313,14 @@ class Service{
 
 
     static async update(req,res){ 
-        let data = req.body 
-        var array=[]
-        for (const key in data) { 
-            array.push({[key]:data[key]})
-        }  
+        
         try {  
-            for (let i = 1; i < array.length; i++) {
-                const element = array[i]; 
-                await D.updateWhere('service',element,array[0]) 
-            }
-                //Ici tous les fonctions sur l'enregistrement d'un service
-                return res.send({status:true,message:"Mise à jour, fait"})
+            let s = req.body 
+            //Mise à jour du service
+            await D.updateWhere('service',s,{service_id:s.service_id})
+            
+            //Ici tous les fonctions sur l'enregistrement d'un service
+            return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

@@ -64,4 +64,8 @@ alter table encaissement add enc_is_externe int null;
 alter table encaissement add enc_pat_externe varchar(255) null;
 
 
+-- Modif 28/04/2023
+alter table service add service_rang int null;
+
+
 

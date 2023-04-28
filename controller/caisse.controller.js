@@ -199,6 +199,11 @@ class Caisse{
 
         if(!enc.enc_is_hosp){
             enc.enc_to_caisse = 1
+            //Juste quelques modifications sur le numéros de l''encaissement
+            let last_mvmt = await D.exec('select enc_num_mvmt from encaissement where enc_num_mvmt is not null order by enc_id desc limit 1')
+            last_mvmt = (last_mvmt.length <= 0)?0:parseInt(last_mvmt[0].enc_num_mvmt)
+
+            enc.enc_num_mvmt = last_mvmt + 1
         }
 
         /**
@@ -503,8 +508,15 @@ class Caisse{
         try {
             let { enc_id,enc_num_mvmt} = req.body
 
-            console.log(req.body)
+            // console.log(req.body)
             let enc_date = new Date()
+
+            //Juste quelques modifications sur le numéros de l''encaissement
+            let last_mvmt = await D.exec('select enc_num_mvmt from encaissement where enc_num_mvmt is not null order by enc_id desc limit 1')
+            last_mvmt = (last_mvmt.length <= 0)?0:parseInt(last_mvmt[0].enc_num_mvmt)
+
+            enc.enc_num_mvmt = last_mvmt + 1
+
             //Modification simple anle izy
             await D.updateWhere('encaissement',{enc_to_caisse:1,enc_num_mvmt,enc_date,enc_validate:0},{enc_id})
 
@@ -649,12 +661,29 @@ class Caisse{
             //console.log(util_id)
 
             //Récupération des listes des services parents
-            let list_serv = await D.exec(`select * from service where service_parent_id is null`)
+            let list_serv = await D.exec(`select * from service where service_parent_id is null order by service_rang asc`)
 
             //Modification de la facture pour modifier l'utilisateur qui sera rattaché à l'encaissement
             if(util_id){
                 await D.updateWhere('encaissement',{enc_util_validate_id:util_id},{enc_id})
             }
+
+            //Ici on va séparer les rang null et les autres
+            // 🤣😂 Vraiment ridicule ce bout de code
+            let lnull = [], nnull = []
+            for (let i = 0; i < list_serv.length; i++) {
+                const e = list_serv[i];
+                if(!e.service_rang){
+                    lnull.push(e)
+                }else{
+                    nnull.push(e)
+                }
+            }
+            list_serv = [...nnull,...lnull]
+            // ----------------------
+
+
+            // console.log(list_serv);
 
             //récupération de la facture
             let fact = (await D.exec_params(`select * from encaissement
@@ -687,7 +716,7 @@ class Caisse{
             }
 
             if(index_med == -1){
-                list_serv.push({service_code:'MED',service_label:'MEDICAMENTS'})
+                list_serv.splice(2,0,{service_code:'MED',service_label:'MEDICAMENTS'})
                 index_med = list_serv.length - 1
             }
 
@@ -702,7 +731,7 @@ class Caisse{
             // await createFactPDF(fact,list_serv,fact_serv)
             let mode = {}
             if(!parseInt(fact.enc_validate)){
-                mode = req.query.mode
+                mode = (fact.enc_is_hosp)?null:req.query.mode
             }else{
                 mode = {
                     label:(fact.enc_mode_paiement == 'esp')?'Espèce':'Chèque',
@@ -949,8 +978,8 @@ class Caisse{
             //Liste des département
             //Qlques Gestions
             let dep = await D.exec('select * from departement')
-            //dep_code d'un département autre est : C999
-            let dep_code_autre = "C999"
+            //dep_code d'un département dispensaire est : C017
+            let dep_code_autre = "C017"
             let dep_autre_in = false
             for (let i = 0; i < dep.length; i++) {
                 const de = dep[i];
@@ -978,8 +1007,21 @@ class Caisse{
             //Ici on va supposé que le index (ID) du service médicaments et de  [s500]
             let id_med = 's500'
 
-            let serv_p = await D.exec_params('select * from service where service_parent_id is null')
-            serv_p.push({service_id:id_med,service_label:'MEDICAMENTS',service_code:'MED',service_parent_id:null})
+            let serv_p = await D.exec_params('select * from service where service_parent_id is null order by service_rang')
+            //Ici on va séparer les rang null et les autres
+            // 🤣😂 Vraiment ridicule ce bout de code
+            let lnull = [], nnull = []
+            for (let i = 0; i < serv_p.length; i++) {
+                const e = serv_p[i];
+                if(!e.service_rang){
+                    lnull.push(e)
+                }else{
+                    nnull.push(e)
+                }
+            }
+            serv_p = [...nnull,...lnull]
+            // ----------------------
+            serv_p.splice(2,0,{service_id:id_med,service_label:'MEDICAMENTS',service_code:'MED',service_parent_id:null})
 
 
             // répartition des montants par département
@@ -1024,10 +1066,9 @@ class Caisse{
                 }
             }
 
+
             let dt = {enc,serv_p,dep,vt}
-
             await createRapportVt(dt)
-
             return res.send({status:true,vt,enc,list_serv,list_med})
 
         } catch (e) {
@@ -1703,6 +1744,17 @@ async function createFactPDF(fact,list_serv,mode){
     })
     //-----------------___________________---------------
 
+    //-----------------------
+    //Filigrane
+    let im = {
+        w:700,
+        h:400
+    }
+    if(fact.enc_is_hosp && !fact.enc_validate){
+        doc.image('statics/filigrane-fact.png',0,doc.page.height/2 - im.h/2,{width:doc.page.width})
+    }
+    //--------------------
+
     //Définition des tailles
     let margin = 25
     let margin_middle = 15
@@ -1715,9 +1767,9 @@ async function createFactPDF(fact,list_serv,mode){
 
     //Toutes les textes
     let nom_hop = 'HOPITALY LOTERANA ANDRANOMADIO'
-    let t_caisse = (fact.enc_is_hosp)?`FACTURE DEFINITIVE - N° ${fact.enc_num_hosp}`:`FACTURE CAISSE - N° ${year_enc.toString().substr(2)}/${fact.enc_num_mvmt.toString().padStart(5,0)}`
+    let t_caisse = (fact.enc_is_hosp)?`FACTURE ${(fact.enc_validate)?'DEFINITIVE':'PROVISOIRE'} - N° ${fact.enc_num_hosp}`:`FACTURE CAISSE - N° ${year_enc.toString().substr(2)}/${fact.enc_num_mvmt.toString().padStart(5,0)}`
     let t_date = `${f_date} -- ${f_time}`
-    let t_caissier = `CAISSIER : ${fact.util_label}`
+    let t_caissier = `CAISSIER : ${ (fact.util_label)?fact.util_label:'-' }`
     let t_pat_code = `Patient: ${(fact.pat_numero)?fact.pat_numero:(fact.enc_is_externe)?'EXTERNE':'-'}`
     let pat_name = (fact.pat_nom_et_prenom)?fact.pat_nom_et_prenom:(fact.enc_is_externe)?fact.enc_pat_externe:'-'
     let t_pat_adresse = (fact.pat_adresse)?fact.pat_adresse:'-'
@@ -1934,7 +1986,7 @@ async function createFactPDF(fact,list_serv,mode){
         doc.font("fira_bold")
         doc.text(t_mode,x_begin,y_cur,{underline:true})
         doc.font("fira")
-        doc.text(mode.label,doc.widthOfString(t_mode)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_mode) -5 })
+        doc.text((mode)?mode.label:'Provisoire',doc.widthOfString(t_mode)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_mode) -5 })
     }else{
         //Insertion avance
         doc.moveDown()
@@ -2041,7 +2093,7 @@ async function createFactPDF(fact,list_serv,mode){
         doc.font("fira_bold")
         doc.text(t_mode,x_begin,y_cur,{underline:true})
         doc.font("fira")
-        doc.text(mode.label,doc.widthOfString(t_mode)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_mode) -5 })
+        doc.text((mode)?mode.label:'Provisoire',doc.widthOfString(t_mode)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_mode) -5 })
     }else{
         //Insertion avance
         doc.moveDown()
@@ -2068,6 +2120,7 @@ async function createFactPDF(fact,list_serv,mode){
         .lineTo(doc.page.width/2, doc.y)
         .dash(5, {space: 10})
         .stroke();
+
 
     //Famaranana an'ilay document
     doc.end();
