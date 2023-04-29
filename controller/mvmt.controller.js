@@ -341,7 +341,7 @@ class Mouvement{
                 mvmt_type:type,
                 mvmt_num,
                 mvmt_depot_exp:depot_exp, //Très dangereux de faire ça
-                mvmt_tiers:dep_id,
+                mvmt_tiers:enc.enc_dep_id?enc.enc_dep_id:dep_id,
                 mvmt_caisse:1,
                 mvmt_util_id:util_id,
                 mvmt_date:new Date(),
