@@ -515,7 +515,7 @@ class Caisse{
             let last_mvmt = await D.exec('select enc_num_mvmt from encaissement where enc_num_mvmt is not null order by enc_id desc limit 1')
             last_mvmt = (last_mvmt.length <= 0)?0:parseInt(last_mvmt[0].enc_num_mvmt)
 
-            enc.enc_num_mvmt = last_mvmt + 1
+            enc_num_mvmt = last_mvmt + 1
 
             //Modification simple anle izy
             await D.updateWhere('encaissement',{enc_to_caisse:1,enc_num_mvmt,enc_date,enc_validate:0},{enc_id})
