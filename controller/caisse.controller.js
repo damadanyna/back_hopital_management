@@ -717,7 +717,7 @@ class Caisse{
 
             if(index_med == -1){
                 list_serv.splice(2,0,{service_code:'MED',service_label:'MEDICAMENTS'})
-                index_med = list_serv.length - 1
+                index_med = 2
             }
 
             list_serv[index_med].montant_total = 0
