@@ -743,7 +743,7 @@ class Caisse{
 
             //Eto création an'ilay Entité côté mouvement raha ohatra ka nisy médicaments ny zavatra novidian'ilay 
             // Patient
-            if(fact_med.length > 0 && !parseInt(fact.enc_validate)){
+            if(fact_med.length > 0 && parseInt(fact.enc_validate) == 0){
 
                 //Enregistrement anle Raha
                 await D.set('encmvmt',{

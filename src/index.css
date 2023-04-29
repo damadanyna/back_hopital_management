@@ -1,0 +1,140 @@
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities; */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap');
+
+@import '~primevue/resources/themes/tailwind-light/theme.css';
+@import '~primevue/resources/primevue.min.css';
+@import '~primeicons/primeicons.css';
+@import '~primeflex/primeflex.css';
+/* @import '~material-symbols/outlined.css'; */
+@import '../node_modules/material-symbols/outlined.css';
+
+:root {
+  --main-color: rgb(67, 56, 202);
+  --main-color-lite: rgba(169, 164, 224, 0.1);
+  --border-color:#dddddd;
+}
+ 
+body {
+  user-select: none;
+  font-weight: 400;
+}
+
+.scale-content{
+  transform: scale(0.9);
+}
+
+/* @font-face {
+  font-family: "Fira Code";
+  src: url('./assets/fira.ttf');
+}*/
+
+/* @font-face {
+  font-family: "Montserrat";
+  src: url('./assets/montserrat.ttf');
+} */
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: rgba(255, 254, 254, 0.959);
+  margin: 0;
+  padding: 0;
+}
+
+*{
+  font-family: 'Poppins', sans-serif;
+}
+
+
+/* style primefaces */
+
+.p-datatable .p-column-title{
+  color: var(--main-color);
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.p-datatable .p-datatable-thead{
+  color: red;
+}
+
+.p-datatable .p-datatable-header{
+  color: var(--main-color);
+  background-color: var(--main-color-lite);
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+.p-datatable .p-datatable-footer{
+  /* color: var(--main-color); */
+  background-color: var(--main-color-lite);
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+/* Essayes de CSS de table */
+
+.top-head{
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 2px solid var(--main-color);
+}
+
+table{
+  border-collapse: collapse;
+  border: var(--border-color);
+  font-weight: 400;
+}
+table thead th{
+  position: sticky;
+  color: white;
+  font-weight: 500;
+  color: rgb(250,250,250);
+  background-color: var(--main-color);
+  /* border: 1px solid var(--border-color); */
+}
+
+table tbody tr {
+  border: 1px solid var(--border-color);
+  font-weight: 400;
+}
+
+table th,
+table td {
+    padding: 12px 15px;
+}
+table tbody tr:nth-of-type(even) {
+  background-color: #f3f3f3;
+}
+
+table .active-row{
+  color: var(--main-color);
+  font-weight: bold;
+  background-color: var(--main-color-lite);
+  /* position: sticky; */
+  /* top: 0; */
+}
+
+table .last-row{
+  position: sticky;
+  bottom: 0;
+  background-color: white;
+}
+table tbody tr:last-of-type {
+  border-bottom: 2px solid var(--main-color);
+}
+
+
+/* Les menus en forme d'onglet pour chaque module */
+
+
+
+
+/* TRANSITION */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity .5s ease;
+}
+.fade-enter-from, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+  opacity: 0;
+}
