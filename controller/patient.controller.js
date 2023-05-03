@@ -14,7 +14,7 @@ class Patient{
             pat_profession:{front_name:'pat_profession',fac:false}, 
             pat_sexe:{front_name:'pat_sexe',fac:false}, 
             pat_numero:{front_name:'pat_numero',fac:false}, 
-            pat_dernier_visite:{front_name:'pat_dernier_visite',fac:true,format:(a)=> new Date(a)},
+            pat_dernier_visite:{front_name:'pat_dernier_visite',fac:true,format:(a)=> (a)?new Date(a):null},
 
         };
 

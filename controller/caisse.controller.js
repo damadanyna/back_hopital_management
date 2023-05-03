@@ -263,6 +263,15 @@ class Caisse{
                 `%${filters.search}%`,filters.limit
             ])
 
+            //Test alo e, récupération reste des articles
+            for (var i = 0; i < list_med.length; i++) {
+                const e = list_med[i]
+
+                list_med[i]['stock'] = await D.exec_params('select * from stock_article where stk_art_id = ? order by stk_depot_id',[e.art_id])
+            }
+
+            //let depot = await D.exec_params('select * from depot')
+
             let list = [...list_serv,...list_med]
 
             res.send({status:true,list})

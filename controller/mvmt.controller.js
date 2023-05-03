@@ -333,9 +333,6 @@ class Mouvement{
             let enc = ( await D.exec_params('select * from  encaissement where enc_id = ?',[enc_id]) )[0]
             //
 
-
-
-
             let mt = {
                 mvmt_action:action,
                 mvmt_type:type,

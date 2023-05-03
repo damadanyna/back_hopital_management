@@ -8,7 +8,9 @@ let connection = mysql.createConnection({
   multipleStatements: true
 });
  
+
 connection.connect()
+
 
 //type Utilisateur
 module.exports = connection

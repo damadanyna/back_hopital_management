@@ -59,7 +59,6 @@ class Facture{
     static async delete(req,res){
         try {   
             await D.del('facture',req.params)
-            //Ici tous les fonctions sur l'enregistrement d'un facture
             return res.send({status:true,message:"facture supprimé."})
         } catch (e) {
             console.error(e)
@@ -142,6 +141,8 @@ class Facture{
             delete f.fact_serv
             f.fact_date = new Date(f.fact_date)
 
+            
+
             //Modification de la facture
             await D.updateWhere('facture',f,{fact_id:f.fact_id})
 
@@ -194,10 +195,62 @@ class Facture{
 
                 await D.exec(sql)
             }
+
+
+            //AJOUT AN'ILAY CONSULTATION RAHA OHATRA KA DISPENSAIRE ILAY f.fact_dep_id
+            //Eto zany no tokony hisy an'ilay vérification an'ilay 
+            if(f.fact_dep_id){
+                //Ato ny création an'ilay consultation
+                //vérification hoe efa mi-existe ao am consultation ve ito prise en charge ito
+                //Satria unique daholo izy ireo de tokony tsy hiverimberina
+
+                let pec = (await D.exec_params('select * from encharge where encharge_id = ?',[f.fact_encharge_id]))[0]
+
+                let cons = await D.exec_params('select * from consultation where cons_pec_id = ?',[pec.encharge_id])
+
+                //Mila atao eto ny total rehetra
+                //Récupération fact_service
+                let fserv = await D.exec_params('select * from fact_service where fserv_fact_id = ?',[f.fact_id])
+
+                let montant = 0
+                for (var i = 0; i < fserv.length; i++) {
+                    const fs = fserv[i]
+
+                    montant += parseInt(fs.fserv_montant)
+                }
+
+                if(cons.length > 0){
+                    //Efa misy ao izany ilay izy de tsy mila créer-na tsony, mety hoe modification sisa
+                    await D.updateWhere('consultation',{cons_montant:montant},{cons_pec_id:pec.encharge_id})
+
+                }else{
+
+
+                    //mbola jerena alo hoe dispensaire ve sa tsia ilay département voasafidy
+                    let dp = (await D.exec_params('select * from departement where dep_id = ?',[f.fact_dep_id]))[0]
+
+                    let dep_code_dispensaire = 'C017'
+
+                    if(dp.dep_code == dep_code_dispensaire){
+                         //fa eto an Mila manao création an'ilay izy
+                        let cns = {
+                            cons_pat_id:pec.encharge_pat_id,
+                            cons_ent_id:pec.encharge_ent_id,
+                            cons_entpayeur_id:pec.encharge_ent_payeur,
+                            cons_montant:montant,
+                            cons_is_pec:1,
+                            cons_pec_id:pec.encharge_id
+                        }
+
+                        await D.set('consultation',cns)
+                    }
+                   
+                }
+            }
             
             //vita daholo izay ny modification
 
-            //Ici tous les fonctions sur l'enregistrement d'un facture
+            //Ici tous les fonctions sur l'enregistrement d'une facture
             return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
             console.error(e)

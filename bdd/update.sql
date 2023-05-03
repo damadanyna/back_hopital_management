@@ -67,5 +67,11 @@ alter table encaissement add enc_pat_externe varchar(255) null;
 -- Modif 28/04/2023
 alter table service add service_rang int null;
 
+-- Modif 02/05/2023
+alter table consultation add cons_is_pec int null default 0;
+alter table consultation add cons_pec_id int null;
+alter table consultation add cons_entpayeur_id int null;
+
+
 
 
