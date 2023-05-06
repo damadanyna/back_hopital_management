@@ -70,4 +70,19 @@ async function correctNumMvmt(){
     console.log('-- FIN --');
 }
 
-correctNumMvmt()
+
+//Correction encmvmt
+async function correctEncMvmt(){
+
+
+    let encs = await D.exec_params('select enc_id from encaissement')
+
+    let ids_enc = encs.map( x => parseInt(x.enc_id))
+
+    await D.exec_params('delete from encmvmt where em_enc_id not in (?)',[ids_enc])
+
+    console.log('-- FIN correctNumMvmt --')
+} 
+
+
+correctEncMvmt()
