@@ -227,7 +227,7 @@ class Caisse{
             await D.exec_params(sql,[datas])
 
             //Eto koa mbola misy ny insertion an'ireny avance izay miditra ao ireny,
-            if(encav && encav.length > 0){
+            /*if(encav && encav.length > 0){
                 datas = []
                 sql = `insert into enc_avance (encav_util_id,encav_enc_id,encav_montant,encav_date) values ?;`
 
@@ -236,7 +236,7 @@ class Caisse{
                     datas.push([e.encav_util_id,_e.insertId,e.encav_montant,new Date(e.encav_date)])
                 }
                 await D.exec_params(sql,[datas])
-            }
+            }*/
             
 
             return res.send({status:true,message:"Préparation encaissement bien insérée"})
@@ -262,6 +262,15 @@ class Caisse{
             where art_label like ? limit ? `,[
                 `%${filters.search}%`,filters.limit
             ])
+
+            //Test alo e, récupération reste des articles
+            for (var i = 0; i < list_med.length; i++) {
+                const e = list_med[i]
+
+                list_med[i]['stock'] = await D.exec_params('select * from stock_article where stk_art_id = ? order by stk_depot_id',[e.art_id])
+            }
+
+            //let depot = await D.exec_params('select * from depot')
 
             let list = [...list_serv,...list_med]
 
@@ -315,14 +324,16 @@ class Caisse{
             for (var i = 0; i < list_enc.length; i++) {
                 const le = list_enc[i]
                 if(le.enc_validate){
-                    total_encaisse += parseInt(le.enc_montant)
+                    total_encaisse += parseInt(le.enc_montant) - parseInt((le.enc_total_avance)?le.enc_total_avance:0)
                 }
             }
 
             // ------- 
 
             let nb_not_validate = (await D.exec_params(`select count(*) as nb from encaissement where enc_validate = 0 and enc_to_caisse = 1`))[0].nb
-            return res.send({status:true,list_enc,nb_not_validate,total_encaisse})
+            let nb_not_validate_avance = (await D.exec_params(`select count(*) as nb from enc_avance where encav_validate = 0`))[0].nb
+            
+            return res.send({status:true,list_enc,nb_not_validate,total_encaisse,nb_not_validate_avance})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -557,15 +568,18 @@ class Caisse{
             let datas = [], sql = ''
             //Ajout ndray zao, ajout an'ireny service vaivao reny
             if(encserv.add && encserv.add.length > 0){
+
+
                 //Eto mbola misy ny insertion an'ireny encaissement service reny
                 datas = []
                 sql = `insert into enc_serv (encserv_serv_id,encserv_enc_id,encserv_is_product,encserv_qt,encserv_montant,encserv_prix_unit) values ?;` //sql pour le truc
 
                 for (let i = 0; i < encserv.add.length; i++) {
                     const e = encserv.add[i];
+                    if(!e) continue
                     datas.push([e.encserv_serv_id,enc.enc_id,e.encserv_is_product,e.encserv_qt,e.encserv_montant,e.encserv_prix_unit])
                 }
-                await D.exec_params(sql,[datas])
+                if(datas.length > 0) await D.exec_params(sql,[datas])
             }
 
             //Suppression ana service
@@ -576,7 +590,7 @@ class Caisse{
 
             //Eto koa ny avance
             //Eto koa mbola misy ny insertion an'ireny avance izay miditra ao ireny,
-            if(encav && encav.add.length > 0){
+            /*if(encav && encav.add.length > 0){
                 datas = []
                 sql = `insert into enc_avance (encav_util_id,encav_enc_id,encav_montant,encav_date) values ?;`
 
@@ -590,7 +604,7 @@ class Caisse{
             //Suppression
             if(encav.del && encav.del.length > 0){
                 await D.exec_params('delete from enc_avance where encav_enc_id = ? and encav_id in (?) ',[enc.enc_id,encav.del])
-            }
+            }*/
 
             //Modification multiple ana service
             let serv_code = Object.keys(encserv.modif)
@@ -623,6 +637,63 @@ class Caisse{
         }
     }
 
+
+    //GESTION AVANCE ENCAISSEMENT
+    static async addAvance(req,res){
+        try{
+            let {enc,encav} = req.body
+
+            /*console.log(encav)
+            console.log(enc)*/
+
+            let ec = {
+                encav_montant:encav.encav_montant,
+                encav_util_id:encav.encav_util_id,
+                encav_date:new Date(encav.encav_date),
+                encav_enc_id:enc.enc_id
+            }
+
+
+            await D.set('enc_avance',ec)
+            return res.send({status:true})
+
+
+        }catch(e){
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async delAvance(req,res){
+        try{
+            let {encav_id} = req.query
+
+            await D.del('enc_avance',{encav_id})
+
+            return res.send({status:true})
+        }catch(e){
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getListAvance(req,res){
+        try{
+            let {enc_id} = req.query
+
+            let encav = await D.exec_params(`select * from enc_avance
+            left join utilisateur on util_id = encav_util_id
+            where encav_enc_id = ?`,[enc_id])
+
+            return res.send({status:true,encav})
+        }catch(e){
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    //FIN GESTION AVANCE ENCAISSEMENT
+
     static async recupFactUnvalidate(req,res){
         try {
             //on va juste récupérer les 6 premiers cas
@@ -631,7 +702,12 @@ class Caisse{
             left join utilisateur on util_id = enc_util_id
             where enc_validate = 0 and enc_to_caisse = 1 limit 6`)
 
-            return res.send({status:true,facts})
+            let avance = await D.exec_params(`select * from enc_avance
+                left join encaissement on enc_id = encav_enc_id
+                left join patient on pat_id = enc_pat_id
+                where encav_validate = 0 limit 6`)
+
+            return res.send({status:true,facts,avance})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -660,6 +736,28 @@ class Caisse{
 
             //console.log(util_id)
 
+
+            //si la variable encav_id existe dans le query
+            if(req.query.encav_id){
+
+                let encav_id = req.query.encav_id
+                let encav = (await D.exec_params(`select * from enc_avance where encav_id = ?`,[encav_id]))[0]
+
+                //modif an'ilay enc_avance
+                await D.updateWhere('enc_avance',{
+                    encav_validate:1,
+                    encav_date_validation:new Date(),
+                    encav_util_validate:util_id,
+                },{encav_id})
+
+                //Modification an'ilay encaissement hampidirana an'ilay avance ao am calcul
+                let enc_tmp = (await D.exec_params('select * from encaissement where enc_id = ?',[enc_id]))[0]
+                let ttl_avance = encav.encav_montant + parseInt( (enc_tmp.enc_total_avance)?enc_tmp.enc_total_avance:0 )
+                let reste_paie = parseInt(enc_montant) - ttl_avance
+                await D.exec_params(`update encaissement 
+                    set enc_total_avance = ?,enc_reste_paie = ? where enc_id = ?`,[ttl_avance,reste_paie,enc_id])
+            }
+
             //Récupération des listes des services parents
             let list_serv = await D.exec(`select * from service where service_parent_id is null order by service_rang asc`)
 
@@ -682,14 +780,30 @@ class Caisse{
             list_serv = [...nnull,...lnull]
             // ----------------------
 
-
-            // console.log(list_serv);
-
             //récupération de la facture
             let fact = (await D.exec_params(`select * from encaissement
             left join patient on pat_id = enc_pat_id
             left join utilisateur on enc_util_validate_id = util_id
             where enc_id = ?`,[enc_id]))[0]
+
+            //ENREGISTREMENT DE LA VALIDATION DE L'ENCAISSEMENT
+            //AVANT IMPRESSION
+            //On enregistre le truc si c'est pas encore validée
+            if(!parseInt(fact.enc_validate) && req.query.mode){
+                //Ici enregistrement des modifications
+                let up = {
+                    enc_validate:1,
+                    enc_date_validation:new Date(),
+                    enc_num_banque:(req.query.mode.code == 'chq')?req.query.mode.num_banque:null,
+                    enc_mode_paiement:req.query.mode.code
+                }            
+                await D.updateWhere('encaissement',up,{enc_id})
+                fact.enc_validate = 1
+            }
+
+
+
+            // console.log(list_serv);
 
             //Récupération de la liste des produits liés à la facture
             let fact_serv = await D.exec_params(`select * from enc_serv
@@ -730,7 +844,7 @@ class Caisse{
             //conception anle PDF amzay eto an,
             // await createFactPDF(fact,list_serv,fact_serv)
             let mode = {}
-            if(!parseInt(fact.enc_validate)){
+            if(!fact.enc_mode_paiement){
                 mode = (fact.enc_is_hosp)?null:req.query.mode
             }else{
                 mode = {
@@ -750,20 +864,6 @@ class Caisse{
                     em_enc_id:enc_id,
                 })
 
-            }
-
-
-            //On enregistre le truc si c'est pas encore validée
-            if(!parseInt(fact.enc_validate) && req.query.mode){
-                //Ici enregistrement des modifications
-                let up = {
-                    enc_validate:1,
-                    enc_date_validation:new Date(),
-                    enc_util_validate_id:req.query.util_id,
-                    enc_num_banque:(req.query.mode.code == 'chq')?req.query.mode.num_banque:null,
-                    enc_mode_paiement:req.query.mode.code
-                }            
-                await D.updateWhere('encaissement',up,{enc_id})
             }
 
             return res.send({status:true,message:"Encaissement effectuée"})
@@ -900,33 +1000,43 @@ class Caisse{
 
             where enc_date_validation between ? and ?`,[date_verse,date_verse1])
 
+            //ici récupération des avances entre les 2 dates
+            let encav_list = await D.exec_params(`select * from enc_avance
+                where encav_validate = 1 and encav_date_validation between ? and ?`,[date_verse,date_verse1])
+
+
+
             //Préparation de la récupération de la liste des encserv
 
             let ids_enc = enc_list.map( x => parseInt(x.enc_id) )
-            //Récupération deds encservs avec l'idée de l'encaissement
-            //Encserv pour les services 
-
-            //Encserv pour les produits
 
 
             //On va faire d'abord la somme 
             let somme_total = 0, somme_chq = 0, somme_esp = 0
             for (let i = 0; i < enc_list.length; i++) {
                 const e = enc_list[i];
+                let av = parseInt((e.enc_total_avance)?e.enc_total_avance:0)
 
                 if(e.enc_mode_paiement == 'chq'){
-                    somme_chq += parseInt(e.enc_montant)
+                    somme_chq += parseInt(e.enc_montant) - av
                 }else if(e.enc_mode_paiement == 'esp'){
-                    somme_esp += parseInt(e.enc_montant)
+                    somme_esp += parseInt(e.enc_montant) - av
                 }
-                somme_total += parseInt(e.enc_montant)
+                somme_total += parseInt(e.enc_montant) - av
+            }
+
+            let somme_avance = 0
+            for (var i = 0; i < encav_list.length; i++) {
+                const ea = encav_list[i]
+
+                somme_avance += parseInt(ea.encav_montant)
             }
 
 
             let vt = await D.exec_params(`select * from versement where date(vt_date) = date(?)`,[date_verse])
 
             vt = (vt.length > 0)?vt[0]:false
-            return res.send({status:true,vt,enc_list,somme_total,somme_chq,somme_esp})
+            return res.send({status:true,vt,enc_list,somme_total,somme_chq,somme_esp,somme_avance,encav_list})
 
 
         } catch (e) {
@@ -937,13 +1047,17 @@ class Caisse{
 
     static async postVersement(req,res){
         try {
-            let {vt,date_verse,ids_enc} = req.body
+            let {vt,date_verse,ids_enc,ids_encav} = req.body
 
             vt.vt_date = new Date(date_verse)
             const vr = await D.set('versement',vt)
 
             //Modification des encaissements comme versé
             await D.exec_params(`update encaissement set enc_versement = ? where enc_id in (?)`,[vr.insertId,ids_enc])
+            if( ids_encav.length > 0 ){
+                await D.exec_params(`update enc_avance set encav_versement = ? where encav_id in (?)`,[vr.insertId,ids_encav])
+            }
+
             return res.send({status:true})
 
         } catch (e) {
@@ -965,13 +1079,21 @@ class Caisse{
 
 
 
+            //Récupération des avances dans le versement
+            let list_avance = await D.exec_params(`select * from enc_avance
+                left join encaissement on enc_id = encav_enc_id
+                where encav_versement = ?`,[vt_id])
+
+
+
             //calcul des sommes espèces et chèques
             for (var i = 0; i < enc.length; i++) {
                 const en = enc[i]
+                let tt_mt = parseInt(en.enc_montant) - parseInt((en.enc_total_avance)?en.enc_total_avance:0)
                 if(en.enc_mode_paiement == 'esp'){
-                    vt.recette_esp = (vt.recette_esp)?vt.recette_esp + parseInt(en.enc_montant):parseInt(en.enc_montant) 
+                    vt.recette_esp = (vt.recette_esp)?vt.recette_esp + tt_mt:tt_mt
                 }else{
-                    vt.recette_chq = (vt.recette_chq)?vt.recette_esp + parseInt(en.enc_montant):parseInt(en.enc_montant) 
+                    vt.recette_chq = (vt.recette_chq)?vt.recette_chq + tt_mt:tt_mt
                 }
             }
 
@@ -1050,11 +1172,20 @@ class Caisse{
                         }
                     }
 
+                    //Eto kao ve tokony asina parcours an'ilay list avance
+                    for (var k = 0; k < list_avance.length; k++) {
+                        const la = list_avance[k]
+                        let laav = (la.encav_montant)?parseInt(la.encav_montant):0
+                        if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && la.encav_enc_id == e.enc_id){
+                            dep[j]['avance_plus'] = (dep[j]['avance_plus'])?dep[j]['avance_plus'] + laav:laav
+                        }
+                    }
+
                     //Insertion avance
                     if(e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)){
                         dep[j]['avance'] = (e.enc_total_avance)?e.enc_total_avance:0
 
-                        const t_net = e.enc_montant - dep[j]['avance']
+                        const t_net = e.enc_montant - dep[j]['avance'] + ( (dep[j]['avance_plus'])?dep[j]['avance_plus']:0 )
 
                         dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + t_net:t_net
 
@@ -1063,9 +1194,10 @@ class Caisse{
                         dep[j]['chq'] = (e.enc_mode_paiement == 'chq')?(dep[j]['chq']?dep[j]['chq']+t_net:t_net):0
                     }
 
+                    
+
                 }
             }
-
 
             let dt = {enc,serv_p,dep,vt}
             await createRapportVt(dt)
@@ -1338,12 +1470,24 @@ async function createRapportVt(dt){
 
     //Insertion avance
     tmp_d = {}
-    tmp_d['desc'] = 'AVANCE ...'
+    tmp_d['desc'] = 'AVANCE (-)...'
     tmp_d['total'] = 0
     for (let i = 0; i < dep.length; i++) {
         const de = dep[i];
         tmp_d[de.dep_id] =  (de['avance'])?'-'+de['avance'].toLocaleString('fr-CA'):'-'
         tmp_d['total'] += (de['avance'])?de['avance']:0
+    }
+    tmp_d['total'] = (tmp_d['total'])?'-'+tmp_d['total'].toLocaleString('fr-CA'):'-'
+    _datas.push(tmp_d)
+    //fin insertion avance
+    //Insertion avance
+    tmp_d = {}
+    tmp_d['desc'] = 'AVANCE (+)...'
+    tmp_d['total'] = 0
+    for (let i = 0; i < dep.length; i++) {
+        const de = dep[i];
+        tmp_d[de.dep_id] =  (de['avance_plus'])?'-'+de['avance_plus'].toLocaleString('fr-CA'):'-'
+        tmp_d['total'] += (de['avance_plus'])?de['avance_plus']:0
     }
     tmp_d['total'] = (tmp_d['total'])?'-'+tmp_d['total'].toLocaleString('fr-CA'):'-'
     _datas.push(tmp_d)

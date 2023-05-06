@@ -253,6 +253,12 @@ router.delete('/encaissement/:enc_id',require('../controller/caisse.controller')
 router.get('/caisse/search/prod-serv',require('../controller/caisse.controller').searchProdServ)
 router.get('/caisse/tarif-prod',require('../controller/caisse.controller').getTarifProd)
 
+
+//GESTION AVANCE ENCAISSEMENT
+router.post('/caisse/avance',require('../controller/caisse.controller').addAvance)
+router.get('/caisse/avance',require('../controller/caisse.controller').getListAvance)
+router.delete('/caisse/avance',require('../controller/caisse.controller').delAvance)
+
 //pour les versement
 router.get('/encaissement/vt',require('../controller/caisse.controller').getVersement)
 router.get('/encaissement/vt/rapport',require('../controller/caisse.controller').setRapportVt)

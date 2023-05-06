@@ -67,5 +67,19 @@ alter table encaissement add enc_pat_externe varchar(255) null;
 -- Modif 28/04/2023
 alter table service add service_rang int null;
 
+-- Modif 02/05/2023
+alter table consultation add cons_is_pec int null default 0;
+alter table consultation add cons_pec_id int null;
+alter table consultation add cons_entpayeur_id int null;
+
+-- MODIF 05/05/2023
+alter table enc_avance add encav_validate int null default 0; -- Validation de l'avance dans l'encaissement
+alter table enc_avance add encav_versement int null; -- le truc qui va contenir l'id du versement
+alter table enc_avance add encav_date_validation datetime null;
+alter table enc_avance add encav_util_validate int null;
+alter table enc_avance add encav_mode_paiement varchar(10) null;
+alter table enc_avance add encav_num_banque varchar(255) null;
+
+
 
 

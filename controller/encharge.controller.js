@@ -72,6 +72,7 @@ class Encharge{
     static async delete(req,res){
 
         try {   
+            let {encharge_id} = req.params
 
             //On va recupérer d'abord l'id de la facture lié au prise en charge
             let f = await D.exec_params('select * from facture where fact_encharge_id = ?',[req.params.encharge_id])
@@ -84,8 +85,11 @@ class Encharge{
             //Zzay vao suppression anle facture
             await D.exec_params('delete from facture where fact_encharge_id = ?',[req.params.encharge_id])
 
+            //suppression an'ilay consultation relié amle encharge
+            await D.del('consultation',{cons_pec_id:encharge_id})
+
             //Suppression an'ilay encharge
-            await D.del('encharge',req.params)
+            await D.del('encharge',{encharge_id})
 
             //----------
             return res.send({status:true,message:"encharge supprimé."})
@@ -376,7 +380,7 @@ class Encharge{
             //les datas
             let _datas = [],cur_d = {}
 
-            _datas.push({desc:fact.fact_resume_intervention})
+            _datas.push({desc:(fact.fact_resume_intervention)?fact.fact_resume_intervention:' -- '})
 
             //Boucle sur le facture
             for (let i = 0; i < fact_serv.length; i++) {
