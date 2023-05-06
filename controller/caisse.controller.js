@@ -753,7 +753,7 @@ class Caisse{
                 //Modification an'ilay encaissement hampidirana an'ilay avance ao am calcul
                 let enc_tmp = (await D.exec_params('select * from encaissement where enc_id = ?',[enc_id]))[0]
                 let ttl_avance = encav.encav_montant + parseInt( (enc_tmp.enc_total_avance)?enc_tmp.enc_total_avance:0 )
-                let reste_paie = parseInt(enc_montant) - ttl_avance
+                let reste_paie = parseInt(enc_tmp.enc_montant) - ttl_avance
                 await D.exec_params(`update encaissement 
                     set enc_total_avance = ?,enc_reste_paie = ? where enc_id = ?`,[ttl_avance,reste_paie,enc_id])
             }
