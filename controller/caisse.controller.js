@@ -319,12 +319,29 @@ class Caisse{
             ${(filters.validate != '-1')?' and enc_validate = ?':''} order by enc_date desc
             `,[d,d2,parseInt(filters.validate)])
 
+
+            //avant calcul total encaissement il faut aussi 
+            //récupéré la liste des encaissement d'avance
+            let list_avance = await D.exec_params(`select * from enc_avance
+            where encav_validate = ? and date(encav_date_validation) between date(?) and date(?)`,[parseInt(filters.validate),d,d2])
+
+
+
             //Calcul montant total encaissé
             let total_encaisse = 0
             for (var i = 0; i < list_enc.length; i++) {
                 const le = list_enc[i]
                 if(le.enc_validate){
                     total_encaisse += parseInt(le.enc_montant) - parseInt((le.enc_total_avance)?le.enc_total_avance:0)
+                }
+            }
+
+            //ajout des montans de l'avance encaissé
+            for (let i = 0; i < list_avance.length; i++) {
+                const e = list_avance[i];
+                
+                if(e.encav_validate){
+                    total_encaisse += parseInt(le.encav_montant)
                 }
             }
 
@@ -396,10 +413,25 @@ class Caisse{
             ${ (filters.search)?`and ${filters.search_by} like ?`:'' }
             `,w))[0].total
 
+
+            //avant calcul total encaissement il faut aussi 
+            //récupéré la liste des encaissement d'avance
+            let list_avance = await D.exec_params(`select * from enc_avance
+            where encav_validate = ? and date(encav_date_validation) between date(?) and date(?)`,[parseInt(filters.validate),d,d2])
+
             total_montant = 0
             for (let i = 0; i < list_enc.length; i++) {
                 const e = list_enc[i];
-                total_montant += (e.enc_percent_tarif && e.enc_percent_tarif != 100)?(parseInt(e.enc_montant) * e.enc_percent_tarif / 100):parseInt(e.enc_montant)
+                total_montant += parseInt(e.enc_montant) - parseInt((e.enc_total_avance)?e.enc_total_avance:0)
+            }
+
+            //ajout des montans de l'avance encaissé
+            for (let i = 0; i < list_avance.length; i++) {
+                const e = list_avance[i];
+                
+                if((e.encav_validate && parseInt(filters.validate) == 1) || parseInt(filters.validate) == -1){
+                    total_montant += parseInt(le.encav_montant)
+                }
             }
 
             return res.send({status:true,list_enc,list_dep,total_montant})
