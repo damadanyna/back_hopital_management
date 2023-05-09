@@ -88,7 +88,7 @@ async function correctEncMvmt(){
 //fonction pour corriger les problèmes d'insertion de médicaments dans encmvmt
 async function correctEncMvmtInsert(){
 
-    let encs = await D.exec_params('select distinct encserv_enc_id where encserv_is_product = 1 and date(encserv_date_enreg) = date(?)',[new Date()])
+    let encs = await D.exec_params('select distinct encserv_enc_id from enc_serv where encserv_is_product = 1 and date(encserv_date_enreg) = date(?)',[new Date()])
     let encs2 = await D.exec_params('select em_enc_id from encmvmt')
     let ids_enc2 = encs2.map( x => parseInt(x.em_enc_id))
     let ids_enc = encs.map( x => parseInt(x.encserv_enc_id))
@@ -96,7 +96,9 @@ async function correctEncMvmtInsert(){
     let ids_tmp = ids_enc.filter( x => !ids_enc2.includes(x))
 
     
-    await D.exec_params(`insert into encmvmt (em_enc_mvmt) values ?;`,[ids_tmp])
+    if(ids_tmp.length > 0){
+        await D.exec_params(`insert into encmvmt (em_enc_mvmt) values ?;`,[ids_tmp])
+    }
 
     console.log(ids_tmp)
     console.log('-- FIN correctEncMvmtInsert --')
