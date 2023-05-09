@@ -248,7 +248,7 @@ class Mouvement{
 
     static async getEncMvmtPat(req,res){
         try{
-            let filters = req.query.filters
+            let { filters } = req.query
 
             let list_pat = await D.exec_params(`select * from encmvmt
                 left join encaissement on enc_id = em_enc_id

@@ -163,9 +163,6 @@ class Caisse{
         let _es = req.body.encserv //Liste des services qui devront être inscrit dans l'encaissement
         let encav = req.body.encav
 
-
-        
-
         if(_es.length <= 0){
             return res.send({status:false,message:"La liste des services est vide."})
         }
@@ -889,13 +886,15 @@ class Caisse{
 
             //Eto création an'ilay Entité côté mouvement raha ohatra ka nisy médicaments ny zavatra novidian'ilay 
             // Patient
-            if(fact_med.length > 0 && parseInt(fact.enc_validate) == 0){
-
+            if(fact_med.length > 0){
+                //jerena alony raha efa misy ilay relation
+                let rl = await D.exec_params('select * from encmvmt where em_enc_id = ?',[enc_id])
                 //Enregistrement anle Raha
-                await D.set('encmvmt',{
-                    em_enc_id:enc_id,
-                })
-
+                if(rl.length <= 0){
+                    await D.set('encmvmt',{
+                        em_enc_id:enc_id,
+                    })
+                }
             }
 
             return res.send({status:true,message:"Encaissement effectuée"})

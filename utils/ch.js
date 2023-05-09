@@ -85,4 +85,13 @@ async function correctEncMvmt(){
 } 
 
 
+//fonction pour corriger les problèmes d'insertion de médicaments dans encmvmt
+async function correctEncMvmtInsert(){
+
+    let encs = await D.exec_params('select distinct encserv_enc_id where encserv_is_product = 1 and date(encserv_date_enreg) = date(?)',[new Date()])
+    let ids_enc = encs.map( x => parseInt(x.encserv_enc_id))
+
+} 
+
+
 correctEncMvmt()
