@@ -95,9 +95,15 @@ async function correctEncMvmtInsert(){
 
     let ids_tmp = ids_enc.filter( x => !ids_enc2.includes(x))
 
+    let datas = []
+
+    for (let i = 0; i < ids_tmp.length; i++) {
+        const e = ids_tmp[i];
+        datas.push([e])
+    }
     
     if(ids_tmp.length > 0){
-        await D.exec_params(`insert into encmvmt (em_enc_mvmt) values ?;`,[ids_tmp])
+        await D.exec_params(`insert into encmvmt (em_enc_mvmt) values ?;`,[datas])
     }
 
     console.log(ids_tmp)
