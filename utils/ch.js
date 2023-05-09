@@ -103,7 +103,7 @@ async function correctEncMvmtInsert(){
     }
     
     if(ids_tmp.length > 0){
-        await D.exec_params(`insert into encmvmt (em_enc_mvmt) values ?;`,[datas])
+        await D.exec_params(`insert into encmvmt (em_enc_id) values ?;`,[datas])
     }
 
     console.log(ids_tmp)
