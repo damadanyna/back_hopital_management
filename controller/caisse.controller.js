@@ -456,14 +456,19 @@ class Caisse{
             if(filters.state != -1){
                 pr = [filters.state,...pr]
             }
+
+            if(filters.date_by == '-1'){
+                pr = [filters.state]
+            }
             
             let list_enc = await D.exec_params(`select *, (select sum(encav_montant) from enc_avance where encav_enc_id = enc_id) as enc_avance from encaissement
             left join patient on pat_id = enc_pat_id
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
             left join departement on dep_id = enc_dep_id
-            where ${(filters.state != -1)?'enc_validate = ? and ':''} enc_is_hosp = 1 and date(${filters.date_by}) between date(?) and date(?)
-            order by ${filters.date_by} desc
+            where ${(filters.state != -1)?'enc_validate = ? and ':''} enc_is_hosp = 1 
+            ${(filters.date_by == '-1')?'':` and date(${filters.date_by}) between date(?) and date(?) `}
+            order by ${(filters.date_by == '-1')?'enc_date_enreg':filters.date_by} desc
             `,pr)
 
             let nb_not_validate = (await D.exec_params(`select count(*) as nb from encaissement where enc_validate = 0`))[0].nb
@@ -1013,34 +1018,18 @@ class Caisse{
         try {
             let {date_verse} = req.query
             date_verse = new Date(date_verse)
-            date_verse.setHours(7)
-            date_verse.setMinutes(0)
-            date_verse.setSeconds(0)
-
-            //La date suivante
-            let date_verse1 = new Date(date_verse)
-            date_verse1.setDate(date_verse1.getDate() + 1)
-            date_verse1.setHours(7)
-            date_verse1.setMinutes(0)
-            date_verse1.setSeconds(0)
 
             // console.log(date_verse,date_verse1)
 
             //Ici on va chercher les encaissements entre les 2 dates
             let enc_list = await D.exec_params(`select * from encaissement
-
-            where enc_date_validation between ? and ?`,[date_verse,date_verse1])
+            where date(enc_date_validation) = date(?)  `,[date_verse])
 
             //ici récupération des avances entre les 2 dates
             let encav_list = await D.exec_params(`select * from enc_avance
-                where encav_validate = 1 and encav_date_validation between ? and ?`,[date_verse,date_verse1])
-
-
-
-            //Préparation de la récupération de la liste des encserv
+                where encav_validate = 1 and date(encav_date_validation) = date(?)`,[date_verse])
 
             let ids_enc = enc_list.map( x => parseInt(x.enc_id) )
-
 
             //On va faire d'abord la somme 
             let somme_total = 0, somme_chq = 0, somme_esp = 0
