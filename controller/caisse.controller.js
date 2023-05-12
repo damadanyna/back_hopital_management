@@ -1180,6 +1180,27 @@ class Caisse{
             // ----------------------
             serv_p.splice(2,0,{service_id:id_med,service_label:'MEDICAMENTS',service_code:'MED',service_parent_id:null})
 
+            //répartition des avances par département
+            for (var k = 0; k < list_avance.length; k++) {
+                const la = list_avance[k]
+                let laav = (la.encav_montant)?parseInt(la.encav_montant):0
+                
+                for (let j = 0; j < dep.length; j++) {
+                    const de = dep[j];
+                    if((la.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !la.enc_dep_id))){
+
+                        dep[j]['avance_plus'] = (dep[j]['avance_plus'])?dep[j]['avance_plus'] + laav:laav
+
+                        // dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + dep[j]['avance_plus']:dep[j]['avance_plus']
+
+
+                        // dep[j]['esp'] = (dep[j]['esp'])?dep[j]['esp']+dep[j]['avance_plus']:dep[j]['avance_plus']
+                        // dep[j]['chq'] = (dep[j]['chq']?dep[j]['chq']+dep[j]['avance_plus']:dep[j]['avance_plus'])
+
+                    }
+                }
+            }
+
 
             // répartition des montants par département
             for (var i = 0; i < enc.length; i++) {
@@ -1219,28 +1240,6 @@ class Caisse{
                     }
                 }
             }
-
-            //répartition des avances par département
-            for (var k = 0; k < list_avance.length; k++) {
-                const la = list_avance[k]
-                let laav = (la.encav_montant)?parseInt(la.encav_montant):0
-                
-                for (let j = 0; j < dep.length; j++) {
-                    const de = dep[j];
-                    if((la.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !la.enc_dep_id))){
-
-                        dep[j]['avance_plus'] = (dep[j]['avance_plus'])?dep[j]['avance_plus'] + laav:laav
-
-                        dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + dep[j]['avance_plus']:dep[j]['avance_plus']
-
-
-                        dep[j]['esp'] = (dep[j]['esp'])?dep[j]['esp']+dep[j]['avance_plus']:dep[j]['avance_plus']
-                        // dep[j]['chq'] = (dep[j]['chq']?dep[j]['chq']+dep[j]['avance_plus']:dep[j]['avance_plus'])
-
-                    }
-                }
-            }
-
 
             let dt = {enc,serv_p,dep,vt}
             await createRapportVt(dt)
