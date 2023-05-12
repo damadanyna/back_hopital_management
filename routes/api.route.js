@@ -219,6 +219,9 @@ router.get('/mvmt/encmvmt/pat',require('../controller/mvmt.controller').getEncMv
 router.get('/mvmt/encmvmt/list-med',require('../controller/mvmt.controller').getEncMvmtListMed)
 router.get('/mvmt/encmvmt/validate',require('../controller/mvmt.controller').validateEncMvmt)
 
+//supression d'un mouvement
+router.delete('/mvmt',require('../controller/mvmt.controller').delMvmt)
+
 router.get('/mvmts/print/es',require('../controller/mvmt.controller').printMvmt)
 router.get('/mvmts/print/es/down',require('../controller/mvmt.controller').downListMvmt)
 

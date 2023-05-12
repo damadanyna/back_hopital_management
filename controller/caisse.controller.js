@@ -1112,6 +1112,8 @@ class Caisse{
 
 
             //calcul des sommes espèces et chèques
+            vt.recette_chq = 0
+            vt.recette_esp = 0
             for (var i = 0; i < enc.length; i++) {
                 const en = enc[i]
                 let tt_mt = parseInt(en.enc_montant) - parseInt((en.enc_total_avance)?en.enc_total_avance:0)
@@ -1127,6 +1129,8 @@ class Caisse{
                 const e = list_avance[i];
                 vt.recette_avance += (e.encav_montant)?parseInt(e.encav_montant):0
             }
+
+            vt.vt_remise = parseInt(vt.vt_total) - (vt.recette_chq + vt.recette_esp + vt.recette_avance)
 
             //Liste des département
             //Qlques Gestions

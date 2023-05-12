@@ -208,7 +208,7 @@ class Mouvement{
                 
                  //De avy eo ajout an'ilay ligne dans mvmt_art
 
-                 ////Eto mise à jour an'ilay détails de stock
+                 //Eto mise à jour an'ilay détails de stock
 
                 let rest_stock = await D.exec_params(`select * from depot 
                 left join stock_article on depot_id = stk_depot_id 
@@ -225,6 +225,54 @@ class Mouvement{
             
             //Suppression des occurences
             await U.delOccurStk()
+
+            return res.send({status:true})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async delMvmt(req,res){
+        try {
+            let {mvmt_id} = req.query
+
+            let mt = (await D.exec_params('select * from mvmt where mvmt_id = ?',[mvmt_id]))[0]
+            let mart = await D.exec_params('select * from mvmt_art where mart_mvmt_id = ?',[mvmt_id])
+
+            if(mt.mvmt_action == 'entre'){
+                //récupération des données de mart
+                //On modifie en masse le stoc dans le depot de destination
+                for (let i = 0; i < mart.length; i++) {
+                    const m = mart[i];
+                    await D.exec_params(`update stock_article set stk_actuel = stk_actuel - ? 
+                    where stk_depot_id = ? and stk_art_id = ?`,[m.mart_qt,mt.mvmt_depot_dest,m.mart_art_id])
+
+                }
+
+            }else if(mt.mvmt_action == 'sortie'){
+
+                if(mt.mvmt_type != 'transfert'){
+                    for (let i = 0; i < mart.length; i++) {
+                        const m = mart[i];
+                        await D.exec_params(`update stock_article set stk_actuel = stk_actuel + ? 
+                        where stk_depot_id = ? and stk_art_id = ?`,[m.mart_qt,mt.mvmt_depot_exp,m.mart_art_id])
+                    }
+                }else{
+                    for (let i = 0; i < mart.length; i++) {
+                        const m = mart[i];
+                        await D.exec_params(`update stock_article set stk_actuel = stk_actuel + ? 
+                        where stk_depot_id = ? and stk_art_id = ?`,[m.mart_qt,mt.mvmt_depot_exp,m.mart_art_id])
+
+                        await D.exec_params(`update stock_article set stk_actuel = stk_actuel - ? 
+                        where stk_depot_id = ? and stk_art_id = ?`,[m.mart_qt,mt.mvmt_depot_dest,m.mart_art_id])
+                    }
+                }
+
+            }
+
+            await D.del('mvmt',{mvmt_id})
+            await D.del('mvmt_art',{mart_mvmt_id:mvmt_id})
 
             return res.send({status:true})
         } catch (e) {
