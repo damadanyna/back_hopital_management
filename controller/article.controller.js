@@ -4,6 +4,8 @@ let fs = require('fs')
 let D = require('../models/data')
 let U = require('../utils/utils')
 
+const ExcelJS = require('exceljs');
+
 class Article{
     static async register(req,res){ 
         
@@ -273,6 +275,143 @@ class Article{
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
+    }
+
+    static async exportList(req,res){
+        try {
+
+            //initialisation de l'Excel
+            const workbook = new ExcelJS.Workbook();
+
+            //----------------------------------------
+            workbook.creator = 'xd creator';
+            workbook.lastModifiedBy = 'xd creator';
+            workbook.lastPrinted = new Date(2016, 9, 27);
+            workbook.properties.date1904 = true;
+            workbook.calcProperties.fullCalcOnLoad = true;
+
+            //-----------------------------------------
+            workbook.views = [
+                {
+                  x: 0, y: 0, width: 10000, height: 20000,
+                  firstSheet: 0, activeTab: 1, visibility: 'visible'
+                }
+              ]
+            //________________________________________
+
+            //Ajout du sheet
+            const sheet = workbook.addWorksheet('Articles');
+
+
+            //Récupération des données
+            let articles = await D.exec_params(`select * from article`)
+            
+            let a_size = articles.length
+
+            //Boucle pour récupérer les informations sur le stock
+            for (let i = 0; i < a_size; i++) {
+                //articles[i]['g_stock'] = await D.exec_params(`select * from stock_article left join depot on depot_id = stk_depot_id where stk_art_id = ? `,articles[i].art_id) 
+                articles[i]['g_stock'] = await D.exec_params(`select * from depot 
+                left join stock_article on depot_id = stk_depot_id where stk_art_id = ? `,articles[i].art_id) 
+            }
+            let list_depot = await D.exec('select * from depot')
+            let year_cur = new Date().getFullYear()
+
+            //Insertion ana tableau amzay
+            let _head = [
+                { header:"Code".toUpperCase(), key: 'art_code',width:10},
+                { header:"Désignation".toUpperCase(), key: 'art_label',width:40},
+                { header:"Unité".toUpperCase(), key: 'art_unite_stk',width:10},
+                { header:"Conditionnement".toUpperCase(), key: 'art_conditionnement',width:20},
+                { header:"Nb boîte".toUpperCase(), key: 'art_nb_box',width:10},
+                { header:"Stock Total".toUpperCase(), key: 'stock_total',width:15},
+                { header:list_depot[0].depot_label, key: 'depot_1',width:15},
+                { header:list_depot[1].depot_label, key: `depot_2`,width:20},
+            ]
+
+            
+
+            sheet.columns = _head
+
+            //les datas
+            let _datas = [],cur_d = {}
+
+            function getStockTotal(g_stock){
+                if(g_stock.length <= 0) return 0
+
+                let s = 0
+                //Calcul kely
+                for (let i = 0; i < list_depot.length; i++) {
+                    const d = list_depot[i];
+                    for (let j = 0; j < g_stock.length; j++) {
+                        const st = g_stock[j];
+                        if(st.depot_id == d.depot_id){
+                            s += parseInt(st.stk_actuel)
+                            break
+                        }
+                    }
+                }
+
+                return s
+            }
+
+            function getDepotStock(g_stock,dp_id){
+                if(g_stock.length <= 0) return 0
+
+                for (let j = 0; j < g_stock.length; j++) {
+                    const st = g_stock[j];
+                    if(st.depot_id == dp_id){
+                        return parseInt(st.stk_actuel)
+                        
+                    }
+                }
+
+                return 0
+            }
+
+            //Boucle sur le facture
+            for (let i = 0; i < articles.length; i++) {
+                const e = articles[i];
+                _datas.push({
+                    art_code: e.art_code,
+                    art_label:e.art_label,
+                    art_unite_stk:(e.art_unite_stk)?e.art_unite_stk:'',
+                    art_conditionnement:(e.art_conditionnement)?e.art_conditionnement:'',
+                    art_nb_box:(e.art_nb_box)?e.art_nb_box:0,
+                    stock_total:getStockTotal(e.g_stock),
+                    depot_1:getDepotStock(e.g_stock,list_depot[0].depot_id),
+                    depot_2:getDepotStock(e.g_stock,list_depot[1].depot_id),
+                })
+            }
+
+            sheet.addRows(_datas);
+
+            sheet.insertRow(1, [`inventaire le ${new Date().toLocaleDateString()}`.toUpperCase()]);
+            sheet.insertRow(2, ['']);
+
+
+            sheet.getRow(3).font = {bold:true,}
+            sheet.getRow(1).font = {bold:true,size: 16,underline: true,}
+            
+            // sheet.columns = [
+            //     { header: 'Id', key: 'id', width: 10 },
+            //     { header: 'Name', key: 'name', width: 32 },
+            //     { header: 'D.O.B.', key: 'DOB', width: 10, outlineLevel: 1 }
+            // ];
+
+            // sheet.addRow({id: 1, name: 'John Doe', dob: new Date(1970,1,1)});
+            // sheet.addRow({id: 2, name: 'Jane Doe', dob: new Date(1965,1,7)});
+
+
+            let path = req.query.filepath
+            await workbook.xlsx.writeFile(`${path}.xlsx`);
+            // console.log('Exportation article en Excel');
+            return res.send({status:true})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+
     }
 
     static async printList(req,res){

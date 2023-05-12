@@ -5,6 +5,8 @@ let PDFDocument = require("pdfkit-table");
 let fs = require('fs')
 const { NumberToLetter } = require("convertir-nombre-lettre");
 
+const ExcelJS = require('exceljs');
+
 
 let stock = {
     mvmt_action:[
@@ -573,6 +575,148 @@ class Mouvement{
     }
 
 
+    static async exportMvmt(req,res){
+        try {
+            let {action,date,date2,filepath} = req.query
+
+            date = new Date(date)
+            date2 = new Date(date2)
+            
+            let sql = ``
+
+            if(action == 'entre'){
+                sql = `select * from mvmt_art 
+                left join mvmt on mvmt_id = mart_mvmt_id
+                left join depot on mvmt_depot_dest = depot_id
+                left join fournisseur on mvmt_tiers = fourn_id
+                left join article on art_id = mart_art_id
+                where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'entre'`
+            }else{
+                sql = `select *,d_dest.depot_label as depot_dest,d_exp.depot_label as depot_exp
+                from mvmt_art 
+                left join mvmt on mvmt_id = mart_mvmt_id
+                left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
+                left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
+                left join departement on mvmt_tiers = dep_id
+                left join article on art_id = mart_art_id
+                where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'sortie'`
+            }
+
+            let mvmts = await D.exec_params(sql,[date2,date])
+
+
+            let mt = {
+                mart:mvmts,
+                action
+            }
+            let depot = await D.exec('select * from depot')
+
+
+            //initialisation de l'Excel
+            const workbook = new ExcelJS.Workbook();
+
+            //----------------------------------------
+            workbook.creator = 'xd creator';
+            workbook.lastModifiedBy = 'xd creator';
+            workbook.lastPrinted = new Date(2016, 9, 27);
+            workbook.properties.date1904 = true;
+            workbook.calcProperties.fullCalcOnLoad = true;
+
+            //-----------------------------------------
+            workbook.views = [
+                {
+                  x: 0, y: 0, width: 10000, height: 20000,
+                  firstSheet: 0, activeTab: 1, visibility: 'visible'
+                }
+              ]
+            //________________________________________
+
+            //Ajout du sheet
+            const sheet = workbook.addWorksheet('Mouvements')
+
+            //INSERTION DU HEADER
+            let _head = []
+            let _datas = []
+            // --------
+
+            _head = [
+                { header:"Numéro".toUpperCase(), width:10, key: 'num'},
+                { header:"CODE", width:10, key: 'code'},
+                { header:"DESIGNATION", width:40, key: 'desc'},        
+                { header:"quantité".toUpperCase(), width:10, key: 'qt'},
+            ]
+
+            // LE HEAD SI SORTIE
+            if(mt.action == 'sortie'){
+                _head.push({ header:"Dépôt départ".toUpperCase(), width:120, key: 'exp'})
+                _head.push({ header:"Dépôt déstination".toUpperCase(), width:100, key: 'dest'})
+            }else{ // LE HEAD SI ENTREE
+                _head.push({ header:"Fournisseur".toUpperCase(), width:120, key: 'fourn'})
+                _head.push({ header:"Dépôt".toUpperCase(), width:100, key: 'dep'})
+            }
+
+            //ajout des dépots
+            for (let i = 0; i < depot.length; i++) {
+                const e = depot[i];
+                //this.list_label.push({label:e.depot_label,key:`dp:${e.depot_id}`})
+                _head.push({ header:e.depot_label, width:90, key: `dp:${e.depot_id}`})
+            }
+
+            sheet.columns = _head //😑😑
+
+            _datas = []
+            let tmp_d = {}
+
+
+            for (var i = 0; i < mt.mart.length; i++) {
+                const ma = mt.mart[i]
+                tmp_d = {}
+                tmp_d['code'] = ma.art_code
+                tmp_d['num'] = ma.mvmt_num
+                tmp_d['desc'] = ma.art_label
+                tmp_d['qt'] = ma.mart_qt.toLocaleString('fr-CA')
+
+
+                if(mt.action == 'sortie'){
+                    tmp_d['exp'] = ma.depot_exp
+                    tmp_d['dest'] = (ma.mvmt_type == 'transfert')?ma.depot_dest:ma.depot_label
+                }else{
+
+                    //quelque calcul pour la mise en  forme du nom fournisseur
+                    tmp_d['fourn'] = (ma.fourn_label)? (doc.widthOfString(ma.fourn_label) > 80)?ma.fourn_label.substr(0,15)+'...':ma.fourn_label :'-'
+                    tmp_d['dep'] = ma.depot_label
+                }
+
+                for(var j = 0;j < depot.length;j++){
+                    const de = depot[j]
+                    tmp_d[`dp:${de.depot_id}`] = getStockArt(de.depot_id,ma)
+                }
+
+                _datas.push(tmp_d)
+
+            }
+
+
+            sheet.addRows(_datas);
+            let title_pdf = `détails Mouvement - ${(mt.action == 'entre')?'entrées':'sorties'}`.toUpperCase()
+            title_pdf += `    Journée du : `
+            title_pdf = `${new Date(date2).toLocaleDateString()} au ${new Date(date).toLocaleDateString()}`
+
+            sheet.insertRow(1, [title_pdf]);
+            sheet.insertRow(2, ['']);
+
+            sheet.getRow(3).font = {bold:true,}
+            sheet.getRow(1).font = {bold:true,size: 16,underline: true,}
+
+            await workbook.xlsx.writeFile(`${filepath}.xlsx`);
+
+            return res.send({status:true})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
     static async printMvmt(req,res){
         try {
             let {action,date,date2} = req.query
@@ -610,10 +754,7 @@ class Mouvement{
             let depot = await D.exec('select * from depot')
 
             await creatPDFMvmt(mt,depot,date,date2)
-
-
             return res.send({status:true})
-
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

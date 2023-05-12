@@ -338,7 +338,7 @@ class Caisse{
                 const e = list_avance[i];
                 
                 if(e.encav_validate){
-                    total_encaisse += parseInt(le.encav_montant)
+                    total_encaisse += parseInt(e.encav_montant)
                 }
             }
 
@@ -427,7 +427,7 @@ class Caisse{
                 const e = list_avance[i];
                 
                 if((e.encav_validate && parseInt(filters.validate) == 1) || parseInt(filters.validate) == -1){
-                    total_montant += parseInt(le.encav_montant)
+                    total_montant += parseInt(e.encav_montant)
                 }
             }
 
@@ -451,14 +451,14 @@ class Caisse{
             let d = new Date(filters.date)
             let d2 = new Date(filters.date2)
             
-
-            let pr = [d,d2]
+            let sc = `%${filters.search}%`
+            let pr = [sc,sc]
             if(filters.state != -1){
-                pr = [filters.state,...pr]
+                pr.push(filters.state)
             }
-
-            if(filters.date_by == '-1'){
-                pr = [filters.state]
+            if(filters.date_by != '-1'){
+                pr.push(d)
+                pr.push(d2)
             }
             
             let list_enc = await D.exec_params(`select *, (select sum(encav_montant) from enc_avance where encav_enc_id = enc_id) as enc_avance from encaissement
@@ -466,7 +466,7 @@ class Caisse{
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
             left join departement on dep_id = enc_dep_id
-            where ${(filters.state != -1)?'enc_validate = ? and ':''} enc_is_hosp = 1 
+            where  (pat_nom_et_prenom like ? or pat_numero like ?) and ${(filters.state != -1)?'enc_validate = ? and ':''} enc_is_hosp = 1 
             ${(filters.date_by == '-1')?'':` and date(${filters.date_by}) between date(?) and date(?) `}
             order by ${(filters.date_by == '-1')?'enc_date_enreg':filters.date_by} desc
             `,pr)
@@ -751,6 +751,11 @@ class Caisse{
     static async delEncaissement(req,res){
         try {
             let {enc_id} = req.params
+
+            let etmp = (await D.exec_params('select * from encaissement where enc_id = ?',[enc_id]))[0]
+            if(etmp.enc_validate){
+                return res.send({status:false,message:`L'encaissement est déjà validé`,validate:true})
+            }
 
             await D.del('enc_serv',{encserv_enc_id:enc_id})
             await D.del('encaissement',{enc_id})
@@ -1177,7 +1182,6 @@ class Caisse{
                     //parcours list_service
                     for(var k = 0; k < list_serv.length; k++){
                         const ls = list_serv[k]
-
                         if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && ls.encserv_enc_id == e.enc_id){
                             dep[j][ls.service_parent_id] = (dep[j][ls.service_parent_id])?dep[j][ls.service_parent_id]+parseInt(ls.encserv_montant):parseInt(ls.encserv_montant)
                         }
@@ -1186,18 +1190,8 @@ class Caisse{
                     //parcours des médicaments
                     for(var k = 0; k < list_med.length; k++){
                         const ls = list_med[k]
-
                         if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && ls.encserv_enc_id == e.enc_id){
                             dep[j][id_med] = (dep[j][id_med])?dep[j][id_med]+parseInt(ls.encserv_montant):parseInt(ls.encserv_montant)
-                        }
-                    }
-
-                    //Eto kao ve tokony asina parcours an'ilay list avance
-                    for (var k = 0; k < list_avance.length; k++) {
-                        const la = list_avance[k]
-                        let laav = (la.encav_montant)?parseInt(la.encav_montant):0
-                        if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && la.encav_enc_id == e.enc_id){
-                            dep[j]['avance_plus'] = (dep[j]['avance_plus'])?dep[j]['avance_plus'] + laav:laav
                         }
                     }
 
@@ -1213,11 +1207,30 @@ class Caisse{
                         dep[j]['esp'] = (e.enc_mode_paiement == 'esp')?((dep[j]['esp'])?dep[j]['esp']+t_net:t_net):0
                         dep[j]['chq'] = (e.enc_mode_paiement == 'chq')?(dep[j]['chq']?dep[j]['chq']+t_net:t_net):0
                     }
-
-                    
-
                 }
             }
+
+            //répartition des avances par département
+            for (var k = 0; k < list_avance.length; k++) {
+                const la = list_avance[k]
+                let laav = (la.encav_montant)?parseInt(la.encav_montant):0
+                
+                for (let j = 0; j < dep.length; j++) {
+                    const de = dep[j];
+                    if((la.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !la.enc_dep_id))){
+
+                        dep[j]['avance_plus'] = (dep[j]['avance_plus'])?dep[j]['avance_plus'] + laav:laav
+
+                        dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + dep[j]['avance_plus']:dep[j]['avance_plus']
+
+
+                        dep[j]['esp'] = (dep[j]['esp'])?dep[j]['esp']+dep[j]['avance_plus']:dep[j]['avance_plus']
+                        // dep[j]['chq'] = (dep[j]['chq']?dep[j]['chq']+dep[j]['avance_plus']:dep[j]['avance_plus'])
+
+                    }
+                }
+            }
+
 
             let dt = {enc,serv_p,dep,vt}
             await createRapportVt(dt)
@@ -1506,10 +1519,10 @@ async function createRapportVt(dt){
     tmp_d['total'] = 0
     for (let i = 0; i < dep.length; i++) {
         const de = dep[i];
-        tmp_d[de.dep_id] =  (de['avance_plus'])?'-'+de['avance_plus'].toLocaleString('fr-CA'):'-'
+        tmp_d[de.dep_id] =  (de['avance_plus'])?'+'+de['avance_plus'].toLocaleString('fr-CA'):'-'
         tmp_d['total'] += (de['avance_plus'])?de['avance_plus']:0
     }
-    tmp_d['total'] = (tmp_d['total'])?'-'+tmp_d['total'].toLocaleString('fr-CA'):'-'
+    tmp_d['total'] = (tmp_d['total'])?'+'+tmp_d['total'].toLocaleString('fr-CA'):'-'
     _datas.push(tmp_d)
     //fin insertion avance
 

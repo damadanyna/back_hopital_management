@@ -140,6 +140,9 @@ router.delete('/article/:art_id',require('../controller/article.controller').del
 router.get('/article/print/all',require('../controller/article.controller').printList)
 router.get('/article/download',require('../controller/article.controller').downloadArticleList)
 
+//Exportation d'un article des articles en Excel
+router.get('/article/export/all',require('../controller/article.controller').exportList)
+
 //Article avec tarif
 // router.get('/article/tarif',require('../controller/article.controller').getArtWithTarif);
 
@@ -218,6 +221,9 @@ router.get('/mvmt/encmvmt/validate',require('../controller/mvmt.controller').val
 
 router.get('/mvmts/print/es',require('../controller/mvmt.controller').printMvmt)
 router.get('/mvmts/print/es/down',require('../controller/mvmt.controller').downListMvmt)
+
+//exportation excel des mouvements
+router.get('/mvmts/export/es',require('../controller/mvmt.controller').exportMvmt)
 
 router.get('/mvmt/utils-add',require('../controller/mvmt.controller').getUtilsAdd)
 router.get('/mvmts/entre',require('../controller/mvmt.controller').getEntre)
