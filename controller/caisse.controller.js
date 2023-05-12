@@ -1122,6 +1122,12 @@ class Caisse{
                 }
             }
 
+            vt.recette_avance = 0
+            for (let i = 0; i < list_avance.length; i++) {
+                const e = list_avance[i];
+                vt.recette_avance += (e.encav_montant)?parseInt(e.encav_montant):0
+            }
+
             //Liste des département
             //Qlques Gestions
             let dep = await D.exec('select * from departement')
@@ -1418,7 +1424,7 @@ async function createRapportVt(dt){
     doc.moveDown()
     y_infos = doc.y
     doc.text(total_vers,x_infos_mid1,y_infos)
-    drawTextCadre((vt.recette_chq)?(vt.recette_chq + vt.recette_esp).toLocaleString('fr-CA'):vt.recette_esp.toLocaleString('fr-CA'),x_infos_mid2,y_infos,doc)
+    drawTextCadre((vt.recette_chq)?(vt.recette_chq + vt.recette_esp + vt.recette_avance).toLocaleString('fr-CA'):(vt.recette_esp + vt.recette_avance).toLocaleString('fr-CA'),x_infos_mid2,y_infos,doc)
 
     //Montant versé ( en toute lettre )
     doc.moveDown(5)
@@ -1427,7 +1433,7 @@ async function createRapportVt(dt){
     doc.moveDown()
     doc.lineWidth(1)
     doc.lineJoin().rect(x_infos_mid1,doc.y,200,35).stroke()
-    let vers_lettre = NumberToLetter((vt.recette_chq)?(vt.recette_chq + vt.recette_esp):vt.recette_esp).toUpperCase()
+    let vers_lettre = NumberToLetter((vt.recette_chq)?(vt.recette_chq + vt.recette_esp + vt.recette_avance): (vt.recette_esp + vt.recette_avance)).toUpperCase()
     doc.font('fira_bold')
     doc.text(vers_lettre,x_infos_mid1 + 5,doc.y+5,{width:190})
 
