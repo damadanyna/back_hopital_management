@@ -648,18 +648,18 @@ class Mouvement{
 
             // LE HEAD SI SORTIE
             if(mt.action == 'sortie'){
-                _head.push({ header:"Dépôt départ".toUpperCase(), width:120, key: 'exp'})
-                _head.push({ header:"Dépôt déstination".toUpperCase(), width:100, key: 'dest'})
+                _head.push({ header:"Dépôt départ".toUpperCase(), width:20, key: 'exp'})
+                _head.push({ header:"Dépôt déstination".toUpperCase(), width:20, key: 'dest'})
             }else{ // LE HEAD SI ENTREE
-                _head.push({ header:"Fournisseur".toUpperCase(), width:120, key: 'fourn'})
-                _head.push({ header:"Dépôt".toUpperCase(), width:100, key: 'dep'})
+                _head.push({ header:"Fournisseur".toUpperCase(), width:20, key: 'fourn'})
+                _head.push({ header:"Dépôt".toUpperCase(), width:20, key: 'dep'})
             }
 
             //ajout des dépots
             for (let i = 0; i < depot.length; i++) {
                 const e = depot[i];
                 //this.list_label.push({label:e.depot_label,key:`dp:${e.depot_id}`})
-                _head.push({ header:e.depot_label, width:90, key: `dp:${e.depot_id}`})
+                _head.push({ header:e.depot_label, width:15, key: `dp:${e.depot_id}`})
             }
 
             sheet.columns = _head //😑😑
@@ -683,7 +683,7 @@ class Mouvement{
                 }else{
 
                     //quelque calcul pour la mise en  forme du nom fournisseur
-                    tmp_d['fourn'] = (ma.fourn_label)? (doc.widthOfString(ma.fourn_label) > 80)?ma.fourn_label.substr(0,15)+'...':ma.fourn_label :'-'
+                    tmp_d['fourn'] = (ma.fourn_label)?ma.fourn_label :'-'
                     tmp_d['dep'] = ma.depot_label
                 }
 
@@ -700,7 +700,7 @@ class Mouvement{
             sheet.addRows(_datas);
             let title_pdf = `détails Mouvement - ${(mt.action == 'entre')?'entrées':'sorties'}`.toUpperCase()
             title_pdf += `    Journée du : `
-            title_pdf = `${new Date(date2).toLocaleDateString()} au ${new Date(date).toLocaleDateString()}`
+            title_pdf += `${new Date(date2).toLocaleDateString()} au ${new Date(date).toLocaleDateString()}`
 
             sheet.insertRow(1, [title_pdf]);
             sheet.insertRow(2, ['']);
