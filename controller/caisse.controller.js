@@ -535,6 +535,7 @@ class Caisse{
                 let serv = await D.exec_params(`select * from enc_serv 
                 left join service on service_id = encserv_serv_id
                 where encserv_is_product = 0 and encserv_enc_id = ?`,[enc_id])
+                
                 let med = await D.exec_params(`select *,art_id as service_id,art_code as service_code, art_label as service_label from enc_serv 
                 left join article on art_id = encserv_serv_id
                 where encserv_is_product = 1 and encserv_enc_id = ?`,[enc_id])
@@ -593,72 +594,43 @@ class Caisse{
                 enc_reste_paie:enc.enc_reste_paie
             }
 
+            console.log(encserv)
+
 
             // console.log(up_enc)
 
             //Tonga de atao ny modification an'ilay encaissement
             await D.updateWhere('encaissement',up_enc,{enc_id:enc.enc_id})
 
-            let datas = [], sql = ''
-            //Ajout ndray zao, ajout an'ireny service vaivao reny
-            if(encserv.add && encserv.add.length > 0){
-
-
-                //Eto mbola misy ny insertion an'ireny encaissement service reny
-                datas = []
-                sql = `insert into enc_serv (encserv_serv_id,encserv_enc_id,encserv_is_product,encserv_qt,encserv_montant,encserv_prix_unit) values ?;` //sql pour le truc
-
-                for (let i = 0; i < encserv.add.length; i++) {
-                    const e = encserv.add[i];
-                    if(!e) continue
-                    datas.push([e.encserv_serv_id,enc.enc_id,e.encserv_is_product,e.encserv_qt,e.encserv_montant,e.encserv_prix_unit])
-                }
-                if(datas.length > 0) await D.exec_params(sql,[datas])
-            }
-
-            //Suppression ana service
+            //Suppression ana service //suppression aloha
             if(encserv.del && encserv.del.length > 0){
                 await D.exec_params('delete from enc_serv where encserv_enc_id = ? and encserv_id in (?)',[enc.enc_id,encserv.del])
             }
 
+            let datas = [], sql = '', sql_modif = ''
+            //Ajout ndray zao, ajout an'ireny service vaivao reny
 
-            //Eto koa ny avance
-            //Eto koa mbola misy ny insertion an'ireny avance izay miditra ao ireny,
-            /*if(encav && encav.add.length > 0){
+            //Izay vao ajout
+            if(encserv.add && encserv.add.length > 0){
+                //Eto mbola misy ny insertion an'ireny encaissement service reny
                 datas = []
-                sql = `insert into enc_avance (encav_util_id,encav_enc_id,encav_montant,encav_date) values ?;`
+                sql = `insert into enc_serv (encserv_serv_id,encserv_enc_id,encserv_is_product,encserv_qt,encserv_montant,encserv_prix_unit) values ?;` //sql pour le truc
 
-                for (let i = 0; i < encav.add.length; i++) {
-                    const e = encav.add[i];
-                    datas.push([e.encav_util_id,enc.enc_id,e.encav_montant,new Date(e.encav_date)])
+                
+                for (let i = 0; i < encserv.add.length; i++) {
+                    const e = encserv.add[i];
+                    if(!e) continue
+                    if(!e.encserv_enc_id){
+                        datas.push([e.encserv_serv_id,enc.enc_id,e.encserv_is_product,e.encserv_qt,e.encserv_montant,e.encserv_prix_unit])
+                    }else{
+                        sql_modif +=`update enc_serv set encserv_qt = ${e.encserv_qt}, encserv_montant = ${e.encserv_montant} 
+                        where encserv_enc_id = ${enc.enc_id} and encserv_serv_id = ${e.encserv_serv_id} and encserv_is_product = ${e.encserv_is_product};`
+                    }
                 }
-                await D.exec_params(sql,[datas])
+                if(datas.length > 0) await D.exec_params(sql,[datas])
+
+                if(sql_modif) await D.exec(sql_modif)
             }
-
-            //Suppression
-            if(encav.del && encav.del.length > 0){
-                await D.exec_params('delete from enc_avance where encav_enc_id = ? and encav_id in (?) ',[enc.enc_id,encav.del])
-            }*/
-
-            //Modification multiple ana service
-            let serv_code = Object.keys(encserv.modif)
-
-            if(serv_code.length > 0){
-                let sql = ''
-
-                for (let i = 0; i < serv_code.length; i++) {
-                    const e = serv_code[i];
-                    const es = encserv.modif[e]
-                    sql+=`update enc_serv set encserv_qt = ${es.encserv_qt}, encserv_montant = ${es.encserv_montant} 
-                    where encserv_enc_id = ${enc.enc_id} and encserv_serv_id = ${es.encserv_serv_id} and encserv_is_product = ${es.encserv_is_product}`
-                }
-
-                await D.exec(sql)
-            }
-
-
-            // console.log(encserv.modif)
-
 
             //? mety mbola hisy modification
 
