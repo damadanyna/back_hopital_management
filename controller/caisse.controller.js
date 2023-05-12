@@ -319,10 +319,17 @@ class Caisse{
 
             //avant calcul total encaissement il faut aussi 
             //récupéré la liste des encaissement d'avance
-            let list_avance = await D.exec_params(`select * from enc_avance
-            where encav_validate = ? and date(encav_date_validation) between date(?) and date(?)`,[parseInt(filters.validate),d,d2])
-
-
+            let dd = [d,d2]
+            if(parseInt(filters.validate) != -1) dd.unshift(parseInt(filters.validate))
+            let list_avance = await D.exec_params(`select *,encav_versement as enc_versement,encav_validate as enc_validate,
+            encav_date_enreg as enc_date
+            from enc_avance
+            left join encaissement on enc_id = encav_enc_id
+            left join patient on pat_id = enc_pat_id
+            left join entreprise on ent_id = enc_ent_id
+            left join tarif on tarif_id = enc_tarif_id
+            left join departement on dep_id = enc_dep_id
+            where ${(parseInt(filters.validate) != -1)?'encav_validate = ? and ':''} date(encav_date_enreg) between date(?) and date(?)`,dd)
 
             //Calcul montant total encaissé
             let total_encaisse = 0
@@ -346,8 +353,14 @@ class Caisse{
 
             let nb_not_validate = (await D.exec_params(`select count(*) as nb from encaissement where enc_validate = 0 and enc_to_caisse = 1`))[0].nb
             let nb_not_validate_avance = (await D.exec_params(`select count(*) as nb from enc_avance where encav_validate = 0`))[0].nb
+
+            // console.log(list_enc);
+            // console.log(list_avance);
+            list_enc = [...list_enc,...list_avance]
+
+
             
-            return res.send({status:true,list_enc,nb_not_validate,total_encaisse,nb_not_validate_avance})
+            return res.send({status:true,list_enc,nb_not_validate,total_encaisse,nb_not_validate_avance,list_avance})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -355,7 +368,7 @@ class Caisse{
 
     }
 
-    //Récupération des listes des encaissements pour la caisse pricipale
+    //Récupération des listes des encaissements pour la caisse principale
     static async getListEncaissementMain(req,res){
         let filters = req.query
         
@@ -413,8 +426,20 @@ class Caisse{
 
             //avant calcul total encaissement il faut aussi 
             //récupéré la liste des encaissement d'avance
-            let list_avance = await D.exec_params(`select * from enc_avance
-            where encav_validate = ? and date(encav_date_validation) between date(?) and date(?)`,[parseInt(filters.validate),d,d2])
+            let list_avance = await D.exec_params(`select *,encav_versement as enc_versement,encav_validate as enc_validate,
+            encav_date_enreg as enc_date
+            from enc_avance
+            left join encaissement on enc_id = encav_enc_id
+            left join patient on pat_id = enc_pat_id
+            left join entreprise on ent_id = enc_ent_id
+            left join tarif on tarif_id = enc_tarif_id
+            left join departement on dep_id = enc_dep_id
+            where date(encav_date_enreg) between ? and ? 
+            ${ (filters.dep_id != -1)?'and enc_dep_id = ?':'' }
+            ${ (filters.search)?`and ${filters.search_by} like ?`:'' }
+            ${ (filters.validate != '-1')?'and encav_validate = ?':'' }
+            order by encav_date_enreg desc
+            `,w)
 
             total_montant = 0
             for (let i = 0; i < list_enc.length; i++) {
@@ -425,11 +450,10 @@ class Caisse{
             //ajout des montans de l'avance encaissé
             for (let i = 0; i < list_avance.length; i++) {
                 const e = list_avance[i];
-                
-                if((e.encav_validate && parseInt(filters.validate) == 1) || parseInt(filters.validate) == -1){
-                    total_montant += parseInt(e.encav_montant)
-                }
+                total_montant += parseInt(e.encav_montant)
             }
+
+            list_enc = [...list_enc,...list_avance]
 
             return res.send({status:true,list_enc,list_dep,total_montant})
         } catch (e) {
@@ -723,14 +747,20 @@ class Caisse{
     static async delEncaissement(req,res){
         try {
             let {enc_id} = req.params
+            let { util_id } = req.query
+            
 
             let etmp = (await D.exec_params('select * from encaissement where enc_id = ?',[enc_id]))[0]
-            if(etmp.enc_validate){
+
+            // console.log(util_id)
+
+            if(etmp.enc_validate && !util_id){
                 return res.send({status:false,message:`L'encaissement est déjà validé`,validate:true})
             }
 
             await D.del('enc_serv',{encserv_enc_id:enc_id})
             await D.del('encaissement',{enc_id})
+            await D.del('enc_avance',{encav_enc_id:enc_id})
             // await D.del('versement',{vt_enc_id:enc_id})
 
             return res.send({status:true})
@@ -1000,7 +1030,7 @@ class Caisse{
 
             //Ici on va chercher les encaissements entre les 2 dates
             let enc_list = await D.exec_params(`select * from encaissement
-            where date(enc_date_validation) = date(?)  `,[date_verse])
+            where enc_validate = 1 and date(enc_date_validation) = date(?)  `,[date_verse])
 
             //ici récupération des avances entre les 2 dates
             let encav_list = await D.exec_params(`select * from enc_avance
@@ -1028,7 +1058,6 @@ class Caisse{
 
                 somme_avance += parseInt(ea.encav_montant)
             }
-
 
             let vt = await D.exec_params(`select * from versement where date(vt_date) = date(?)`,[date_verse])
 
@@ -1102,7 +1131,14 @@ class Caisse{
                 vt.recette_avance += (e.encav_montant)?parseInt(e.encav_montant):0
             }
 
-            vt.vt_remise = parseInt(vt.vt_total) - (vt.recette_chq + vt.recette_esp + vt.recette_avance)
+            vt.recette_esp += vt.recette_avance 
+
+            vt.vt_remise = Math.abs(parseInt(vt.vt_total) - (vt.recette_chq + vt.recette_esp))
+
+            // console.log(`vt_remise : ${vt.vt_remise}`);
+            // console.log(`recette_avance : ${vt.recette_avance}`);
+            // console.log(`recette_esp : ${vt.recette_esp}`);
+            // console.log(`vt_total : ${vt.vt_total}`);
 
             //Liste des département
             //Qlques Gestions
@@ -1163,10 +1199,10 @@ class Caisse{
 
                         dep[j]['avance_plus'] = (dep[j]['avance_plus'])?dep[j]['avance_plus'] + laav:laav
 
-                        // dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + dep[j]['avance_plus']:dep[j]['avance_plus']
+                        dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + dep[j]['avance_plus']:dep[j]['avance_plus']
 
 
-                        // dep[j]['esp'] = (dep[j]['esp'])?dep[j]['esp']+dep[j]['avance_plus']:dep[j]['avance_plus']
+                        dep[j]['esp'] = (dep[j]['esp'])?dep[j]['esp']+dep[j]['avance_plus']:dep[j]['avance_plus']
                         // dep[j]['chq'] = (dep[j]['chq']?dep[j]['chq']+dep[j]['avance_plus']:dep[j]['avance_plus'])
 
                     }
@@ -1399,7 +1435,7 @@ async function createRapportVt(dt){
     doc.moveDown()
     y_infos = doc.y
     doc.text(total_vers,x_infos_mid1,y_infos)
-    drawTextCadre((vt.recette_chq)?(vt.recette_chq + vt.recette_esp + vt.recette_avance).toLocaleString('fr-CA'):(vt.recette_esp + vt.recette_avance).toLocaleString('fr-CA'),x_infos_mid2,y_infos,doc)
+    drawTextCadre((vt.recette_chq)?(vt.recette_chq + vt.recette_esp).toLocaleString('fr-CA'):(vt.recette_esp).toLocaleString('fr-CA'),x_infos_mid2,y_infos,doc)
 
     //Montant versé ( en toute lettre )
     doc.moveDown(5)
@@ -1408,7 +1444,7 @@ async function createRapportVt(dt){
     doc.moveDown()
     doc.lineWidth(1)
     doc.lineJoin().rect(x_infos_mid1,doc.y,200,35).stroke()
-    let vers_lettre = NumberToLetter((vt.recette_chq)?(vt.recette_chq + vt.recette_esp + vt.recette_avance): (vt.recette_esp + vt.recette_avance)).toUpperCase()
+    let vers_lettre = NumberToLetter((vt.recette_chq)?(vt.recette_chq + vt.recette_esp): (vt.recette_esp)).toUpperCase()
     doc.font('fira_bold')
     doc.text(vers_lettre,x_infos_mid1 + 5,doc.y+5,{width:190})
 
