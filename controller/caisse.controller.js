@@ -1244,12 +1244,12 @@ class Caisse{
                         dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + t_net:t_net
 
 
-                        dep[j]['esp'] = (e.enc_mode_paiement == 'esp')?((dep[j]['esp'])?dep[j]['esp']+t_net:t_net):0
-                        dep[j]['chq'] = (e.enc_mode_paiement == 'chq')?((dep[j]['chq'])?dep[j]['chq']+t_net:t_net):0
+                        dep[j]['esp'] = (e.enc_mode_paiement == 'esp')?((dep[j]['esp'])?dep[j]['esp']+t_net:t_net):(dep[j]['esp'])?dep[j]['esp']:0
+                        dep[j]['chq'] = (e.enc_mode_paiement == 'chq')?((dep[j]['chq'])?dep[j]['chq']+t_net:t_net):(dep[j]['chq'])?dep[j]['chq']:0
 
-                        if(e.enc_mode_paiement == 'chq'){
-                            console.log(`${de.dep_label}[chq] : ${(dep[j]['chq'])?dep[j]['chq']:0}`)
-                        }
+                        // if(e.enc_mode_paiement == 'chq'){
+                        //     console.log(`${de.dep_label}[chq] : ${(dep[j]['chq'])?dep[j]['chq']:0}`)
+                        // }
                     }
                 }
             }
