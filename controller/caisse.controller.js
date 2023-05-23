@@ -1239,7 +1239,7 @@ class Caisse{
                         let ta = (e.enc_total_avance)?e.enc_total_avance:0
                         dep[j]['avance'] = (dep[j]['avance'])?dep[j]['avance'] + ta:ta
 
-                        const t_net = e.enc_montant - dep[j]['avance'] + ( (dep[j]['avance_plus'])?dep[j]['avance_plus']:0 )
+                        const t_net = e.enc_montant - ta + ( (dep[j]['avance_plus'])?dep[j]['avance_plus']:0 )
 
                         dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + t_net:t_net
 
