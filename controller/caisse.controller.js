@@ -1234,9 +1234,10 @@ class Caisse{
                         }
                     }
 
-                    //Insertion avance
+                    //Insertion avance,total_net et total espèce, total chèque
                     if(e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)){
-                        dep[j]['avance'] = (e.enc_total_avance)?e.enc_total_avance:0
+                        let ta = (e.enc_total_avance)?e.enc_total_avance:0
+                        dep[j]['avance'] = (dep[j]['avance'])?dep[j]['avance'] + ta:ta
 
                         const t_net = e.enc_montant - dep[j]['avance'] + ( (dep[j]['avance_plus'])?dep[j]['avance_plus']:0 )
 
@@ -1244,7 +1245,7 @@ class Caisse{
 
 
                         dep[j]['esp'] = (e.enc_mode_paiement == 'esp')?((dep[j]['esp'])?dep[j]['esp']+t_net:t_net):0
-                        dep[j]['chq'] = (e.enc_mode_paiement == 'chq')?(dep[j]['chq']?dep[j]['chq']+t_net:t_net):0
+                        dep[j]['chq'] = (e.enc_mode_paiement == 'chq')?((dep[j]['chq'])?dep[j]['chq']+t_net:t_net):0
                     }
                 }
             }
