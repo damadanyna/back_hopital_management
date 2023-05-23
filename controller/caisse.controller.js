@@ -1247,7 +1247,9 @@ class Caisse{
                         dep[j]['esp'] = (e.enc_mode_paiement == 'esp')?((dep[j]['esp'])?dep[j]['esp']+t_net:t_net):0
                         dep[j]['chq'] = (e.enc_mode_paiement == 'chq')?((dep[j]['chq'])?dep[j]['chq']+t_net:t_net):0
 
-                        console.log(`${de.dep_label}[chq] : ${(dep[j]['chq'])?dep[j]['chq']:0}`)
+                        if(e.enc_mode_paiement == 'chq'){
+                            console.log(`${de.dep_label}[chq] : ${(dep[j]['chq'])?dep[j]['chq']:0}`)
+                        }
                     }
                 }
             }
