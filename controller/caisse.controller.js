@@ -476,7 +476,7 @@ class Caisse{
             let d2 = new Date(filters.date2)
             
             let sc = `%${filters.search}%`
-            let pr = [sc,sc]
+            let pr = [sc,sc,sc]
             if(filters.state != -1){
                 pr.push(filters.state)
             }
@@ -490,7 +490,7 @@ class Caisse{
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
             left join departement on dep_id = enc_dep_id
-            where  (pat_nom_et_prenom like ? or pat_numero like ?) and ${(filters.state != -1)?'enc_validate = ? and ':''} enc_is_hosp = 1 
+            where  (pat_nom_et_prenom like ? or pat_numero like ? or enc_pat_externe like ?) and ${(filters.state != -1)?'enc_validate = ? and ':''} enc_is_hosp = 1 
             ${(filters.date_by == '-1')?'':` and date(${filters.date_by}) between date(?) and date(?) `}
             order by ${(filters.date_by == '-1')?'enc_date_enreg':filters.date_by} desc
             `,pr)
