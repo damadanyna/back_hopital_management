@@ -824,6 +824,7 @@ class Caisse{
             //récupération de la facture
             let fact = (await D.exec_params(`select * from encaissement
             left join patient on pat_id = enc_pat_id
+            left join departement on dep_id = enc_dep_id
             left join utilisateur on enc_util_validate_id = util_id
             where enc_id = ?`,[enc_id]))[0]
 
@@ -2040,7 +2041,10 @@ async function createFactPDF(fact,list_serv,mode){
     //_______________________________
 
     //Resaka patient ndray zao
-    doc.text(t_pat_code,(w_cadre/2 - doc.widthOfString(t_pat_code)/2) + x_begin,y_cur+10)
+    let t_dep = `DEP : ${(fact.dep_label)?fact.dep_label:'-'}`
+    doc.text(t_dep,(w_cadre/2 - doc.widthOfString(t_dep)/2) + x_begin,y_cur+10)
+    doc.moveDown()
+    doc.text(t_pat_code,(w_cadre/2 - doc.widthOfString(t_pat_code)/2) + x_begin)
     doc.font('fira_bold')
     doc.text(pat_name,(w_cadre/2 - doc.widthOfString(pat_name)/2) + x_begin)
     doc.font('fira')
@@ -2267,7 +2271,9 @@ async function createFactPDF(fact,list_serv,mode){
     //_______________________________
 
     //Resaka patient ndray zao
-    doc.text(t_pat_code,(w_cadre/2 - doc.widthOfString(t_pat_code)/2) + x_begin,y_cur+10)
+    doc.text(t_dep,(w_cadre/2 - doc.widthOfString(t_dep)/2) + x_begin,y_cur+10)
+    doc.moveDown()
+    doc.text(t_pat_code,(w_cadre/2 - doc.widthOfString(t_pat_code)/2) + x_begin)
     doc.font('fira_bold')
     doc.text(pat_name,(w_cadre/2 - doc.widthOfString(pat_name)/2) + x_begin)
     doc.font('fira')
