@@ -110,6 +110,9 @@ async function correctEncMvmtInsert(){
     console.log('-- FIN correctEncMvmtInsert --')
 
 } 
-correctEncMvmt()
 
-correctEncMvmtInsert()
+//correctEncMvmt()
+//correctEncMvmtInsert()
+
+async function delPatWithNoName(){
+}

@@ -155,6 +155,15 @@ class Patient{
         p.pat_date_naiss = (p.pat_date_naiss)?new Date(p.pat_date_naiss):null
         p.pat_dernier_visite = (p.pat_dernier_visite)?new Date(p.pat_dernier_visite):null
 
+        //quelques vérification des formulaires
+        if(!p.pat_nom_et_prenom || !p.pat_nom_et_prenom.trim()){
+            return res.send({status:false,message:"Le Patient est obligatoire"})
+        }
+
+        if(!p.pat_numero || !p.pat_numero.trim()){
+            return res.send({status:false,message:"Le Numéro du Patient est obligatoire"})
+        }
+
         try {
             await D.updateWhere('patient',p,{pat_id:p.pat_id})
                 //Ici tous les fonctions sur l'enregistrement d'un patient
