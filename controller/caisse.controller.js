@@ -733,9 +733,9 @@ class Caisse{
                 uh_extras:JSON.stringify({
                     datats:{
                         enc_avance:(await D.exec_params(`
-                            select * from avance
+                            select * from enc_avance
                             left join encaissement on enc_id = encav_enc_id
-                            let join patient on pat_id = enc_pat_id
+                            left join patient on pat_id = enc_pat_id
                             where encav_id = ?
                         `,[aa.insertId]))[0]
                     }
@@ -1389,10 +1389,10 @@ class Caisse{
 
                         dep[j]['avance_plus'] = (dep[j]['avance_plus'])?dep[j]['avance_plus'] + laav:laav
 
-                        //dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + dep[j]['avance_plus']:dep[j]['avance_plus']
+                        dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + dep[j]['avance_plus']:dep[j]['avance_plus']
 
 
-                        //dep[j]['esp'] = (dep[j]['esp'])?dep[j]['esp']+dep[j]['avance_plus']:dep[j]['avance_plus']
+                        dep[j]['esp'] = (dep[j]['esp'])?dep[j]['esp']+dep[j]['avance_plus']:dep[j]['avance_plus']
                         //dep[j]['chq'] = (dep[j]['chq'])?dep[j]['chq']+dep[j]['avance_plus']:dep[j]['avance_plus']
 
                     }
