@@ -200,8 +200,6 @@ class Patient{
             return res.send({status:false,message:"Le Numéro du Patient est obligatoire"})
         }
 
-        //biais de disponibilité
-
         try {
             await D.updateWhere('patient',p,{pat_id:p.pat_id})
 
