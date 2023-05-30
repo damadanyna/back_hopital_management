@@ -54,7 +54,7 @@ class Mouvement{
 
     //Enregistrement d'un mouvement pour le stock
     static async register(req,res){
-        let {list_mart,mvmt} = req.body
+        let {list_mart,mvmt,user_id} = req.body
 
         let mvmt_data={
             mvmt_num:{front_name:'mvmt_num',fac:false}, 
@@ -118,6 +118,22 @@ class Mouvement{
 
             //Insertion du mouvement
             let _mvmt = await D.set('mvmt',_data) 
+
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.add_mvmt.k,
+                uh_description:`${req.uh.add_mvmt.l} - ${(mvmt.mvmt_action == 'entre')?'Entrée':'Sortie'}`,
+                uh_module:'Stock',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        mvmt_id:_mvmt.insertId
+                    }
+                })
+            }
+
+            await D.set('user_historic',hist)
+            //Fin historique
 
             //Eto amzay ara ny insertion des relations mouvement/articles
             for (let i = 0; i < list_mart.length; i++) {
@@ -235,10 +251,32 @@ class Mouvement{
 
     static async delMvmt(req,res){
         try {
-            let {mvmt_id} = req.query
+            let {mvmt_id,user_id} = req.query
+
+
 
             let mt = (await D.exec_params('select * from mvmt where mvmt_id = ?',[mvmt_id]))[0]
-            let mart = await D.exec_params('select * from mvmt_art where mart_mvmt_id = ?',[mvmt_id])
+            let mart = await D.exec_params(`select * from mvmt_art 
+            left join article on art_id = mart_art_id
+            where mart_mvmt_id = ?`,[mvmt_id])
+
+
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.del_mvmt.k,
+                uh_description:`${req.uh.del_mvmt.l} - ${(mt.mvmt_action == 'entre')?'Entrée':'Sortie'}`,
+                uh_module:'Stock',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        mvmt:mt,
+                        mart
+                    }
+                })
+            }
+
+            await D.set('user_historic',hist)
+            //Fin historique
 
             if(mt.mvmt_action == 'entre'){
                 //récupération des données de mart
@@ -289,6 +327,22 @@ class Mouvement{
                 where em_validate = 0 and date(em_date_enreg) = date(?)`,[new Date()]))[0].nb
 
             return res.send({status:true,nbEncMvmt})
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getDataUtilsFilters(req,res){
+        try {
+            
+            let nbEncMvmt = (await D.exec_params(`select count(*) as nb from encmvmt 
+                where em_validate = 0 and date(em_date_enreg) = date(?)`,[new Date()]))[0].nb
+            
+            let fourn = await D.exec_params('select * from fournisseur')
+
+            return res.send({status:true,fourn,nbEncMvmt})
 
         } catch (e) {
             console.error(e)
@@ -479,7 +533,11 @@ class Mouvement{
 
     static async getEntre(req,res){
         try {
-            let {date,date2} = req.query
+            let {date,date2,filters} = req.query
+
+
+            let {art_label,fourn_id} = filters
+            fourn_id = parseInt(fourn_id)
 
             date = new Date(date)
             date2 = new Date(date2)
@@ -487,9 +545,9 @@ class Mouvement{
             let sql = `select *,(select count(*) from mvmt_art where mart_mvmt_id = mvmt_id) as nb_art from mvmt 
             left join depot on mvmt_depot_dest = depot_id
             left join fournisseur on mvmt_tiers = fourn_id
-            where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'entre'`
+            where  DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'entre' and mvmt_tiers ${(fourn_id == -1)?'<>':'='} ?`
 
-            let list = await D.exec_params(sql,[date2,date])
+            let list = await D.exec_params(sql,[date2,date,fourn_id])
 
             return res.send({status:true,list})
         } catch (e) {

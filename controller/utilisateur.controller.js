@@ -196,6 +196,30 @@ class Utilisateur{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+
+
+    //GESTION HISTORIQUE DES UTILISATEURS
+    static async getHistory(req,res){
+        try {
+
+            let {filters} = req.query
+
+            let date1 = new Date(filters.date)
+            let date2 = new Date(filters.date2)
+            
+            
+            let hist = await D.exec_params(`select * from user_historic
+            left join utilisateur on util_id = uh_user_id
+            where util_label like ? and date(uh_date) between date(?) and date(?) order by uh_date desc`,[`%${filters.user}%`,date1,date2])
+
+            return res.send({status:true,hist})
+            
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
 }
 
 module.exports = Utilisateur

@@ -133,9 +133,9 @@ class Facture{
     static async update(req,res){  
         try {  
             
-            let {f,del,modif,add} = req.body
+            let {f,del,modif,add,user_id} = req.body
 
-            console.log(del,add)
+            //console.log(del,add)
             
             delete f.fact_date_enreg
             delete f.fact_serv
@@ -249,6 +249,15 @@ class Facture{
             }
             
             //vita daholo izay ny modification
+
+            //Insertion historique utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.modif_fact_pec.k,
+                uh_description:req.uh.modif_fact_pec.l,
+                uh_module:'Prise en charge',
+            }
+            await D.set('user_historic',hist)
 
             //Ici tous les fonctions sur l'enregistrement d'une facture
             return res.send({status:true,message:"Mise à jour, fait"})

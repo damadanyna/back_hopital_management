@@ -163,6 +163,10 @@ class Caisse{
         let _es = req.body.encserv //Liste des services qui devront être inscrit dans l'encaissement
         let encav = req.body.encav
 
+        let user_id = req.body.user_id
+
+        // console.log('User id : '+user_id);
+
         if(_es.length <= 0){
             return res.send({status:false,message:"La liste des services est vide."})
         }
@@ -234,7 +238,26 @@ class Caisse{
                 }
                 await D.exec_params(sql,[datas])
             }*/
-            
+
+            //Ici enregistrement de l'utilisateur
+            enc.enc_id = _e.insertId
+
+            let hist = {
+                uh_user_id:user_id,
+                uh_module:(_d.enc_is_hosp)?'Facturation':'Caisse Dispensaire',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        enc:(await D.exec_params(`select * from encaissement
+                        left join patient on pat_id = enc_pat_id
+                        where enc_id = ?`,[enc.enc_id]))[0],
+                        encserv:await D.exec_params(`select * from enc_serv where encserv_enc_id = ?`,[enc.enc_id])
+                    },
+                    enc_id:enc.enc_id
+                }),
+                uh_code:(_d.enc_is_hosp)?req.uh.add_hosp.k:req.uh.add_disp.k,
+                uh_description:(_d.enc_is_hosp)?req.uh.add_hosp.l:req.uh.add_disp.l,
+            }
+            await D.set('user_historic',hist)
 
             return res.send({status:true,message:"Préparation encaissement bien insérée"})
         } catch (e) {
@@ -600,10 +623,7 @@ class Caisse{
     //Modification d'une hospitalisation
     static async modifHosp(req,res){
         try {
-            let {enc,encserv,encav} = req.body
-
-            
-
+            let {enc,encserv,encav,user_id} = req.body
             //Insertion des modifs pour l'encaissement tout court
             let up_enc = {
                 enc_date_sortie:(enc.enc_date_sortie)?new Date(enc.enc_date_sortie):null,
@@ -618,9 +638,7 @@ class Caisse{
                 enc_reste_paie:enc.enc_reste_paie
             }
 
-            console.log(encserv)
-
-
+            //console.log(encserv)
             // console.log(up_enc)
 
             //Tonga de atao ny modification an'ilay encaissement
@@ -658,6 +676,26 @@ class Caisse{
 
             //? mety mbola hisy modification
 
+            //Insertion historique de l'utilisateur
+            //Récupération de l'encaissement
+            let fact = (await D.exec_params(`select * from encaissement
+            left join patient on pat_id = enc_pat_id
+            where enc_id = ?`,[enc.enc_id]))[0]
+
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.modif_hosp.k,
+                uh_description:req.uh.modif_hosp.l,
+                uh_extras:JSON.stringify({
+                    datas:{
+                        enc:fact,
+                    },
+                    enc_id:fact.enc_id
+                }),
+                uh_module:'Facturation'
+            }
+
+            await D.set('user_historic',hist)
 
             // console.log(enc,encserv,encav)
             return res.send({status:true,message:"Modificatin bien effectuée"})
@@ -671,7 +709,7 @@ class Caisse{
     //GESTION AVANCE ENCAISSEMENT
     static async addAvance(req,res){
         try{
-            let {enc,encav} = req.body
+            let {enc,encav,user_id} = req.body
 
             /*console.log(encav)
             console.log(enc)*/
@@ -684,7 +722,30 @@ class Caisse{
             }
 
 
-            await D.set('enc_avance',ec)
+            let aa = await D.set('enc_avance',ec)
+
+
+            //insertion historique
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.add_avance.k,
+                uh_description:req.uh.add_avance.l,
+                uh_extras:JSON.stringify({
+                    datats:{
+                        enc_avance:(await D.exec_params(`
+                            select * from avance
+                            left join encaissement on enc_id = encav_enc_id
+                            let join patient on pat_id = enc_pat_id
+                            where encav_id = ?
+                        `,[aa.insertId]))[0]
+                    }
+                }),
+                uh_module:'Facturation'
+            }
+
+            await D.set('user_historic',hist)
+
+
             return res.send({status:true})
 
 
@@ -696,10 +757,32 @@ class Caisse{
 
     static async delAvance(req,res){
         try{
-            let {encav_id} = req.query
+            let {encav_id,user_id} = req.query
+
+            //récupération de l'avance 
+            let encav = (await D.exec_params(`select * from enc_avance
+            left join encaissement on enc_id = encav_enc_id
+            left join patient on pat_id = enc_pat_id where encav_id = ?`,[encav_id]))[0]
+
+            if(encav.encav_validate) return res.send({status:false,message:`L'avance est déjà validée`})
+
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.del_avance.k,
+                uh_description:req.uh.del_avance.l,
+                uh_module:'Facturation',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        enc_avance:encav
+                    }
+                })
+            }
+
+            await D.set('user_historic',hist)
+            //Fin historique
 
             await D.del('enc_avance',{encav_id})
-
             return res.send({status:true})
         }catch(e){
             console.error(e)
@@ -747,21 +830,42 @@ class Caisse{
     static async delEncaissement(req,res){
         try {
             let {enc_id} = req.params
-            let { util_id } = req.query
+            let { util_id,uh_obs } = req.query
             
 
-            let etmp = (await D.exec_params('select * from encaissement where enc_id = ?',[enc_id]))[0]
+            let etmp = (await D.exec_params(`select * from encaissement 
+            left join patient on pat_id = enc_pat_id
+            where enc_id = ?`,[enc_id]))[0]
 
             // console.log(util_id)
 
-            if(etmp.enc_validate && !util_id){
+            if(etmp.enc_validate){
                 return res.send({status:false,message:`L'encaissement est déjà validé`,validate:true})
             }
+
+            let hist = {
+                uh_user_id:util_id,
+                uh_code:(etmp.enc_is_hosp)?req.uh.del_hosp.k:req.uh.del_disp.k,
+                uh_description:(etmp.enc_is_hosp)?req.uh.del_hosp.l:req.uh.del_disp.l,
+                uh_extras:JSON.stringify({
+                    datas:{
+                        enc:etmp,
+                    },
+                }),
+                uh_obs,
+                uh_module:(etmp.enc_is_hosp)?'Facturation':'Dispensaire',
+            }
+
+            //insertion
+            await D.set('user_historic',hist)
+
 
             await D.del('enc_serv',{encserv_enc_id:enc_id})
             await D.del('encaissement',{enc_id})
             await D.del('enc_avance',{encav_enc_id:enc_id})
             // await D.del('versement',{vt_enc_id:enc_id})
+
+            
 
             return res.send({status:true})
         } catch (e) {
@@ -776,8 +880,6 @@ class Caisse{
             let { util_id } = req.query
 
             //console.log(util_id)
-
-
             //si la variable encav_id existe dans le query
             if(req.query.encav_id){
 
@@ -797,6 +899,27 @@ class Caisse{
                 let reste_paie = parseInt(enc_tmp.enc_montant) - ttl_avance
                 await D.exec_params(`update encaissement 
                     set enc_total_avance = ?,enc_reste_paie = ? where enc_id = ?`,[ttl_avance,reste_paie,enc_id])
+                
+
+                //Eto ny insertion historique anle encaissement avance
+                //  INSERTION HISTORIQUE VALIDATION AVANCE
+                let hist = {
+                    uh_user_id:util_id,
+                    uh_code:req.uh.validate_avance.k,
+                    uh_description:req.uh.validate_avance.l,
+                    uh_module:'Caisse Dispensaire',
+                    uh_extras:JSON.stringify({
+                        datas:{
+                            encavance:(await D.exec_params('select * from enc_avance where encav_id = ?',[encav_id]))[0],
+                            enc:(await D.exec_params(`select * from encaissement 
+                            left join patient on pat_id = enc_pat_id
+                            where enc_id = ?`,[enc_id]))[0],
+                        },        
+                        enc_id:fact.enc_id
+                    })
+                }
+                await D.set('user_historic',hist)
+
             }
 
             //Récupération des listes des services parents
@@ -831,6 +954,9 @@ class Caisse{
             //ENREGISTREMENT DE LA VALIDATION DE L'ENCAISSEMENT
             //AVANT IMPRESSION
             //On enregistre le truc si c'est pas encore validée
+
+            //grâce à ce bout de code, l'encaissement d'une avance est différent de l'encaissement 
+            //dispensaire ou de hospitalisation
             if(!parseInt(fact.enc_validate) && req.query.mode){
                 //Ici enregistrement des modifications
                 let up = {
@@ -841,9 +967,25 @@ class Caisse{
                 }            
                 await D.updateWhere('encaissement',up,{enc_id})
                 fact.enc_validate = 1
+
+                //eto zany ny insértion ny encaissement dispensaire et facturation
+                //  INSERTION HISTORIQUE VALIDATION ENCAISSEMENT
+                let hist = {
+                    uh_user_id:util_id,
+                    uh_code:(fact.enc_is_hosp)?req.uh.validate_hosp.k:req.uh.validate_disp.k,
+                    uh_description:(fact.enc_is_hosp)?req.uh.validate_hosp.l:req.uh.validate_disp.l,
+                    uh_module:'Caisse Dispensaire',
+                    uh_extras:JSON.stringify({
+                        datas:{
+                            enc:(await D.exec_params(`select * from encaissement 
+                            left join patient on pat_id = enc_pat_id
+                            where enc_id = ?`,[enc_id]))[0],
+                        },        
+                        enc_id:fact.enc_id
+                    })
+                }
+                await D.set('user_historic',hist)
             }
-
-
 
             // console.log(list_serv);
 
@@ -1074,15 +1216,62 @@ class Caisse{
 
     static async postVersement(req,res){
         try {
-            let {vt,date_verse,ids_enc,ids_encav} = req.body
+            let {vt,date_verse,ids_enc,ids_encav,user_id} = req.body
 
             vt.vt_date = new Date(date_verse)
-            const vr = await D.set('versement',vt)
 
-            //Modification des encaissements comme versé
-            await D.exec_params(`update encaissement set enc_versement = ? where enc_id in (?)`,[vr.insertId,ids_enc])
-            if( ids_encav.length > 0 ){
-                await D.exec_params(`update enc_avance set encav_versement = ? where encav_id in (?)`,[vr.insertId,ids_encav])
+            let vr = {}
+
+            
+
+            if(vt.vt_id){
+                delete vt.vt_date_enreg
+
+                let old = (D.exec_params('select * from versement where vt_id = ?',[vt.vt_id]))[0]
+
+                await D.updateWhere('versement',vt,{vt_id:vt.vt_id})
+
+                //historique de l'utilisateur
+                let hist = {
+                    uh_user_id:user_id,
+                    uh_code:req.uh.modif_vers.k,
+                    uh_description:req.uh.modif_vers.l,
+                    uh_module:'Caisse Dispensaire',
+                    uh_extras:JSON.stringify({
+                        datas:{
+                            vt:old,
+                            dep_n:vt,
+                            nb_enc:ids_enc.length,
+                            nb_encav:ids_encav.length
+                        }
+                    })
+                }
+
+                await D.set('user_historic',hist)
+
+                // vr.insertId = vt.vt_id
+
+            }else{
+                vr = await D.set('versement',vt)
+
+                let hist = {
+                    uh_user_id:user_id,
+                    uh_code:req.uh.validate_vers.k,
+                    uh_description:req.uh.validate_vers.l,
+                    uh_module:'Caisse Dispensaire',
+                    uh_extras:JSON.stringify({
+                        datas:{
+                            vt:(await D.exec_params('select * from versement where vt_id = ?',[vt.insertId]))[0]
+                        }
+                    })
+                }
+
+                await D.set('user_historic',hist)
+                //Modification des encaissements comme versé
+                await D.exec_params(`update encaissement set enc_versement = ? where enc_id in (?)`,[vr.insertId,ids_enc])
+                if( ids_encav.length > 0 ){
+                    await D.exec_params(`update enc_avance set encav_versement = ? where encav_id in (?)`,[vr.insertId,ids_encav])
+                }
             }
 
             return res.send({status:true})

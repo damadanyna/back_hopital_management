@@ -42,6 +42,9 @@ router.put('/user/access/:util_id',require('../controller/utilisateur.controller
 router.get('/user/:id',require('../controller/utilisateur.controller').getDetailsUser);
 router.put('/user',require('../controller/utilisateur.controller').update);
 
+//Gestion des historiques des utilisateurs
+router.get('/user/history/all',require('../controller/utilisateur.controller').getHistory)
+
 //Gestion des visite
 router.post('/visites',require('../controller/visite.controller').register);
 router.delete('/visite',require('../controller/visite.controller').delete);
@@ -215,6 +218,7 @@ router.post('/mvmt',require('../controller/mvmt.controller').register)
 
 //Récupération du nombre d'encaissement avec des médicaments
 router.get('/mvmt/enc-med/nb',require('../controller/mvmt.controller').getEncMvmt)
+router.get('/mvmt/data-utils/filters',require('../controller/mvmt.controller').getDataUtilsFilters)
 router.get('/mvmt/encmvmt/pat',require('../controller/mvmt.controller').getEncMvmtPat)
 router.get('/mvmt/encmvmt/list-med',require('../controller/mvmt.controller').getEncMvmtListMed)
 router.get('/mvmt/encmvmt/validate',require('../controller/mvmt.controller').validateEncMvmt)

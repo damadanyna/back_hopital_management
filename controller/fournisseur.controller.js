@@ -3,7 +3,8 @@ let D = require('../models/data')
 class Fournisseur{
     static async register(req,res){ 
         
-        let _d= req.body; 
+        let _d = req.body; 
+        let {user_id} = _d
         let fournisseur_data={
             fourn_id:{front_name:'fourn_id',fac:true},
             fourn_label:{front_name:'fourn_label',fac:false}, 
@@ -48,7 +49,21 @@ class Fournisseur{
             //l'objet Fournisseur est rempli maintenant
             // on l'insert dans la base de donnée
 
-            await D.set('fournisseur',_data)
+            let ff = await D.set('fournisseur',_data)
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.add_fourn.k,
+                uh_description:req.uh.add_fourn.l,
+                uh_module:'Stock',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        fourn:(await D.exec_params('select * from fournisseur where fourn_id = ?',[ff.insertId]))[0]
+                    }
+                })
+            }
+
+            await D.set('user_historic',hist)
             //Ici tous les fonctions sur l'enregistrement d'un fournisseur
             return res.send({status:true,message:"fournisseur bien enregistrer."})
         } catch (e) {
@@ -61,8 +76,30 @@ class Fournisseur{
 
     static async delete(req,res){
         try {   
-            console.log(req.params);
-            await D.del('fournisseur',req.params)
+
+            let {fourn_id} = req.params
+            let {user_id} = req.query
+
+
+            let old = (await D.exec_params('select * from fournisseur where fourn_id = ?',[fourn_id]))[0]
+
+            // console.log(req.params);
+            await D.del('fournisseur',{fourn_id})
+
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.modif_dep.k,
+                uh_description:req.uh.modif_dep.l,
+                uh_module:'Stock',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        fourn:old,
+                    }
+                })
+            }
+
+            await D.set('user_historic',hist)
             //Ici tous les fonctions sur l'enregistrement d'un fournisseur
             return res.send({status:true,message:"fournisseur supprimé."})
         } catch (e) {
@@ -105,17 +142,35 @@ class Fournisseur{
 
     static async update(req,res){ 
         let data = req.body 
-        var array=[]
-        for (const key in data) { 
-            array.push({[key]:data[key]})
-        }  
+        let {user_id} = data
+
+        delete data.user_id
+        delete data.fourn_date_enreg
+
+        let old = (await D.exec_params('select * from fournisseur where fourn_id = ?',[data.fourn_id]))[0]
+
         try {  
-            for (let i = 1; i < array.length; i++) {
-                const element = array[i]; 
-                await D.updateWhere('fournisseur',element,array[0]) 
+            await D.updateWhere('fournisseur',data,{fourn_id:data.fourn_id})
+
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.modif_fourn.k,
+                uh_description:req.uh.modif_fourn.l,
+                uh_module:'Stock',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        fourn:old,
+                        fourn_n:data
+                    }
+                })
             }
-                //Ici tous les fonctions sur l'enregistrement d'un fournisseur
-                return res.send({status:true,message:"Mise à jour, fait"})
+
+            await D.set('user_historic',hist)
+            //fin historique
+
+
+            return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

@@ -63,7 +63,6 @@ alter table patient add pat_dernier_visite datetime null;
 alter table encaissement add enc_is_externe int null;
 alter table encaissement add enc_pat_externe varchar(255) null;
 
-
 -- Modif 28/04/2023
 alter table service add service_rang int null;
 
@@ -81,5 +80,15 @@ alter table enc_avance add encav_mode_paiement varchar(10) null;
 alter table enc_avance add encav_num_banque varchar(255) null;
 
 
-
-
+-- Modif 29/05/2023
+create table if not exists user_historic(
+    uh_id int auto_increment not null,
+    uh_user_id int null,
+    uh_extras text null,
+    uh_date datetime null default NOW(),
+    uh_code varchar(50) null,
+    uh_module varchar(255) null,
+    uh_description text null,
+    uh_obs text null,
+    primary key (uh_id)
+)Engine=InnoDB; 

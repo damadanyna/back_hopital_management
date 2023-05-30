@@ -9,7 +9,8 @@ const ExcelJS = require('exceljs');
 class Article{
     static async register(req,res){ 
         
-        let _d= req.body; 
+        let _d = req.body;
+        let {user_id} = _d 
 
         let article_data={
             art_id:{front_name:'art_id',fac:true},
@@ -61,6 +62,22 @@ class Article{
             // Ajout article
             let _art = await D.set('article',article)
 
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.add_art.k,
+                uh_description:req.uh.add_art.l,
+                uh_module:'Stock',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        article:(await D.exec_params('select * from article where art_id = ?',[_art.insertId]))[0]
+                    }
+                })
+            }
+
+            await D.set('user_historic',hist)
+            //Fin historique
+
             //Ajout du stock 
             for (let i = 0; i < list_depot.length; i++) {
                 let tmp = list_depot[i]
@@ -102,6 +119,25 @@ class Article{
 
             //Eto mle verification hoe mbola relier amina table ilaina ve io article io sa tsia
             let {art_id} = req.params
+            let {user_id} = req.query
+
+            
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.del_art.k,
+                uh_description:req.uh.del_art.l,
+                uh_module:'Stock',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        article:(await D.exec_params('select * from article where art_id = ?',[art_id]))[0]
+                    }
+                })
+            }
+
+            await D.set('user_historic',hist)
+            //Fin historique
+
 
             await D.del('article',{art_id})
 
@@ -197,21 +233,40 @@ class Article{
     static async update(req,res){ 
         let data = req.body 
 
-        let { article,stock,list_depot } = data
+        let { article,stock,list_depot,user_id } = data
 
         let g_stock = article.g_stock
         delete article.g_stock
         delete article.art_date_enreg
 
 
-        var array=[]
-        for (const key in data) { 
-            array.push({[key]:data[key]})
-        }  
+        // var array=[]
+        // for (const key in data) { 
+        //     array.push({[key]:data[key]})
+        // }  
+
+        
         try {
+            let old = (await D.exec_params('select * from article where art_id = ?',[article.art_id]))[0]
             
             //Mise à jour e l'article
             await D.updateWhere('article',article,{art_id:article.art_id})
+
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.modif_art.k,
+                uh_description:req.uh.modif_art.l,
+                uh_module:'Stock',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        article:old
+                    }
+                })
+            }
+
+            await D.set('user_historic',hist)
+            //Fin historique
 
             //Puis mise à jour du stock
             if(g_stock.length > 0){

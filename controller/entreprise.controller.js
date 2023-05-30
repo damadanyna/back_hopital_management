@@ -3,7 +3,8 @@ let D = require('../models/data')
 class Entreprise{
     static async register(req,res){ 
         
-        let _d= req.body; 
+        let _d = req.body; 
+        let {user_id} = _d
         let entreprise_data={
             ent_num_compte:{front_name:'ent_num_compte',fac:true},
             ent_label:{front_name:'ent_label',fac:true}, 
@@ -46,7 +47,22 @@ class Entreprise{
             //l'objet entreprise est rempli maintenant
             // on l'insert dans la base de donnée
 
-            await D.set('entreprise',_data)
+            let ee = await D.set('entreprise',_data)
+
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.add_soc.k,
+                uh_description:req.uh.add_soc.l,
+                uh_module:'Prise en charge',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        soc:(await D.exec_params('select * from entreprise where ent_id = ?',[ee.insertId]))[0]
+                    }
+                })
+            }
+            await D.set('user_historic',hist)
+            //Fin historique
             //Ici tous les fonctions sur l'enregistrement d'un entreprise
             return res.send({status:true,message:"entreprise bien enregistrer."})
         } catch (e) {
@@ -59,7 +75,25 @@ class Entreprise{
 
     static async delete(req,res){
         try {   
-            await D.del('entreprise',req.params)
+            let {ent_id} = req.params
+            let {user_id} = req.query
+
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.add_soc.k,
+                uh_description:req.uh.add_soc.l,
+                uh_module:'Prise en charge',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        soc:(await D.exec_params('select * from entreprise where ent_id = ?',[ent_id]))[0]
+                    }
+                })
+            }
+            await D.set('user_historic',hist)
+            //Fin historique
+
+            await D.del('entreprise',{ent_id})
             //Ici tous les fonctions sur l'enregistrement d'un entreprise
             return res.send({status:true,message:"entreprise supprimé."})
         } catch (e) {
@@ -101,18 +135,36 @@ class Entreprise{
     }
 
     static async update(req,res){ 
-        let data = req.body 
-        var array=[]
-        for (const key in data) { 
-            array.push({[key]:data[key]})
-        }  
+        let e = req.body 
+        
+        let {user_id} = e
+
+        delete e.user_id
+        delete e.ent_date_enreg
+
+        let old = (await D.exec_params('select * from entreprise where ent_id = ?',[e.ent_id]))[0]
+
+
         try {  
-            for (let i = 1; i < array.length; i++) {
-                const element = array[i]; 
-                await D.updateWhere('entreprise',element,array[0]) 
+            await D.updateWhere('entreprise',e,{ent_id:e.ent_id})
+
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.modif_soc.k,
+                uh_description:req.uh.modif_soc.l,
+                uh_module:'Prise en charge',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        soc:old
+                    }
+                })
             }
-                //Ici tous les fonctions sur l'enregistrement d'un entreprise
-                return res.send({status:true,message:"Mise à jour, fait"})
+            await D.set('user_historic',hist)
+            //Fin historique
+
+            //Ici tous les fonctions sur l'enregistrement d'un entreprise
+            return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

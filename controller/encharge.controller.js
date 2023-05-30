@@ -4,7 +4,9 @@ let fs = require('fs')
 
 class Encharge{
     static async register(req,res){ 
-        let _d= req.body; 
+        let _d = req.body; 
+        let {user_id} = _d
+
         let encharge_data={ 
             encharge_pat_id:{front_name:'encharge_pat_id',fac:true}, 
             encharge_tarif_id:{front_name:'encharge_tarif_id',fac:true}, 
@@ -59,6 +61,22 @@ class Encharge{
             await D.set('facture',{
                 fact_encharge_id:_pec.insertId
             })
+
+            //Insertion historique utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.add_pec.k,
+                uh_description:req.uh.add_pec.l,
+                uh_module:'Prise en charge',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        pec:(await D.exec_params(`select * from encharge
+                        left join patient on pat_id = encharge_pat_id
+                        where encharge_id = ?`,[_pec.insertId]))[0]
+                    }
+                })
+            }
+            await D.set('user_historic',hist)
             //Ici tous les fonctions sur l'enregistrement d'un encharge
             return res.send({status:true,message:"encharge bien enregistrer."})
         } catch (e) {
@@ -73,6 +91,23 @@ class Encharge{
 
         try {   
             let {encharge_id} = req.params
+            let {user_id} = req.query
+
+            //Insertion historique utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.del_pec.k,
+                uh_description:req.uh.del_pec.l,
+                uh_module:'Prise en charge',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        pec:(await D.exec_params(`select * from encharge
+                        left join patient on pat_id = encharge_pat_id
+                        where encharge_id = ?`,[encharge_id]))[0]
+                    }
+                })
+            }
+            await D.set('user_historic',hist)
 
             //On va recupérer d'abord l'id de la facture lié au prise en charge
             let f = await D.exec_params('select * from facture where fact_encharge_id = ?',[req.params.encharge_id])

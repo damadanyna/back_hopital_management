@@ -4,7 +4,10 @@ let D = require('../models/data')
 class Consutlation{
     static async register(req,res){ 
         
-        let _d= req.body; 
+        let _d = req.body; 
+        
+        let {user_id} = _d
+
         let consultation_data={
             cons_pat_id:{front_name:'cons_pat_id',fac:true},  
             cons_ent_id:{front_name:'cons_ent_id',fac:true},   
@@ -51,7 +54,25 @@ class Consutlation{
             //Insertion de util id
            /*  _data.cons_util_id = req.user.cons_util_id */
 
-            await D.set('consultation',_data)
+            let cc = await D.set('consultation',_data)
+
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.add_cons.k,
+                uh_description:req.uh.add_cons.l,
+                uh_module:'Prise en charge',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        cons:(await D.exec_params(`select * from consultation
+                        left join patient on pat_id = cons_pat_id
+                        where cons_id`,[cc.insertId]))[0]
+                    }
+                })
+            }
+            await D.set('user_historic',hist)
+            //Fin historique
+
             //Ici tous les fonctions sur l'enregistrement d'un consultation
             return res.send({status:true,message:"consultation bien enregistrer."})
         } catch (e) {
@@ -69,9 +90,30 @@ class Consutlation{
     
     static async delete(req,res){
         try {   
+            let {cons_id} = req.params
+            let  {user_id} = req.query
+            
+
+            //historique de l'utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.del_cons.k,
+                uh_description:req.uh.del_cons.l,
+                uh_module:'Prise en charge',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        cons:(await D.exec_params(`select * from consultation
+                        left join patient on pat_id = cons_pat_id
+                        where cons_id`,[cons_id]))[0]
+                    }
+                })
+            }
+            await D.set('user_historic',hist)
+            //Fin historique
 
             //Suppression de consultation
-            await D.del('consultation',req.params)
+            await D.del('consultation',{cons_id})
+
             //Ici tous les fonctions sur l'enregistrement d'un consultation
             return res.send({status:true,message:"consultation supprimé."})
         } catch (e) {
@@ -139,8 +181,26 @@ class Consutlation{
                 const element = array[i]; 
                 await D.updateWhere('consultation',element,array[0]) 
             }
-                //Ici tous les fonctions sur l'enregistrement d'un consultation
-                return res.send({status:true,message:"Mise à jour, fait"})
+
+            // //historique de l'utilisateur
+            // let hist = {
+            //     uh_user_id:user_id,
+            //     uh_code:req.uh.del_cons.k,
+            //     uh_description:req.uh.del_cons.l,
+            //     uh_module:'Prise en charge',
+            //     uh_extras:JSON.stringify({
+            //         datas:{
+            //             cons:(await D.exec_params(`select * from consultation
+            //             left join patient on pat_id = cons_pat_id
+            //             where cons_id`,[cons_id]))[0]
+            //         }
+            //     })
+            // }
+            // await D.set('user_historic',hist)
+            // //Fin historique
+
+            //Ici tous les fonctions sur l'enregistrement d'un consultation
+            return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

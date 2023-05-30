@@ -3,7 +3,8 @@ let D = require('../models/data')
 class Patient{
     static async register(req,res){ 
         
-        let _d= req.body; 
+        let _d = req.body; 
+        let user_id = _d.user_id
 
         // console.log(_d)
         let patient_data={
@@ -50,15 +51,29 @@ class Patient{
             //l'objet patient est rempli maintenant
             // on l'insert dans la base de donnée
 
-            await D.set('patient',_data)
+            let pp = await D.set('patient',_data)
+
+            //enregistrement de l'historique utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.add_pat.k,
+                uh_description:req.uh.add_pat.l,
+                uh_module:'Fiche Patient',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        patient:(await D.exec_params('select * from patient where pat_id = ?',[pp.pat_id]))[0]
+                    }
+                })
+            }
+            await D.set('user_historic',hist)
+
+
             //Ici tous les fonctions sur l'enregistrement d'un patient
             return res.send({status:true,message:"patient bien enregistrer."})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
-
-
     }
 
     static async delete(req,res){
@@ -94,8 +109,25 @@ class Patient{
             }
             //zay vao vita ny suppresion ana Patient
 
+
+            let old = (await D.exec_params('select * from patient where pat_id = ?',[pat_id]))[0]
             //Suppression du patient dans la grande liste
             await D.del('patient',{pat_id})
+
+            //enregistrement de l'historique utilisateur
+            let {user_id} = req.query
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.del_pat.k,
+                uh_description:req.uh.del_pat.l,
+                uh_module:'Fiche Patient',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        patient:old
+                    }
+                })
+            }
+            await D.set('user_historic',hist)
             //Ici tous les fonctions sur l'enregistrement d'un patient
             return res.send({status:true,message:"patient supprimé."})
         } catch (e) {
@@ -149,15 +181,44 @@ class Patient{
     }
 
     static async update(req,res){ 
-        let p = req.body  
+        let p = req.body 
+
+        let {user_id} = p
 
         delete p.pat_date_enreg
+        delete p.user_id
+
         p.pat_date_naiss = (p.pat_date_naiss)?new Date(p.pat_date_naiss):null
         p.pat_dernier_visite = (p.pat_dernier_visite)?new Date(p.pat_dernier_visite):null
 
+        //quelques vérification des formulaires
+        if(!p.pat_nom_et_prenom || !p.pat_nom_et_prenom.trim()){
+            return res.send({status:false,message:"Le Patient est obligatoire"})
+        }
+
+        if(!p.pat_numero || !p.pat_numero.trim()){
+            return res.send({status:false,message:"Le Numéro du Patient est obligatoire"})
+        }
+
+        //biais de disponibilité
+
         try {
             await D.updateWhere('patient',p,{pat_id:p.pat_id})
-                //Ici tous les fonctions sur l'enregistrement d'un patient
+
+            //enregistrement de l'historique utilisateur
+            let hist = {
+                uh_user_id:user_id,
+                uh_code:req.uh.modif_pat.k,
+                uh_description:req.uh.modif_pat.l,
+                uh_module:'Fiche Patient',
+                uh_extras:JSON.stringify({
+                    datas:{
+                        patient:(await D.exec_params('select * from patient where pat_id = ?',[p.pat_id]))[0]
+                    }
+                })
+            }
+            await D.set('user_historic',hist)
+            //Ici tous les fonctions sur l'enregistrement d'un patient
             return res.send({status:true,message:"Mise à jour, fait"})
         } catch (e) {
             console.error(e)
