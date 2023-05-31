@@ -341,8 +341,10 @@ class Mouvement{
                 where em_validate = 0 and date(em_date_enreg) = date(?)`,[new Date()]))[0].nb
             
             let fourn = await D.exec_params('select * from fournisseur')
+            let list_depot = await D.exec_params('select * from depot')
+            let list_dep = await D.exec_params('select * from departement')
 
-            return res.send({status:true,fourn,nbEncMvmt})
+            return res.send({status:true,fourn,nbEncMvmt,list_dep,list_depot})
 
         } catch (e) {
             console.error(e)

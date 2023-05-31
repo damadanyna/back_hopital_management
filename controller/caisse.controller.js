@@ -1392,7 +1392,7 @@ class Caisse{
                         dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + dep[j]['avance_plus']:dep[j]['avance_plus']
 
 
-                        dep[j]['esp'] = (dep[j]['esp'])?dep[j]['esp']+dep[j]['avance_plus']:dep[j]['avance_plus']
+                        dep[j]['esp'] = dep[j]['avance_plus']
                         //dep[j]['chq'] = (dep[j]['chq'])?dep[j]['chq']+dep[j]['avance_plus']:dep[j]['avance_plus']
 
                     }
