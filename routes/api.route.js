@@ -232,6 +232,12 @@ router.get('/mvmts/print/es/down',require('../controller/mvmt.controller').downL
 //exportation excel des mouvements
 router.get('/mvmts/export/es',require('../controller/mvmt.controller').exportMvmt)
 
+//Recherche dans suivi // avec des filtres
+router.get('/mvmt/suivi/filters',require('../controller/mvmt.controller').getSuiviFilters)
+router.get('/mvmt/suivi/filters/print',require('../controller/mvmt.controller').printSuiviFilters)
+router.get('/mvmt/suivi/filters/down',require('../controller/mvmt.controller').downSuiviFilters)
+router.get('/mvmt/suivi/filters/export',require('../controller/mvmt.controller').exportSuiviFilters)
+
 router.get('/mvmt/utils-add',require('../controller/mvmt.controller').getUtilsAdd)
 router.get('/mvmts/entre',require('../controller/mvmt.controller').getEntre)
 router.get('/mvmts/sortie',require('../controller/mvmt.controller').getSortie)

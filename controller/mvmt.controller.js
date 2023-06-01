@@ -392,11 +392,8 @@ class Mouvement{
             left join article on art_id = encserv_serv_id
             where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
 
-
-
-
             //ici on va vraiment créer un mouvement de sortie
-            let action = 'sortie',type = 'sortie-interne'
+            let action = 'sortie',type = 'vente'
             //Récupération des dérniers mvmt de même type et action
             let mvmt_last = await D.exec_params('select * from mvmt where mvmt_action = ? and mvmt_type = ? order by mvmt_id desc limit 1',[action,type])
 
@@ -404,9 +401,9 @@ class Mouvement{
             let mvmt_num = ''
             if(mvmt_last.length > 0){
                 mvmt_last = mvmt_last[0]
-                mvmt_num = 'SI-'+((parseInt(mvmt_last.mvmt_num.split('-')[1]) + 1).toString().padStart(4,'0'))
+                mvmt_num = 'VE-'+((parseInt(mvmt_last.mvmt_num.split('-')[1]) + 1).toString().padStart(4,'0'))
             }else{
-                mvmt_num = 'SI-'+('1'.padStart(4,'0'))
+                mvmt_num = 'VE-'+('1'.padStart(4,'0'))
             }
 
 
@@ -451,8 +448,7 @@ class Mouvement{
                 mvmt_montant:enc.enc_montant
             }
 
-            //Eto ndray ny insertion an'ilay mouvement
-            let _mvmt = await D.set('mvmt',mt) 
+            let mm_montant = 0
 
             // Vita iny aloha
             //Manipulation dépôt ndray eto
@@ -492,8 +488,15 @@ class Mouvement{
                     mart_prix_unit:el.encserv_prix_unit,
                     mart_montant:el.encserv_montant,
                 })
+
+                mm_montant += el.encserv_montant
                 
             }
+
+            mt.mvmt_montant = mm_montant
+
+            //Eto ndray ny insertion an'ilay mouvement
+            let _mvmt = await D.set('mvmt',mt) 
 
             //Mise à jour an'ilay ENCMVMT
             await D.updateWhere('encmvmt',{
@@ -624,6 +627,383 @@ class Mouvement{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+    //recherche suivi avec filtre
+    static async getSuiviFilters(req,res){
+        try {
+            let {filters} = req.query
+
+            filters.date_1 = new Date(filters.date_1)
+            filters.date_2 = new Date(filters.date_2)
+
+            let mart_list = []
+            let nb = 0
+            if(filters.action == 'entre'){
+
+                mart_list = await D.exec_params(`select * from mvmt_art
+                left join mvmt on mvmt_id = mart_mvmt_id
+                left join depot on mvmt_depot_dest = depot_id
+                left join fournisseur on mvmt_tiers = fourn_id 
+                left join article on mart_art_id = art_id
+
+                where art_label like ? and mvmt_action = 'entre' and  fourn_id ${(filters.fourn_id != -1)?'=':'<>'} ? 
+                and date(mvmt_date) between date(?) and date(?)
+                limit ?
+                `,[`%${filters.art_label}%`,filters.fourn_id,
+                filters.date_1,filters.date_2,
+                parseInt(filters.limit)])
+
+
+                nb = (await D.exec_params(`select count(*) as nb from mvmt_art
+                left join mvmt on mvmt_id = mart_mvmt_id
+                left join depot on mvmt_depot_dest = depot_id
+                left join fournisseur on mvmt_tiers = fourn_id 
+                left join article on mart_art_id = art_id
+
+                where art_label like ? and mvmt_action = 'entre' and  fourn_id ${(filters.fourn_id != -1)?'=':'<>'} ?
+                and date(mvmt_date) between date(?) and date(?)
+                `,[`%${filters.art_label}%`,filters.fourn_id,
+                filters.date_1,filters.date_2,]))[0].nb
+
+            }else if(filters.action == 'sortie'){
+                
+                let ll = [`%${filters.art_label}%`]
+
+                if(filters.type == 'transfert'){
+                    ll.push(filters.depot_dest)
+                }else{
+                    ll.push(filters.dep_id)
+                }
+
+                ll.push(filters.depot_exp)
+                ll.push(filters.type)
+
+                ll.push(filters.date_1)
+                ll.push(filters.date_2)
+
+                ll.push(parseInt(filters.limit))
+
+                mart_list = await D.exec_params(`select *,
+                d_dest.depot_label as depot_dest,d_exp.depot_label as depot_exp
+                from mvmt_art
+
+                left join mvmt on mvmt_id = mart_mvmt_id
+
+                left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
+                left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
+                left join departement on mvmt_tiers = dep_id
+
+                left join article on mart_art_id = art_id
+                
+                where art_label like ? and ${ (filters.type == 'transfert')?'d_dest.depot_id':'dep_id'} = ?
+                and d_exp.depot_id = ? and mvmt_action = 'sortie' and mvmt_type = ? 
+                and date(mvmt_date) between date(?) and date(?)
+                limit ?
+                `,ll)
+
+                nb = (await D.exec_params(`select count(*) as nb
+                from mvmt_art
+
+                left join mvmt on mvmt_id = mart_mvmt_id
+
+                left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
+                left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
+                left join departement on mvmt_tiers = dep_id
+
+                left join article on mart_art_id = art_id
+                
+                where art_label like ? and ${ (filters.type == 'transfert')?'d_dest.depot_id':'dep_id'} = ?
+                and d_exp.depot_id = ? and mvmt_action = 'sortie' and mvmt_type = ?
+                and date(mvmt_date) between date(?) and date(?)
+                `,ll))[0].nb
+
+            }
+
+            return res.send({status:true,mart_list,mart_nb:nb})
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async printSuiviFilters(req,res){
+        try {
+
+            let {filters} = req.query
+
+            filters.date_1 = new Date(filters.date_1)
+            filters.date_2 = new Date(filters.date_2)
+
+            let mart_list = []
+            let nb = 0
+            if(filters.action == 'entre'){
+
+                mart_list = await D.exec_params(`select * from mvmt_art
+                left join mvmt on mvmt_id = mart_mvmt_id
+                left join depot on mvmt_depot_dest = depot_id
+                left join fournisseur on mvmt_tiers = fourn_id 
+                left join article on mart_art_id = art_id
+
+                where art_label like ? and mvmt_action = 'entre' and  fourn_id ${(filters.fourn_id != -1)?'=':'<>'} ? 
+                and date(mvmt_date) between date(?) and date(?)
+                limit ?
+                `,[`%${filters.art_label}%`,filters.fourn_id,
+                filters.date_1,filters.date_2])
+
+            }else if(filters.action == 'sortie'){
+                
+                let ll = [`%${filters.art_label}%`]
+
+                if(filters.type == 'transfert'){
+                    ll.push(filters.depot_dest)
+                }else{
+                    ll.push(filters.dep_id)
+                }
+
+                ll.push(filters.depot_exp)
+                ll.push(filters.type)
+
+                ll.push(filters.date_1)
+                ll.push(filters.date_2)
+
+                mart_list = await D.exec_params(`select *,
+                d_dest.depot_label as depot_dest,d_exp.depot_label as depot_exp
+                from mvmt_art
+
+                left join mvmt on mvmt_id = mart_mvmt_id
+
+                left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
+                left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
+                left join departement on mvmt_tiers = dep_id
+
+                left join article on mart_art_id = art_id
+                
+                where art_label like ? and ${ (filters.type == 'transfert')?'d_dest.depot_id':'dep_id'} = ?
+                and d_exp.depot_id = ? and mvmt_action = 'sortie' and mvmt_type = ? 
+                and date(mvmt_date) between date(?) and date(?)
+                `,ll)
+
+            }
+
+
+            //Eto ny création an'ilay pdf
+            let depot = await D.exec_params('select * from depot')
+            let article = await D.exec_params(`select art_label from article where art_label like ?`,[`%${filters.art_label}%`])
+
+            article = (article.length == 1)?article[0]:null
+
+            await createPDFSuivi(depot,mart_list,article,'suivi-mvmt',filters)
+
+
+
+            return res.send({status:true})
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    //exportation de suivi pour le filtre
+    static async exportSuiviFilters(req,res){
+
+        try {
+            let {filters,filepath} = req.query
+
+            filters.date_1 = new Date(filters.date_1)
+            filters.date_2 = new Date(filters.date_2)
+
+            let mart_list = []
+            let nb = 0
+            if(filters.action == 'entre'){
+
+                mart_list = await D.exec_params(`select * from mvmt_art
+                left join mvmt on mvmt_id = mart_mvmt_id
+                left join depot on mvmt_depot_dest = depot_id
+                left join fournisseur on mvmt_tiers = fourn_id 
+                left join article on mart_art_id = art_id
+
+                where art_label like ? and mvmt_action = 'entre' and  fourn_id ${(filters.fourn_id != -1)?'=':'<>'} ? 
+                and date(mvmt_date) between date(?) and date(?)
+                limit ?
+                `,[`%${filters.art_label}%`,filters.fourn_id,
+                filters.date_1,filters.date_2])
+
+            }else if(filters.action == 'sortie'){
+                
+                let ll = [`%${filters.art_label}%`]
+
+                if(filters.type == 'transfert'){
+                    ll.push(filters.depot_dest)
+                }else{
+                    ll.push(filters.dep_id)
+                }
+
+                ll.push(filters.depot_exp)
+                ll.push(filters.type)
+
+                ll.push(filters.date_1)
+                ll.push(filters.date_2)
+
+                mart_list = await D.exec_params(`select *,
+                d_dest.depot_label as depot_dest,d_exp.depot_label as depot_exp
+                from mvmt_art
+
+                left join mvmt on mvmt_id = mart_mvmt_id
+
+                left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
+                left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
+                left join departement on mvmt_tiers = dep_id
+
+                left join article on mart_art_id = art_id
+                
+                where art_label like ? and ${ (filters.type == 'transfert')?'d_dest.depot_id':'dep_id'} = ?
+                and d_exp.depot_id = ? and mvmt_action = 'sortie' and mvmt_type = ? 
+                and date(mvmt_date) between date(?) and date(?)
+                `,ll)
+
+            }
+
+            //Eto ny création an'ilay pdf
+            let depot = await D.exec_params('select * from depot')
+            let article = await D.exec_params(`select art_label from article where art_label like ?`,[`%${filters.art_label}%`])
+
+            article = (article.length == 1)?article[0]:null
+
+
+            //initialisation de l'Excel
+            const workbook = new ExcelJS.Workbook();
+
+            //----------------------------------------
+            workbook.creator = 'xd creator';
+            workbook.lastModifiedBy = 'xd creator';
+            workbook.lastPrinted = new Date(2016, 9, 27);
+            workbook.properties.date1904 = true;
+            workbook.calcProperties.fullCalcOnLoad = true;
+
+            //-----------------------------------------
+            workbook.views = [
+                {
+                  x: 0, y: 0, width: 10000, height: 20000,
+                  firstSheet: 0, activeTab: 1, visibility: 'visible'
+                }
+              ]
+            //________________________________________
+
+            //Ajout du sheet
+            const sheet = workbook.addWorksheet('Suivi Mouvements')
+
+            //INSERTION DU HEADER
+            let _head = []
+            let _datas = []
+            // --------
+
+            _head = [
+                { header:"Numéro".toUpperCase(), width:10, key: 'num'},
+                { header:"CODE", width:10, key: 'code'},
+                { header:"DATE", width:12, key: 'date'},
+                { header:"DESIGNATION", width:40, key: 'desc'},        
+                { header:"quantité".toUpperCase(), width:10, key: 'qt'},
+            ]
+
+            // LE HEAD SI SORTIE
+            if(filters.action == 'sortie'){
+                _head.push({ header:"Dépôt départ".toUpperCase(), width:20, key: 'exp'})
+                _head.push({ header:"Dépôt destination".toUpperCase(), width:20, key: 'dest'})
+            }else{ // LE HEAD SI ENTREE
+                _head.push({ header:"Fournisseur".toUpperCase(), width:20, key: 'fourn'})
+                _head.push({ header:"Dépôt".toUpperCase(), width:20, key: 'dep'})
+            }
+
+            //ajout des dépots
+            for (let i = 0; i < depot.length; i++) {
+                const e = depot[i];
+                //this.list_label.push({label:e.depot_label,key:`dp:${e.depot_id}`})
+                _head.push({ header:e.depot_label, width:15, key: `dp:${e.depot_id}`})
+            }
+
+            sheet.columns = _head //😑😑
+
+            _datas = []
+            let tmp_d = {}
+
+
+            for (var i = 0; i < mart_list.length; i++) {
+                const ma = mart_list[i]
+                tmp_d = {}
+                tmp_d['code'] = ma.art_code
+                tmp_d['date'] = new Date(ma.mvmt_date).toLocaleDateString()
+                tmp_d['num'] = ma.mvmt_num
+                tmp_d['desc'] = ma.art_label
+                tmp_d['qt'] = ma.mart_qt.toLocaleString('fr-CA')
+
+
+                if(ma.mvmt_action == 'sortie'){
+                    tmp_d['exp'] = ma.depot_exp
+                    tmp_d['dest'] = (ma.mvmt_type == 'transfert')?ma.depot_dest:ma.dep_label
+                }else{
+
+                    //quelque calcul pour la mise en  forme du nom fournisseur
+                    tmp_d['fourn'] = (ma.fourn_label)?ma.fourn_label :'-'
+                    tmp_d['dep'] = ma.depot_label
+                }
+
+                for(var j = 0;j < depot.length;j++){
+                    const de = depot[j]
+                    tmp_d[`dp:${de.depot_id}`] = getStockArt2(de.depot_id,ma)
+                }
+
+                _datas.push(tmp_d)
+
+            }
+
+
+            sheet.addRows(_datas);
+            let title_pdf = `suivi Mouvement - ${(filters.action == 'entre')?'entrées':'sorties'}`.toUpperCase()
+            title_pdf += `    Journée du : `
+            title_pdf += `${new Date(filters.date_1).toLocaleDateString()} au ${new Date(filters.date_2).toLocaleDateString()}`
+
+            let infos_t = [`Nombre d'Article`]
+            let infos_v = [mart_list.length]
+            if(article){
+                infos_t.unshift(`Pour l'Article`)
+                infos_v.unshift(article.art_label)
+            }
+
+            sheet.insertRow(1, [title_pdf]);
+            sheet.insertRow(2, ['']);
+            sheet.insertRow(3, infos_t);
+            sheet.insertRow(4, infos_v);
+            sheet.insertRow(5, ['']);
+
+            sheet.getRow(6).font = {bold:true,}
+            sheet.getRow(3).font = {bold:true,size: 14,underline: true,}
+            sheet.getRow(1).font = {bold:true,size: 16,underline: true,}
+
+            await workbook.xlsx.writeFile(`${filepath}.xlsx`);
+
+            return res.send({status:true})
+
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+
+    }
+
+    static async downSuiviFilters(req,res){
+        try {
+            let data = fs.readFileSync(`./files/suivi-mvmt.pdf`)
+            res.contentType("application/pdf")
+            // res.download(`./facture.pdf`)
+            res.send(data);
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    } 
 
     static async setPDFDetMvmt(req,res){
         try {
@@ -1160,6 +1540,203 @@ async function creatPDFDetMvmt(mt,depot){
     doc.end()
 }
 
+//fonction de création de pdf pour le suivi avec filtre
+    //Suivi mouvement
+    async function createPDFSuivi(depot,mart_list,article,name_file,filters){
+        let year_cur = new Date().getFullYear()
+        const separateNumber = (n)=>{
+            return (n)?n.toLocaleString('fr-CA'):''
+        }
+
+
+        //Les options du PDF
+        //Création de pdf amzay e 🤣😂, 
+        let opt = {
+            margin: 15, size: 'A4',layout:'landscape',
+        }   
+        let doc = new PDFDocument(opt)
+
+        //les fonts
+        doc.registerFont('fira', 'fonts/fira.ttf');
+        doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+        doc.font("fira")
+
+        //Ecriture du PDF
+        doc.pipe(fs.createWriteStream(`./files/${name_file}.pdf`))
+
+        //les marges et le truc en bas
+        //______________________________________
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+
+        doc.fontSize(8)
+
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+
+        // Reset text writer position
+        doc.text('', 15, 15);
+        doc.page.margins.bottom = bottom;
+        doc.on('pageAdded', () => {
+            let bottom = doc.page.margins.bottom;
+            doc.page.margins.bottom = 0;
+        
+            doc.text(
+                `Hôpital Andranomadio ${year_cur}`, 
+                0.5 * (doc.page.width - 300),
+                doc.page.height - 20,
+                {
+                    width: 300,
+                    align: 'center',
+                    lineBreak: false,
+                })
+        
+            // Reset text writer position
+            doc.text('', 50, 50);
+            doc.page.margins.bottom = bottom;
+        })
+        //-----------------___________________---------------
+        //------------- Ajout des titres en haut
+
+        //Toutes les textes dans le PDF
+        let nom_hop = 'HOPITALY LOTERANA - ANDRANOMADIO'
+        let title_pdf = `suivi Mouvement - ${(filters.action == 'entre')?'entrées':'sorties'}`.toUpperCase()
+        let date_label = `Journée du : `
+        let date_value = `${new Date(filters.date_1).toLocaleDateString()} au ${new Date(filters.date_2).toLocaleDateString()}`
+
+
+        
+
+        // ----- LES TITRES D'EN HAUT ------------
+        doc.font("fira_bold")
+        let y_ttl = doc.y
+        doc.text(nom_hop,{underline:true})
+
+        let ttl_w = doc.widthOfString(title_pdf)
+        
+        doc.text(title_pdf,doc.page.width/2 - ttl_w/2,y_ttl)
+        let ddl_w = doc.widthOfString(date_label)
+        let ddlv_w = doc.widthOfString(date_value)
+        doc.text(date_label,doc.page.width - (ddl_w + ddlv_w) - opt.margin,y_ttl)
+        
+        doc.text(date_value,doc.page.width - ddlv_w - opt.margin,y_ttl)
+
+        y_ttl += 15
+        //La ligne au dessous
+        doc.lineWidth(.5)
+        .moveTo(opt.margin, y_ttl)
+        .lineTo(doc.page.width - opt.margin, y_ttl)
+        .stroke();
+
+        // ------- FIN HEADER
+
+        doc.moveDown(3)
+        doc.font('fira')
+
+        let y_cur = doc.y
+        let dist_info = 200
+        let padding_cadre_info = 5
+        let x_origin_info = opt.margin + padding_cadre_info
+
+        let y_origin_info = y_cur
+
+        if(article){
+            doc.text(`Pour l'article : `,x_origin_info,y_cur,{underline:true})
+            doc.text(article.art_label)
+
+            doc.text(`Nombre d'Article`,x_origin_info + dist_info ,y_cur,{underline:true})
+            doc.text(mart_list.length)
+        }else{
+            doc.text(`Nombre d'Article`,x_origin_info,y_cur,{underline:true})
+            doc.text(mart_list.length)
+        }
+
+        // doc.text('Type',x_origin_info + dist_info ,y_cur,{underline:true})
+        // doc.text((mt.mvmt_action == 'entre')?getTypeEntre(mt.mvmt_type):getTypeSortie(mt.mvmt_type))
+
+        doc.moveDown(2)
+        y_cur = doc.y
+
+        //Les tableaux amzay
+        let _head = []
+        let _datas = []
+        // --------
+
+        doc.moveDown(3)
+        doc.text('',opt.margin,doc.y)
+
+        _head = [
+            { label:"Numéro".toUpperCase(), width:50, property: 'num',renderer: null ,headerAlign:"center",},
+            { label:"CODE", width:50, property: 'code',renderer: null ,headerAlign:"center",},
+            { label:"DATE", width:60, property: 'date',renderer: null ,headerAlign:"center",},
+            { label:"DESIGNATION", width:190, property: 'desc',renderer: null ,headerAlign:"center",},        
+            { label:"quantité".toUpperCase(), width:60, property: 'qt',renderer: null ,headerAlign:"center",align:"right"},
+        ]
+
+        // LE HEAD SI SORTIE
+        if(filters.action == 'sortie'){
+            _head.push({ label:"Dépôt départ".toUpperCase(), width:120, property: 'exp',renderer: null ,headerAlign:"center",})
+            _head.push({ label:"Dépôt destination".toUpperCase(), width:100, property: 'dest',renderer: null ,headerAlign:"center",})
+        }else{ // LE HEAD SI ENTREE
+            _head.push({ label:"Fournisseur".toUpperCase(), width:120, property: 'fourn',renderer: null ,headerAlign:"center",})
+            _head.push({ label:"Dépôt".toUpperCase(), width:100, property: 'dep',renderer: null ,headerAlign:"center",})
+        }
+
+        //ajout des dépots
+        for (let i = 0; i < depot.length; i++) {
+            const e = depot[i];
+            //this.list_label.push({label:e.depot_label,key:`dp:${e.depot_id}`})
+            _head.push({ label:e.depot_label, width:90, property: `dp:${e.depot_id}`,renderer: null ,headerAlign:"center",align:"right"})
+        }
+
+
+        _datas = []
+        let tmp_d = {}
+
+
+        for (var i = 0; i < mart_list.length; i++) {
+            const ma = mart_list[i]
+            tmp_d = {}
+            tmp_d['code'] = ma.art_code
+            tmp_d['date'] = new Date(ma.mvmt_date).toLocaleDateString()
+            tmp_d['num'] = ma.mvmt_num
+            tmp_d['desc'] = ma.art_label
+            tmp_d['qt'] = ma.mart_qt.toLocaleString('fr-CA')
+
+
+            if(filters.action == 'sortie'){
+                tmp_d['exp'] = ma.depot_exp
+                tmp_d['dest'] = (ma.mvmt_type == 'transfert')?ma.depot_dest:ma.dep_label
+            }else{
+
+                //quelque calcul pour la mise en  forme du nom fournisseur
+                tmp_d['fourn'] = (ma.fourn_label)? (doc.widthOfString(ma.fourn_label) > 80)?ma.fourn_label.substr(0,15)+'...':ma.fourn_label :'-'
+                tmp_d['dep'] = ma.depot_label
+            }
+
+            for(var j = 0;j < depot.length;j++){
+                const de = depot[j]
+                tmp_d[`dp:${de.depot_id}`] = getStockArt2(de.depot_id,ma)
+            }
+
+            _datas.push(tmp_d)
+
+        }
+        //console.log(_datas)
+
+        await doc.table(opt_tab(_head,_datas,doc), { /* options */ });
+
+        doc.end()
+
+    }
+
 //Impression des mouvements selon la date
 async function creatPDFMvmt(mt,depot,date,date2){
 
@@ -1276,25 +1853,6 @@ async function creatPDFMvmt(mt,depot,date,date2){
     doc.moveDown(2)
     y_cur = doc.y
 
-    //Pour les sorties
-    /*if(mt.mvmt_action == 'sortie'){
-        doc.text('Dépôt de depart',x_origin_info,y_cur,{underline:true})
-        doc.text(mt.depot_exp)
-
-        doc.text('Dépôt de déstination',x_origin_info + dist_info ,y_cur,{underline:true})
-        doc.text((mt.mvmt_type == 'transfert')?mt.depot_dest:mt.dep_label)
-
-    }else if(mt.mvmt_action == 'entre'){
-        doc.text('Fournisseur',x_origin_info,y_cur,{underline:true})
-        doc.text((mt.fourn_label)?mt.fourn_label:'-')
-
-        doc.text('Dépôt',x_origin_info + dist_info ,y_cur,{underline:true})
-        doc.text(mt.depot_label)
-    }
-
-    doc.lineJoin().rect(x_origin_info - padding_cadre_info,y_origin_info - padding_cadre_info/2,
-        doc.page.width - (opt.margin * 2),(doc.y + (padding_cadre_info) - y_origin_info)).stroke() */
-
 
     //Les tableaux amzay
     let _head = []
@@ -1382,6 +1940,51 @@ function getStockArt(id,mart){
                 const e = stk[i];
                 if(e.depot_id == depot_id){
                     return e.stk_actuel.toLocaleString('fr-CA')
+                }
+            }
+            return '-'
+        }
+    }else{
+        return '-'
+    }
+}
+
+function getStockArt2(id,mart){
+    let depot_id = id
+
+    if(mart.mart_det_stock == null){
+        return '-'
+    }
+
+    let stk = JSON.parse(mart.mart_det_stock)
+
+    if(Array.isArray(stk)){
+        if(stk.length == 0){
+            return '-'
+        }else{
+            for (let i = 0; i < stk.length; i++) {
+                const e = stk[i];
+                if(e.depot_id == depot_id){
+
+                    //Resaka achat fotsiny e
+                    if(mart.mvmt_action == 'entre'){
+                        return (e.depot_code == 'M02')?`${e.stk_actuel} (${e.stk_actuel - mart.mart_qt})`:e.stk_actuel
+                    }else if(mart.mvmt_action == 'sortie'){
+
+                        if(mart.mvmt_type == 'transfert'){
+
+                            if(e.depot_id == mart.mvmt_depot_dest){
+                                return `${e.stk_actuel} (${e.stk_actuel - mart.mart_qt})`
+                            }else if(e.depot_id == mart.mvmt_depot_exp){
+                                return `${e.stk_actuel} (${e.stk_actuel + mart.mart_qt})`
+                            }
+
+                        }else{
+                            return (e.depot_code == 'M01')?`${e.stk_actuel} (${e.stk_actuel - mart.mart_qt})`:e.stk_actuel
+                        }
+                    }
+
+                    //return e.stk_actuel
                 }
             }
             return '-'

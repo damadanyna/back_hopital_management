@@ -2136,11 +2136,19 @@ async function createFactPDF(fact,list_serv,mode){
     //-----------------------
     //Filigrane
     let im = {
-        w:700,
-        h:400
+        w:350,
+        h:doc.page.width/4
     }
     if(fact.enc_is_hosp && !fact.enc_validate){
-        doc.image('statics/filigrane-fact.png',0,doc.page.height/2 - im.h/2,{width:doc.page.width})
+        doc.save()
+        doc.rotate(-45,{origin:[0,0]})
+        doc.image('statics/filigrane-avance.png',0,400,{width:im.w})
+        doc.restore()
+
+        doc.save()
+        doc.rotate(-45,{origin:[0,300]})
+        doc.image('statics/filigrane-avance.png',0,300,{width:im.w})
+        doc.restore()
     }
     //--------------------
 
@@ -2156,7 +2164,7 @@ async function createFactPDF(fact,list_serv,mode){
 
     //Toutes les textes
     let nom_hop = 'HOPITALY LOTERANA ANDRANOMADIO'
-    let t_caisse = (fact.enc_is_hosp)?`FACTURE ${(fact.enc_validate)?'DEFINITIVE':'PROVISOIRE'} - N° ${fact.enc_num_hosp}`:`FACTURE CAISSE - N° ${year_enc.toString().substr(2)}/${fact.enc_num_mvmt.toString().padStart(5,0)}`
+    let t_caisse = (fact.enc_is_hosp)?`FACTURE ${(fact.enc_validate)?'DEFINITIVE':'AVANCE'} - N° ${fact.enc_num_hosp}`:`FACTURE CAISSE - N° ${year_enc.toString().substr(2)}/${fact.enc_num_mvmt.toString().padStart(5,0)}`
     let t_date = `${f_date} -- ${f_time}`
     let t_caissier = `CAISSIER : ${ (fact.util_label)?fact.util_label:'-' }`
     let t_pat_code = `Patient: ${(fact.pat_numero)?fact.pat_numero:(fact.enc_is_externe)?'EXTERNE':'-'}`
@@ -2378,7 +2386,7 @@ async function createFactPDF(fact,list_serv,mode){
         doc.font("fira_bold")
         doc.text(t_mode,x_begin,y_cur,{underline:true})
         doc.font("fira")
-        doc.text((mode)?mode.label:'Provisoire',doc.widthOfString(t_mode)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_mode) -5 })
+        doc.text((mode)?mode.label:'Espèce',doc.widthOfString(t_mode)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_mode) -5 })
     }else{
         //Insertion avance
         doc.moveDown()
@@ -2487,7 +2495,7 @@ async function createFactPDF(fact,list_serv,mode){
         doc.font("fira_bold")
         doc.text(t_mode,x_begin,y_cur,{underline:true})
         doc.font("fira")
-        doc.text((mode)?mode.label:'Provisoire',doc.widthOfString(t_mode)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_mode) -5 })
+        doc.text((mode)?mode.label:'Espèce',doc.widthOfString(t_mode)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_mode) -5 })
     }else{
         //Insertion avance
         doc.moveDown()
