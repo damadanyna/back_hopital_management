@@ -92,3 +92,25 @@ create table if not exists user_historic(
     uh_obs text null,
     primary key (uh_id)
 )Engine=InnoDB; 
+
+-- Modif 01/05/2023 // pour l'insertion de la prescription dans la base de donnée
+-- j'ai une idée : 
+-- pourquoi ne pas crée juste une propriété pour l'encserv
+-- comme par exemple encserv_is_prescription : 0
+-- c'est pas vraiment une bonne idée
+
+-- alter table enc_serv add encserv_is_prescription int null default 0;
+alter table encaissement add enc_montant_prescription int null;
+
+-- voilà la nouvelle table pour accuellir les médicaments dans prescription
+create table if not exists enc_prescri(
+    encp_id int auto_increment not null,  
+    encp_serv_id int null,
+    encp_is_product int null default 0,
+    encp_enc_id int null,
+    encp_qt int null,
+    encp_montant int null,
+    encp_prix_unit int null,
+    encp_date_enreg datetime default NOW(),
+    primary key (encp_id)
+)Engine=InnoDB; 

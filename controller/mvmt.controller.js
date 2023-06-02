@@ -336,7 +336,6 @@ class Mouvement{
 
     static async getDataUtilsFilters(req,res){
         try {
-            
             let nbEncMvmt = (await D.exec_params(`select count(*) as nb from encmvmt 
                 where em_validate = 0 and date(em_date_enreg) = date(?)`,[new Date()]))[0].nb
             
@@ -372,9 +371,18 @@ class Mouvement{
         try{
             let {enc_id} = req.query
 
-            let list_med = await D.exec_params(`select * from enc_serv
-            left join article on art_id = encserv_serv_id
-            where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
+            let enc = (await D.exec_params('select enc_is_hosp from encaissement where enc_id = ?',[enc_id]))[0]
+
+            let list_med = []
+            if(enc.enc_is_hosp){
+                list_med = await D.exec_params(`select * from enc_prescri
+                left join article on art_id = encp_serv_id
+                where encp_enc_id = ? and encp_is_product = 1`,[enc_id])
+            }else{
+                list_med = await D.exec_params(`select * from enc_serv
+                left join article on art_id = encserv_serv_id
+                where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
+            }
 
             return res.send({status:true,list_med})
 
@@ -388,9 +396,19 @@ class Mouvement{
         try{
             let {enc_id,util_id} = req.query
 
-            let list_med = await D.exec_params(`select * from enc_serv
-            left join article on art_id = encserv_serv_id
-            where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
+            //Récupération de l'encaissement
+            let enc = ( await D.exec_params('select * from  encaissement where enc_id = ?',[enc_id]) )[0]
+
+            let list_med = []
+            if(enc.enc_is_hosp){
+                list_med = await D.exec_params(`select * from enc_prescri
+                left join article on art_id = encp_serv_id
+                where encp_enc_id = ? and encp_is_product = 1`,[enc_id])
+            }else{
+                list_med = await D.exec_params(`select * from enc_serv
+                left join article on art_id = encserv_serv_id
+                where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
+            }
 
             //ici on va vraiment créer un mouvement de sortie
             let action = 'sortie',type = 'vente'
@@ -431,10 +449,6 @@ class Mouvement{
                 dep_id = dep[0].dep_id
             }
             // -----------------
-            //Récupération de l'encaissement
-
-            let enc = ( await D.exec_params('select * from  encaissement where enc_id = ?',[enc_id]) )[0]
-            //
 
             let mt = {
                 mvmt_action:action,
@@ -450,6 +464,10 @@ class Mouvement{
 
             let mm_montant = 0
 
+
+            //Eto ndray ny insertion an'ilay mouvement
+            let _mvmt = await D.set('mvmt',mt) 
+
             // Vita iny aloha
             //Manipulation dépôt ndray eto
 
@@ -463,7 +481,7 @@ class Mouvement{
                 if(link.length > 0){
                     //Angalana ny depot d'expédition satri izy no mandefa an'ilay fanfody
                     await D.exec_params(`update stock_article set stk_actuel = stk_actuel - ?
-                    where stk_depot_id = ? and stk_art_id = ?`,[el.encserv_qt,mt.mvmt_depot_exp,el.art_id])
+                    where stk_depot_id = ? and stk_art_id = ?`,[(enc.enc_is_hosp)?el.encp_qt:el.encserv_qt,mt.mvmt_depot_exp,el.art_id])
                 }else{
                     
                     //si non on crée le lien
@@ -483,20 +501,18 @@ class Mouvement{
                 await D.set('mvmt_art',{
                     mart_det_stock:JSON.stringify(rest_stock),
                     mart_mvmt_id:_mvmt.insertId,
-                    mart_qt:el.encserv_qt,
+                    mart_qt:(enc.enc_is_hosp)?el.encp_qt:el.encserv_qt,
                     mart_art_id:el.art_id,
-                    mart_prix_unit:el.encserv_prix_unit,
-                    mart_montant:el.encserv_montant,
+                    mart_prix_unit:(enc.enc_is_hosp)?el.encp_prix_unit:el.encserv_prix_unit,
+                    mart_montant:(enc.enc_is_hosp)?el.encp_montant:el.encserv_montant,
                 })
 
-                mm_montant += el.encserv_montant
+                mm_montant += (enc.enc_is_hosp)?el.encp_montant:el.encserv_montant
                 
             }
 
             mt.mvmt_montant = mm_montant
-
-            //Eto ndray ny insertion an'ilay mouvement
-            let _mvmt = await D.set('mvmt',mt) 
+            await D.updateWhere('mvmt',{mvmt_montant:mm_montant},{mvmt_id:_mvmt.insertId})
 
             //Mise à jour an'ilay ENCMVMT
             await D.updateWhere('encmvmt',{

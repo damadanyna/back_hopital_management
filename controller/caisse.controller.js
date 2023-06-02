@@ -24,8 +24,8 @@ let _prep_enc_data = {
     enc_to_caisse:{front_name:'enc_to_caisse',fac:true},
     enc_percent_tarif:{front_name:'enc_percent_tarif',fac:true},
     enc_is_externe:{front_name:'enc_is_externe',fac:true},
-    enc_pat_externe:{front_name:'enc_pat_externe',fac:true}
-    
+    enc_pat_externe:{front_name:'enc_pat_externe',fac:true},
+    enc_montant_prescription:{front_name:'enc_montant_prescription',fac:true}
 }
 let _prep_key = Object.keys(_prep_enc_data)
 
@@ -161,6 +161,7 @@ class Caisse{
 
         let _d = req.body.enc //l'encaissement en question
         let _es = req.body.encserv //Liste des services qui devront être inscrit dans l'encaissement
+        let epre = req.body.encprescri //Liste des prescriptions
         let encav = req.body.encav
 
         let user_id = req.body.user_id
@@ -227,18 +228,18 @@ class Caisse{
             }
             await D.exec_params(sql,[datas])
 
-            //Eto koa mbola misy ny insertion an'ireny avance izay miditra ao ireny,
-            /*if(encav && encav.length > 0){
-                datas = []
-                sql = `insert into enc_avance (encav_util_id,encav_enc_id,encav_montant,encav_date) values ?;`
+            //Eto koa mbola misy ny insertion an'ireny prescription
+            datas = []
+            sql = `insert into enc_prescri (encp_serv_id,encp_enc_id,encp_is_product,encp_qt,encp_montant,encp_prix_unit) values ?;`
 
-                for (let i = 0; i < encav.length; i++) {
-                    const e = encav[i];
-                    datas.push([e.encav_util_id,_e.insertId,e.encav_montant,new Date(e.encav_date)])
+            if(epre){
+                for (let i = 0; i < epre.length; i++) {
+                    const e = epre[i];
+                    datas.push([e.encp_serv_id,_e.insertId,e.encp_is_product,e.encp_qt,e.encp_montant,e.encp_prix_unit])
                 }
                 await D.exec_params(sql,[datas])
-            }*/
-
+            }
+            
             //Ici enregistrement de l'utilisateur
             enc.enc_id = _e.insertId
 
@@ -568,6 +569,7 @@ class Caisse{
             let enc = null
             let encav = null
             let encserv = null
+            let encprescri = null
             
 
             if(parseInt(req.query.enc_id)){
@@ -588,9 +590,21 @@ class Caisse{
                 where encserv_is_product = 1 and encserv_enc_id = ?`,[enc_id])
 
                 encserv = [...serv,...med]
+
+                serv = await D.exec_params(`select * from enc_prescri
+                left join service on service_id = encp_serv_id
+                where encp_is_product = 0 and encp_enc_id = ?`,[enc_id])
+
+                med = await D.exec_params(`select *,art_id as service_id,art_code as service_code, art_label as service_label from enc_prescri 
+                left join article on art_id = encp_serv_id
+                where encp_is_product = 1 and encp_enc_id = ?`,[enc_id])
+
+                encprescri = [...serv,...med]
+
+
             }
 
-            return res.send({status:true,soc,tarif,last_num_hosp,dep,enc,encav,encserv})
+            return res.send({status:true,soc,tarif,last_num_hosp,dep,enc,encav,encserv,encprescri})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -623,7 +637,7 @@ class Caisse{
     //Modification d'une hospitalisation
     static async modifHosp(req,res){
         try {
-            let {enc,encserv,encav,user_id} = req.body
+            let {enc,encserv,encav,encprescri,user_id} = req.body
             //Insertion des modifs pour l'encaissement tout court
             let up_enc = {
                 enc_date_sortie:(enc.enc_date_sortie)?new Date(enc.enc_date_sortie):null,
@@ -633,6 +647,7 @@ class Caisse{
                 enc_dep_id:enc.enc_dep_id,
                 enc_is_pec:enc.enc_is_pec,
                 enc_montant:enc.enc_montant,
+                enc_montant_prescription:enc.enc_montant_prescription,
                 enc_total_avance:enc.enc_total_avance,
                 enc_paie_final:(enc.enc_paie_final)?new Date(enc.enc_paie_final):null,
                 enc_reste_paie:enc.enc_reste_paie
@@ -643,6 +658,7 @@ class Caisse{
 
             //Tonga de atao ny modification an'ilay encaissement
             await D.updateWhere('encaissement',up_enc,{enc_id:enc.enc_id})
+
 
             //Suppression ana service //suppression aloha
             if(encserv.del && encserv.del.length > 0){
@@ -667,6 +683,38 @@ class Caisse{
                     }else{
                         sql_modif +=`update enc_serv set encserv_qt = ${e.encserv_qt}, encserv_montant = ${e.encserv_montant} 
                         where encserv_enc_id = ${enc.enc_id} and encserv_serv_id = ${e.encserv_serv_id} and encserv_is_product = ${e.encserv_is_product};`
+                    }
+                }
+                if(datas.length > 0) await D.exec_params(sql,[datas])
+
+                if(sql_modif) await D.exec(sql_modif)
+            }
+
+            //ETO NDRAY NY MANIPULATION NY DATAS AN'ILA PRESCRIPTION
+            if(encprescri.del && encprescri.del.length > 0){
+                await D.exec_params('delete from enc_prescri where encp_enc_id = ? and encp_id in (?)',[enc.enc_id,encprescri.del])
+            }
+
+
+            datas = []
+            sql = '' 
+            sql_modif = ''
+
+            //Ajout ndray zao, ajout an'ireny service vaovao reny
+            if(encprescri.add && encprescri.add.length > 0){
+                //Eto mbola misy ny insertion an'ireny encaissement service reny
+                datas = []
+                sql = `insert into enc_prescri (encp_serv_id,encp_enc_id,encp_is_product,encp_qt,encp_montant,encp_prix_unit) values ?;` //sql pour le truc
+
+                
+                for (let i = 0; i < encprescri.add.length; i++) {
+                    const e = encprescri.add[i];
+                    if(!e) continue
+                    if(!e.encp_enc_id){
+                        datas.push([e.encp_serv_id,enc.enc_id,e.encp_is_product,e.encp_qt,e.encp_montant,e.encp_prix_unit])
+                    }else{
+                        sql_modif +=`update enc_prescri set encp_qt = ${e.encp_qt}, encp_montant = ${e.encp_montant} 
+                        where encp_enc_id = ${enc.enc_id} and encp_serv_id = ${e.encp_serv_id} and encp_is_product = ${e.encp_is_product};`
                     }
                 }
                 if(datas.length > 0) await D.exec_params(sql,[datas])
@@ -998,8 +1046,18 @@ class Caisse{
             left join article on art_id = encserv_serv_id
             where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
 
+            //Récupération de la liste des produits liés à la facture
+            let factp_serv = await D.exec_params(`select * from enc_prescri
+            left join service on service_id = encp_serv_id
+            where encp_enc_id = ? and encp_is_product = 0`,[enc_id])
+
+            let factp_med = await D.exec_params(`select * from enc_prescri
+            left join article on art_id = encp_serv_id
+            where encp_enc_id = ? and encp_is_product = 1`,[enc_id])
+
             //Manipulations des données
             let index_med = -1
+            // let indexp_med = -1
             for (let i = 0; i < list_serv.length; i++) {
                 const e = list_serv[i];
                 index_med = (e.service_code == 'MED')?i:index_med
@@ -1009,6 +1067,13 @@ class Caisse{
                     const es = fact_serv[j];
                     if(e.service_id == es.service_parent_id){
                         list_serv[i].montant_total += (es.encserv_montant)?parseInt(es.encserv_montant):0
+                    }
+                }
+
+                for (let j = 0; j < factp_serv.length; j++) {
+                    const es = factp_serv[j];
+                    if(e.service_id == es.service_parent_id){
+                        list_serv[i].montant_total += (es.encp_montant)?parseInt(es.encp_montant):0
                     }
                 }
             }
@@ -1024,6 +1089,11 @@ class Caisse{
                 const e = fact_med[i]
                 list_serv[index_med].montant_total += (e.encserv_montant)?parseInt(e.encserv_montant):0
             }
+            //Pour la prescription
+            for (let i = 0; i < factp_med.length; i++) {
+                const e = factp_med[i]
+                list_serv[index_med].montant_total += (e.encp_montant)?parseInt(e.encp_montant):0
+            }
 
             //conception anle PDF amzay eto an,
             // await createFactPDF(fact,list_serv,fact_serv)
@@ -1036,12 +1106,11 @@ class Caisse{
                     code:fact.enc_mode_paiement
                 }
             }
-            await createFactPDF(fact,list_serv,mode)
 
 
             //Eto création an'ilay Entité côté mouvement raha ohatra ka nisy médicaments ny zavatra novidian'ilay 
             // Patient
-            if(fact_med.length > 0){
+            if((!fact.enc_is_hosp && fact_med.length > 0) || (fact.enc_is_hosp && factp_med.length > 0)){
                 //jerena alony raha efa misy ilay relation
                 let rl = await D.exec_params('select * from encmvmt where em_enc_id = ?',[enc_id])
                 //Enregistrement anle Raha
@@ -1051,6 +1120,8 @@ class Caisse{
                     })
                 }
             }
+
+            await createFactPDF(fact,list_serv,mode)
 
             return res.send({status:true,message:"Encaissement effectuée"})
         } catch (e) {
@@ -1305,6 +1376,7 @@ class Caisse{
             //calcul des sommes espèces et chèques
             vt.recette_chq = 0
             vt.recette_esp = 0
+
             for (var i = 0; i < enc.length; i++) {
                 const en = enc[i]
                 let tt_mt = parseInt(en.enc_montant) - parseInt((en.enc_total_avance)?en.enc_total_avance:0)
@@ -1357,6 +1429,15 @@ class Caisse{
             let list_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_serv
             left join article on art_id = encserv_serv_id
             where encserv_enc_id in (?) and encserv_is_product = 1`,[enc_ids])
+
+            //Récupération de la liste des encprescri
+            let list_servp = await D.exec_params(`select * from enc_prescri
+            left join service on service_id = encp_serv_id
+            where encp_enc_id in (?) and encp_is_product = 0`,[enc_ids])
+
+            let list_medp = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_prescri
+            left join article on art_id = encp_serv_id
+            where encp_enc_id in (?) and encp_is_product = 1`,[enc_ids])
 
 
             //Ici on va supposé que le index (ID) du service médicaments et de  [s500]
@@ -1421,6 +1502,22 @@ class Caisse{
                         const ls = list_med[k]
                         if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && ls.encserv_enc_id == e.enc_id){
                             dep[j][id_med] = (dep[j][id_med])?dep[j][id_med]+parseInt(ls.encserv_montant):parseInt(ls.encserv_montant)
+                        }
+                    }
+
+                    //parcours list_service dans la prescription
+                    for(var k = 0; k < list_servp.length; k++){
+                        const ls = list_servp[k]
+                        if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && ls.encp_enc_id == e.enc_id){
+                            dep[j][ls.service_parent_id] = (dep[j][ls.service_parent_id])?dep[j][ls.service_parent_id]+parseInt(ls.encp_montant):parseInt(ls.encp_montant)
+                        }
+                    }
+
+                    //parcours des médicaments dans la presciption
+                    for(var k = 0; k < list_medp.length; k++){
+                        const ls = list_medp[k]
+                        if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && ls.encp_enc_id == e.enc_id){
+                            dep[j][id_med] = (dep[j][id_med])?dep[j][id_med]+parseInt(ls.encp_montant):parseInt(ls.encp_montant)
                         }
                     }
 
@@ -2522,8 +2619,6 @@ async function createFactPDF(fact,list_serv,mode){
         .lineTo(doc.page.width/2, doc.y)
         .dash(5, {space: 10})
         .stroke();
-
-
     //Famaranana an'ilay document
     doc.end();
 }
