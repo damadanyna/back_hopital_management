@@ -927,6 +927,14 @@ class Caisse{
             let enc_id = req.params.enc_id
             let { util_id } = req.query
 
+
+            //récupération de la facture
+            let fact = (await D.exec_params(`select * from encaissement
+            left join patient on pat_id = enc_pat_id
+            left join departement on dep_id = enc_dep_id
+            left join utilisateur on enc_util_validate_id = util_id
+            where enc_id = ?`,[enc_id]))[0]
+
             //console.log(util_id)
             //si la variable encav_id existe dans le query
             if(req.query.encav_id){
@@ -948,13 +956,6 @@ class Caisse{
                 await D.exec_params(`update encaissement 
                     set enc_total_avance = ?,enc_reste_paie = ? where enc_id = ?`,[ttl_avance,reste_paie,enc_id])
 
-                
-                //récupération de la facture
-                let fact = (await D.exec_params(`select * from encaissement
-                left join patient on pat_id = enc_pat_id
-                left join departement on dep_id = enc_dep_id
-                left join utilisateur on enc_util_validate_id = util_id
-                where enc_id = ?`,[enc_id]))[0]
                 
 
                 //Eto ny insertion historique anle encaissement avance
