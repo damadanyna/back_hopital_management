@@ -912,8 +912,10 @@ class Caisse{
 
 
             await D.del('enc_serv',{encserv_enc_id:enc_id})
+            await D.del('enc_prescri',{encp_enc_id:enc_id})
             await D.del('encaissement',{enc_id})
             await D.del('enc_avance',{encav_enc_id:enc_id})
+            await D.del('encmvmt',{em_enc_id:enc_id})
             // await D.del('versement',{vt_enc_id:enc_id})
 
             
