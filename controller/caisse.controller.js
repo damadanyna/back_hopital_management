@@ -232,7 +232,7 @@ class Caisse{
             datas = []
             sql = `insert into enc_prescri (encp_serv_id,encp_enc_id,encp_is_product,encp_qt,encp_montant,encp_prix_unit) values ?;`
 
-            if(epre){
+            if(epre && epre.length > 0){
                 for (let i = 0; i < epre.length; i++) {
                     const e = epre[i];
                     datas.push([e.encp_serv_id,_e.insertId,e.encp_is_product,e.encp_qt,e.encp_montant,e.encp_prix_unit])
@@ -947,6 +947,14 @@ class Caisse{
                 let reste_paie = parseInt(enc_tmp.enc_montant) - ttl_avance
                 await D.exec_params(`update encaissement 
                     set enc_total_avance = ?,enc_reste_paie = ? where enc_id = ?`,[ttl_avance,reste_paie,enc_id])
+
+                
+                //récupération de la facture
+                let fact = (await D.exec_params(`select * from encaissement
+                left join patient on pat_id = enc_pat_id
+                left join departement on dep_id = enc_dep_id
+                left join utilisateur on enc_util_validate_id = util_id
+                where enc_id = ?`,[enc_id]))[0]
                 
 
                 //Eto ny insertion historique anle encaissement avance
@@ -991,13 +999,6 @@ class Caisse{
             }
             list_serv = [...nnull,...lnull]
             // ----------------------
-
-            //récupération de la facture
-            let fact = (await D.exec_params(`select * from encaissement
-            left join patient on pat_id = enc_pat_id
-            left join departement on dep_id = enc_dep_id
-            left join utilisateur on enc_util_validate_id = util_id
-            where enc_id = ?`,[enc_id]))[0]
 
             //ENREGISTREMENT DE LA VALIDATION DE L'ENCAISSEMENT
             //AVANT IMPRESSION

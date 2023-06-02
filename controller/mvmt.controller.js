@@ -842,7 +842,6 @@ class Mouvement{
 
                 where art_label like ? and mvmt_action = 'entre' and  fourn_id ${(filters.fourn_id != -1)?'=':'<>'} ? 
                 and date(mvmt_date) between date(?) and date(?)
-                limit ?
                 `,[`%${filters.art_label}%`,filters.fourn_id,
                 filters.date_1,filters.date_2])
 
@@ -997,8 +996,31 @@ class Mouvement{
             sheet.getRow(3).font = {bold:true,size: 14,underline: true,}
             sheet.getRow(1).font = {bold:true,size: 16,underline: true,}
 
-            await workbook.xlsx.writeFile(`${filepath}.xlsx`);
 
+            /*
+                var fileName = 'FileName.xlsx';
+
+                response.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+
+                await workbook.xlsx.write(response);
+
+                response.end();
+            
+            
+
+                var fileName = 'FileName.xlsx';
+
+                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                res.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+
+                await workbook.xlsx.write(res);
+
+                res.end();
+            */
+            
+
+            await workbook.xlsx.writeFile(`${filepath}.xlsx`);
             return res.send({status:true})
 
 
@@ -1211,6 +1233,29 @@ class Mouvement{
 
             sheet.getRow(3).font = {bold:true,}
             sheet.getRow(1).font = {bold:true,size: 16,underline: true,}
+
+
+            /*
+                var fileName = 'FileName.xlsx';
+
+                response.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+
+                await workbook.xlsx.write(response);
+
+                response.end();
+
+            
+
+                var fileName = 'FileName.xlsx';
+
+                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                res.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+
+                await res.xlsx.write(response);
+
+                res.end();
+            */
 
             await workbook.xlsx.writeFile(`${filepath}.xlsx`);
 
