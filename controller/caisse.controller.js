@@ -636,8 +636,11 @@ class Caisse{
 
     //Modification d'une hospitalisation
     static async modifHosp(req,res){
+        
         try {
             let {enc,encserv,encav,encprescri,user_id} = req.body
+
+            // console.error(encprescri)
             //Insertion des modifs pour l'encaissement tout court
             let up_enc = {
                 enc_date_sortie:(enc.enc_date_sortie)?new Date(enc.enc_date_sortie):null,
@@ -887,7 +890,7 @@ class Caisse{
 
             // console.log(util_id)
 
-            if(etmp.enc_validate){
+            if(etmp.enc_validate && !etmp.enc_is_hosp){
                 return res.send({status:false,message:`L'encaissement est déjà validé`,validate:true})
             }
 
