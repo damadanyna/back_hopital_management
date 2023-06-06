@@ -910,7 +910,6 @@ class Caisse{
             //insertion
             await D.set('user_historic',hist)
 
-
             await D.del('enc_serv',{encserv_enc_id:enc_id})
             await D.del('enc_prescri',{encp_enc_id:enc_id})
             await D.del('encaissement',{enc_id})
@@ -1564,6 +1563,30 @@ class Caisse{
             res.contentType("application/pdf")
             // res.download(`./facture.pdf`)
             res.send(data);
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+
+    /**
+     * ICI GESTION DE LA CAISSE PRINCIPALE
+     */
+
+    //ICI RECUPERATION DES DONNEES UTILES POUR LES FILTRES 
+    static async recupDataMainForFilters(req,res){
+        try {
+
+            let dep_list = await D.exec_params('select * from departement')
+            let sp_list = await D.exec_params('select * from service where service_parent_id is null')
+
+            return res.send({
+                status:true,
+                dep_list,
+                sp_list
+            })
+
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

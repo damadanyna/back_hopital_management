@@ -185,6 +185,8 @@ class Patient{
 
         let {user_id} = p
 
+        let old_p = (await D.exec_params('select * from patient where pat_id = ?',[p.pat_id]))[0]
+
         delete p.pat_date_enreg
         delete p.user_id
 
@@ -211,7 +213,7 @@ class Patient{
                 uh_module:'Fiche Patient',
                 uh_extras:JSON.stringify({
                     datas:{
-                        patient:(await D.exec_params('select * from patient where pat_id = ?',[p.pat_id]))[0]
+                        patient:old_p
                     }
                 })
             }

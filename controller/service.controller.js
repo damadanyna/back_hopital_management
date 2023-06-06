@@ -344,6 +344,22 @@ class Service{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+
+    //récupération des sérvices enfant 
+    //selon ou pas un service parent
+    static async searchChild(req,res){
+        try {
+            let {parent_id,label} = req.query
+            parent_id = (parent_id)?parent_id:null
+            let services = await D.exec_params(`select * from service where service_parent_id ${(parent_id)?'= ?':'is not ?'} 
+            and service_label like ?`,[parent_id,`%${label}%`])
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
 }
 
 module.exports = Service;

@@ -81,6 +81,9 @@ router.put('/service',require('../controller/service.controller').update);
 router.put('/service/modif-prix',require('../controller/service.controller').modifPrix);
 router.delete('/service/del-tarif/:tarif_id',require('../controller/service.controller').delTarif);
 
+//Pour la recherche d'enfant de service 
+router.get('/services/search/child',require('../controller/service.controller').searchChild)
+
 router.get('/products/tarifs',require('../controller/service.controller').getListTarifsProducts)
 router.get('/products/utils-modif-prix',require('../controller/service.controller').getModifPrixProduct);
 
@@ -271,6 +274,13 @@ router.delete('/encaissement/:enc_id',require('../controller/caisse.controller')
 
 router.get('/caisse/search/prod-serv',require('../controller/caisse.controller').searchProdServ)
 router.get('/caisse/tarif-prod',require('../controller/caisse.controller').getTarifProd)
+
+
+//ICI GESTION DE LA CAISSE PRINCIPALE 
+//DISPENSAIRE
+
+//récupération des données pour les filtres
+router.get('/caisse/main/data-for-filters',require('../controller/caisse.controller').recupDataMainForFilters)
 
 
 //GESTION AVANCE ENCAISSEMENT
