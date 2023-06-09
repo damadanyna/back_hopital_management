@@ -982,8 +982,10 @@ class Caisse{
                     })
                 }
                 await D.set('user_historic',hist)
-
             }
+
+            //ici on va récupérer le dernier avance que le patient à payer
+            let encav_last = (await D.exec_params('select * from enc_avance where encav_enc_id = ? order by encav_id desc limit 1',[enc_id]))[0]
 
             //Récupération des listes des services parents
             let list_serv = await D.exec(`select * from service where service_parent_id is null order by service_rang asc`)
@@ -1115,6 +1117,13 @@ class Caisse{
                 }
             }
 
+            //récupération de l'encaissement après modification
+            fact = (await D.exec_params(`select * from encaissement
+            left join patient on pat_id = enc_pat_id
+            left join departement on dep_id = enc_dep_id
+            left join utilisateur on enc_util_validate_id = util_id
+            where enc_id = ?`,[enc_id]))[0]
+
 
             //Eto création an'ilay Entité côté mouvement raha ohatra ka nisy médicaments ny zavatra novidian'ilay 
             // Patient
@@ -1129,7 +1138,7 @@ class Caisse{
                 }
             }
 
-            await createFactPDF(fact,list_serv,mode)
+            await createFactPDF(fact,list_serv,mode,encav_last)
 
             return res.send({status:true,message:"Encaissement effectuée"})
         } catch (e) {
@@ -2285,7 +2294,7 @@ async function createDetFactPDF(list_serv,pdf_name,enc){
 
 
 //Fonction pour la génération de PDF
-async function createFactPDF(fact,list_serv,mode){
+async function createFactPDF(fact,list_serv,mode,encav_last){
 
     let year_cur = new Date().getFullYear()
     let year_enc = new Date(fact.enc_date_enreg).getFullYear()
@@ -2392,10 +2401,13 @@ async function createFactPDF(fact,list_serv,mode){
     let t_mode = 'Paiement:'
     let t_avance = 'Avance:'
     let t_paiement_final = (fact.enc_to_caisse)?'Paiement final:':'Reste à payer:'
-    let t_somme_m = NumberToLetter((fact.enc_percent_tarif)?(fact.enc_percent_tarif * parseInt(fact.enc_montant) / 100):parseInt(fact.enc_montant).toString()) 
+    
+    let t_somme_m = NumberToLetter(parseInt((fact.enc_is_hosp)?(fact.enc_validate?fact.enc_reste_paie:(encav_last != undefined)?encav_last.encav_montant:fact.enc_reste_paie):fact.enc_montant ).toString()) 
     let t_avance_s = (fact.enc_total_avance)?parseInt(fact.enc_total_avance).toLocaleString('fr-CA'):''
+
+
     let t_paiement_final_s = (fact.enc_total_avance)?(parseInt(fact.enc_reste_paie)).toLocaleString('fr-CA'):''
-    t_somme_m = t_somme_m.charAt(0).toUpperCase() + t_somme_m.slice(1) + ' Ariary' + ((fact.enc_percent_tarif && fact.enc_percent_tarif != 100)?`  (${fact.enc_percent_tarif})%`:'')
+    t_somme_m = t_somme_m.charAt(0).toUpperCase() + t_somme_m.slice(1) + ' Ariary'
 
     //-------------
     let t_stat = 'Stat n ° 85113 12 200 60 00614'
@@ -2458,7 +2470,7 @@ async function createFactPDF(fact,list_serv,mode){
     //Resaka patient ndray zao
     let t_dep = `DEP : ${(fact.dep_label)?fact.dep_label:'-'}`
     doc.text(t_dep,(w_cadre/2 - doc.widthOfString(t_dep)/2) + x_begin,y_cur+10)
-    doc.moveDown()
+    // doc.moveDown()
     doc.text(t_pat_code,(w_cadre/2 - doc.widthOfString(t_pat_code)/2) + x_begin)
     doc.font('fira_bold')
     doc.text(pat_name,(w_cadre/2 - doc.widthOfString(pat_name)/2) + x_begin)
@@ -2594,6 +2606,9 @@ async function createFactPDF(fact,list_serv,mode){
     //Bas de page avec le montant en lettre
     doc.moveDown()
     y_cur = doc.y
+
+    //ici quelques modification de T-SOMME
+    // t_somme = 
     doc.text(t_somme,{underline:true})
     doc.font("fira")
     doc.text(t_somme_m,doc.widthOfString(t_somme)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_somme) -5 })
@@ -2607,15 +2622,35 @@ async function createFactPDF(fact,list_serv,mode){
         doc.text((mode)?mode.label:'Espèce',doc.widthOfString(t_mode)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_mode) -5 })
     }else{
         //Insertion avance
-        doc.moveDown()
-        y_cur = doc.y
-        doc.font("fira_bold")
-        doc.text(t_avance,x_begin,y_cur,{underline:true})
-        doc.font("fira")
-        doc.text(t_avance_s,doc.widthOfString(t_avance)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_avance) -5 })
-        //Insertion paiement final
 
-        let hxx = doc.widthOfString(`${t_avance}: ${t_avance_s}`)+x_begin+5
+
+        doc.moveDown()
+
+        t_avance = 'Avance Total'
+        y_cur = doc.y
+
+        let t_avance_ac = 'Avance'
+        let t_avance_ac_s = separateNumber(encav_last.encav_montant)
+
+        hxx = 0
+
+        if(fact.enc_validate){
+            doc.font("fira_bold")
+            doc.text(t_avance,x_begin,y_cur,{underline:true})
+            doc.font("fira")
+            doc.text(t_avance_s,hxx + doc.widthOfString(t_avance)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_avance) -5 })
+
+            hxx += doc.widthOfString(`${t_avance} ${t_avance_s}`)+x_begin+5
+        }else{
+            doc.font("fira_bold")
+            doc.text(t_avance_ac,x_begin,y_cur,{underline:true})
+            doc.font("fira")
+            doc.text(t_avance_ac_s,doc.widthOfString(t_avance_ac)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_avance_ac) -5 })
+
+            hxx += doc.widthOfString(`${t_avance_ac} ${t_avance_ac_s}`)+x_begin+5
+        }   
+        
+        
         doc.font("fira_bold")
         doc.text(t_paiement_final, hxx,y_cur,{underline:true})
         doc.font("fira")
@@ -2687,7 +2722,7 @@ async function createFactPDF(fact,list_serv,mode){
 
     //Resaka patient ndray zao
     doc.text(t_dep,(w_cadre/2 - doc.widthOfString(t_dep)/2) + x_begin,y_cur+10)
-    doc.moveDown()
+    // doc.moveDown()
     doc.text(t_pat_code,(w_cadre/2 - doc.widthOfString(t_pat_code)/2) + x_begin)
     doc.font('fira_bold')
     doc.text(pat_name,(w_cadre/2 - doc.widthOfString(pat_name)/2) + x_begin)
@@ -2717,14 +2752,32 @@ async function createFactPDF(fact,list_serv,mode){
     }else{
         //Insertion avance
         doc.moveDown()
-        y_cur = doc.y
-        doc.font("fira_bold")
-        doc.text(t_avance,x_begin,y_cur,{underline:true})
-        doc.font("fira")
-        doc.text(t_avance_s,doc.widthOfString(t_avance)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_avance) -5 })
-        //Insertion paiement final
 
-        hxx = doc.widthOfString(`${t_avance}: ${t_avance_s}`)+x_begin+5
+        t_avance = 'Avance Total'
+        y_cur = doc.y
+
+        let t_avance_ac = 'Avance'
+        let t_avance_ac_s = separateNumber(encav_last.encav_montant)
+
+        hxx = 0
+
+        if(fact.enc_validate){
+            doc.font("fira_bold")
+            doc.text(t_avance,x_begin,y_cur,{underline:true})
+            doc.font("fira")
+            doc.text(t_avance_s,hxx + doc.widthOfString(t_avance)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_avance) -5 })
+
+            hxx += doc.widthOfString(`${t_avance} ${t_avance_s}`)+x_begin+5
+        }else{
+            doc.font("fira_bold")
+            doc.text(t_avance_ac,x_begin,y_cur,{underline:true})
+            doc.font("fira")
+            doc.text(t_avance_ac_s,doc.widthOfString(t_avance_ac)+x_begin+5,y_cur,{width:w_cadre - doc.widthOfString(t_avance_ac) -5 })
+
+            hxx += doc.widthOfString(`${t_avance_ac} ${t_avance_ac_s}`)+x_begin+5
+        }   
+        
+        
         doc.font("fira_bold")
         doc.text(t_paiement_final, hxx,y_cur,{underline:true})
         doc.font("fira")
