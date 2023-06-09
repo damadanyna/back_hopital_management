@@ -941,6 +941,8 @@ class Caisse{
 
             //console.log(util_id)
             //si la variable encav_id existe dans le query
+            //si la variable encav_id existe dans le queyr c'est que c'est probablement le paiement d'un avance
+            //ok ok, 
             if(req.query.encav_id){
 
                 let encav_id = req.query.encav_id
@@ -1592,8 +1594,100 @@ class Caisse{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
-}
 
+    static async getEncaissementMain(req,res){
+        let filters = req.query
+        
+
+
+        // console.log(filters)
+
+        filters.page = (!filters.page )?1:parseInt(filters.page)
+        filters.limit = (!filters.limit)?100:parseInt(filters.limit)
+
+        try {
+            let d = (new Date(filters.date)).toLocaleDateString('fr-CA')
+            let d2 = (new Date(filters.date2)).toLocaleDateString('fr-CA')
+
+            let list_dep = await D.exec('select * from departement')
+            
+
+            filters.dep_id = (filters.dep_id)?filters.dep_id:list_dep[0].dep_id
+
+            let w = [
+                d,d2
+            ]
+
+            if(filters.dep_id != -1){
+                w.push(filters.dep_id)
+            }
+            if(filters.search){
+                w.push(`%${filters.search}%`)
+            }
+
+            if(filters.validate != '-1'){
+                w.push(parseInt(filters.validate))
+            }
+
+            //console.log(filters)
+
+            let list_enc = await D.exec_params(`select * from encaissement
+            left join patient on pat_id = enc_pat_id
+            left join entreprise on ent_id = enc_ent_id
+            left join tarif on tarif_id = enc_tarif_id
+            left join departement on dep_id = enc_dep_id
+            where enc_to_caisse = 1 and date(enc_date) between ? and ? 
+            ${ (filters.dep_id != -1)?'and enc_dep_id = ?':'' }
+            ${ (filters.search)?`and ${filters.search_by} like ?`:'' }
+            ${ (filters.validate != '-1')?'and enc_validate = ?':'' }
+            order by enc_date desc
+            `,w)
+
+            let total_montant = (await D.exec_params(`select sum(enc_montant) as total from encaissement
+            where enc_to_caisse = 1 and date(enc_date) between ? and ? 
+            ${ (filters.dep_id != -1)?'and enc_dep_id = ?':'' }
+            ${ (filters.search)?`and ${filters.search_by} like ?`:'' }
+            `,w))[0].total
+
+
+            //avant calcul total encaissement il faut aussi 
+            //récupéré la liste des encaissement d'avance
+            let list_avance = await D.exec_params(`select *,encav_versement as enc_versement,encav_validate as enc_validate,
+            encav_date_enreg as enc_date
+            from enc_avance
+            left join encaissement on enc_id = encav_enc_id
+            left join patient on pat_id = enc_pat_id
+            left join entreprise on ent_id = enc_ent_id
+            left join tarif on tarif_id = enc_tarif_id
+            left join departement on dep_id = enc_dep_id
+            where date(encav_date_enreg) between ? and ? 
+            ${ (filters.dep_id != -1)?'and enc_dep_id = ?':'' }
+            ${ (filters.search)?`and ${filters.search_by} like ?`:'' }
+            ${ (filters.validate != '-1')?'and encav_validate = ?':'' }
+            order by encav_date_enreg desc
+            `,w)
+
+            total_montant = 0
+            for (let i = 0; i < list_enc.length; i++) {
+                const e = list_enc[i];
+                total_montant += parseInt(e.enc_montant) - parseInt((e.enc_total_avance)?e.enc_total_avance:0)
+            }
+
+            //ajout des montans de l'avance encaissé
+            for (let i = 0; i < list_avance.length; i++) {
+                const e = list_avance[i];
+                total_montant += parseInt(e.encav_montant)
+            }
+
+            list_enc = [...list_enc,...list_avance]
+
+            return res.send({status:true,list_enc,list_dep,total_montant})
+        }catch(e){
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+}
 async function createRapportVt(dt){
     let {enc,serv_p,dep,vt} = dt
 
@@ -1778,9 +1872,6 @@ async function createRapportVt(dt){
     doc.lineWidth(1)
     doc.lineJoin().rect(doc.x,doc.y,150,35).stroke()
     
-    
-
-
     // ------ DEBUT TABLEAU REPARTITION PAR DEPARTEMENT -------- 
     doc.text('',opt.margin,y_ttl)
     doc.moveDown(5)

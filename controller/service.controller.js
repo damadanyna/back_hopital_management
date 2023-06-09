@@ -351,10 +351,29 @@ class Service{
     static async searchChild(req,res){
         try {
             let {parent_id,label} = req.query
-            parent_id = (parent_id)?parent_id:null
-            let services = await D.exec_params(`select * from service where service_parent_id ${(parent_id)?'= ?':'is not ?'} 
-            and service_label like ?`,[parent_id,`%${label}%`])
+            parent_id = parseInt(parent_id)
+            // parent_id = (parent_id == -1)?null:parent_id
 
+            let services = [],serv_med=[],serv = []
+
+            if(parent_id == -1){
+                serv_med = await D.exec_params(`select *,
+                art_label as service_label,art_code as service_code,art_id as service_id
+                from article where art_label like ? limit 5`,[`%${label}%`])
+                serv = await D.exec_params(`select * from service where service_parent_id is not null 
+                and service_label like ? limit 5`,[`%${label}%`])
+
+                services = [...serv,...serv_med]
+            }else if(parent_id == -42){
+                services = await D.exec_params(`select *,
+                art_label as service_label,art_code as service_code,art_id as service_id
+                from article where art_label like ? limit 10`,[`%${label}%`])
+            }else{
+                services = await D.exec_params(`select * from service where service_parent_id = ?
+                and service_label like ? limit 10`,[parent_id,`%${label}%`])
+            }
+
+            return res.send({status:true,services})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
