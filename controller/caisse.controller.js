@@ -1736,10 +1736,10 @@ class Caisse{
             let count_now = 0
             let tmp = (await D.exec_params(`select sum(enc_montant) as mnt,sum(enc_total_avance) as avance from 
             encaissement where enc_validate = 1 and date(enc_date_validation) = date(?)`,[new Date()]))[0]
-            count_now = parseInt(tmp.mnt) - parseInt(tmp.avance)
+            count_now = parseInt(tmp.mnt) - parseInt((tmp.avance)?tmp.avance:0)
             tmp = (await D.exec_params(`select sum(encav_montant) as mnt from 
             enc_avance where encav_validate = 1 and date(encav_date_validation) = date(?)`,[new Date()]))[0]
-            count_now += parseInt(tmp.mnt)
+            count_now += parseInt((tmp.mnt)?tmp.mnt:0)
             count_now = (count_now)?count_now:0
             // - Vita ny montant androany
 
@@ -1748,10 +1748,10 @@ class Caisse{
             let count_week = 0
             tmp = (await D.exec_params(`select sum(enc_montant) as mnt,sum(enc_total_avance) as avance from 
             encaissement where enc_validate = 1 and date(enc_date_validation) between date(?) and date(?)`,[nw.begin,new Date()]))[0]
-            count_week = parseInt(tmp.mnt) - parseInt(tmp.avance)
+            count_week = parseInt(tmp.mnt) - parseInt((tmp.avance)?tmp.avance:0)
             tmp = (await D.exec_params(`select sum(encav_montant) as mnt from 
             enc_avance where encav_validate = 1 and date(encav_date_validation) between date(?) and date(?)`,[nw.begin,new Date()]))[0]
-            count_week += parseInt(tmp.mnt)
+            count_week += parseInt((tmp.mnt)?tmp.mnt:0)
             count_week = (count_week)?count_week:0
 
 
@@ -1760,10 +1760,10 @@ class Caisse{
             let count_month = 0
             tmp = (await D.exec_params(`select sum(enc_montant) as mnt,sum(enc_total_avance) as avance from 
             encaissement where enc_validate = 1 and date(enc_date_validation) between date(?) and date(?)`,[nm.begin,new Date()]))[0]
-            count_month = parseInt(tmp.mnt) - parseInt(tmp.avance)
+            count_month = parseInt(tmp.mnt) - parseInt((tmp.avance)?tmp.avance:0)
             tmp = (await D.exec_params(`select sum(encav_montant) as mnt from 
             enc_avance where encav_validate = 1 and date(encav_date_validation) between date(?) and date(?)`,[nm.begin,new Date()]))[0]
-            count_month += parseInt(tmp.mnt)
+            count_month += parseInt((tmp.mnt)?tmp.mnt:0)
             count_month = (count_month)?count_month:0
 
 
