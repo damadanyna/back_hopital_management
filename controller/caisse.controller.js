@@ -1633,10 +1633,10 @@ class Caisse{
             left join tarif on tarif_id = enc_tarif_id
             left join departement on dep_id = enc_dep_id
             where enc_to_caisse = 1 and enc_is_hosp is null
-            and date(${date_by=='insert'?'enc_date':'enc_date_validation'}) between date(?) and date(?) 
+            and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
             and pat_nom_et_prenom like ?
             and enc_validate ${(validate == -1)?'<>':'='} ?
-            order by ${date_by=='insert'?'enc_date':'enc_date_validation'} desc limit ? offset ?
+            order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc limit ? offset ?
             `,[date_1,date_2,pat_label,validate,limit,offset])
 
             //ici on va compter le nombre total de résultats
@@ -1646,10 +1646,10 @@ class Caisse{
             left join tarif on tarif_id = enc_tarif_id
             left join departement on dep_id = enc_dep_id
             where enc_to_caisse = 1 and enc_is_hosp is null
-            and date(${date_by=='insert'?'enc_date':'enc_date_validation'}) between date(?) and date(?) 
+            and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
             and pat_nom_et_prenom like ?
             and enc_validate ${(validate == -1)?'<>':'='} ?
-            order by ${date_by=='insert'?'enc_date':'enc_date_validation'} desc
+            order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc
             `,[date_1,date_2,pat_label,validate]))[0]
 
 
@@ -1690,11 +1690,11 @@ class Caisse{
             left join tarif on tarif_id = enc_tarif_id
             left join departement on dep_id = enc_dep_id
             where enc_to_caisse = 1 and enc_is_hosp = 1
-            and date(${date_by=='insert'?'enc_date':'enc_date_validation'}) between date(?) and date(?) 
+            and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
             and enc_dep_id ${dep_id == -1?'<>':'='} ?
             and pat_nom_et_prenom like ?
             and enc_validate ${(validate == -1)?'<>':'='} ?
-            order by ${date_by=='insert'?'enc_date':'enc_date_validation'} desc limit ? offset ?
+            order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc limit ? offset ?
             `,[date_1,date_2,dep_id,pat_label,validate,limit,offset])
 
             //ici on va compter le nombre total de résultats
@@ -1705,11 +1705,11 @@ class Caisse{
             left join tarif on tarif_id = enc_tarif_id
             left join departement on dep_id = enc_dep_id
             where enc_to_caisse = 1 and enc_is_hosp = 1
-            and date(${date_by=='insert'?'enc_date':'enc_date_validation'}) between date(?) and date(?) 
+            and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
             and enc_dep_id ${dep_id == -1?'<>':'='} ?
             and pat_nom_et_prenom like ?
             and enc_validate ${(validate == -1)?'<>':'='} ?
-            order by ${date_by=='insert'?'enc_date':'enc_date_validation'} desc
+            order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc
             `,[date_1,date_2,dep_id,pat_label,validate]))[0]
 
 
