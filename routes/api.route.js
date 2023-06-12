@@ -275,12 +275,17 @@ router.delete('/encaissement/:enc_id',require('../controller/caisse.controller')
 router.get('/caisse/search/prod-serv',require('../controller/caisse.controller').searchProdServ)
 router.get('/caisse/tarif-prod',require('../controller/caisse.controller').getTarifProd)
 
-
 //ICI GESTION DE LA CAISSE PRINCIPALE 
 //DISPENSAIRE
 
 //récupération des données pour les filtres
 router.get('/caisse/main/data-for-filters',require('../controller/caisse.controller').recupDataMainForFilters)
+
+//récupération de la liste des encaissement dans la caisse principale
+router.get('/caisse/main/disp',require('../controller/caisse.controller').getEncMainDisp)
+router.get('/caisse/main/hosp',require('../controller/caisse.controller').getEncMainHosp)
+
+router.get('/caisse/main/dash',require('../controller/caisse.controller').dashData)
 
 
 //GESTION AVANCE ENCAISSEMENT

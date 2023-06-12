@@ -71,6 +71,37 @@ class Utils{
 
         console.log('-- FIN --');
     }
+
+    //chatgpt
+    static getDateBeginEndWeek(d){
+        const now = new Date(d)
+
+        const jourNow = now.getDay()
+
+        const daySub = jourNow === 0?6:jourNow - 1
+        const dayAdd = jourNow === 0?0:7 - jourNow 
+
+        let begin = new Date(now.getFullYear(),now.getMonth(),now.getDate() - daySub)
+        let end = new Date(now.getFullYear(),now.getMonth(),now.getDate() + dayAdd)
+        return {begin,end}
+    }
+
+
+    //chatgpt
+    static getDateBeginEndMonth(d){
+        const now = new Date()
+
+        let begin = new Date(now.getFullYear(),now.getMonth(),1)
+
+        const moisSuivant = (now.getMonth() == 11)?0:now.getMonth() + 1
+        const anneeSuivante = (now.getMonth() == 11)?now.getFullYear()+1:now.getFullYear() //année du mois suivant
+        const debutMoisSuivant = new Date(anneeSuivante,moisSuivant,1)
+
+        let end = new Date(debutMoisSuivant.getTime() - 1)
+
+        return {begin,end}
+
+    }
 }
 
 module.exports = Utils

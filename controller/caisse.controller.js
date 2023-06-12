@@ -1,4 +1,5 @@
 let D = require('../models/data')
+let U = require('../utils/utils')
 let PDFDocument = require("pdfkit-table");
 let fs = require('fs')
 const { NumberToLetter } = require("convertir-nombre-lettre");
@@ -1604,99 +1605,189 @@ class Caisse{
         }
     }
 
-    static async getEncaissementMain(req,res){
-        let filters = req.query
-        
-
-
-        // console.log(filters)
-
-        filters.page = (!filters.page )?1:parseInt(filters.page)
-        filters.limit = (!filters.limit)?100:parseInt(filters.limit)
-
+    static async getEncMainDisp(req,res){
         try {
-            let d = (new Date(filters.date)).toLocaleDateString('fr-CA')
-            let d2 = (new Date(filters.date2)).toLocaleDateString('fr-CA')
+            let {filters} = req.query
 
-            let list_dep = await D.exec('select * from departement')
-            
+            // console.error(filters)
 
-            filters.dep_id = (filters.dep_id)?filters.dep_id:list_dep[0].dep_id
+            let {pat_label,validate,dep_id,date_1,date_2,limit,page,date_by} = filters
 
-            let w = [
-                d,d2
-            ]
+            date_1 = new Date(date_1)
+            date_2 = new Date(date_2)
+            validate = parseInt(validate)
 
-            if(filters.dep_id != -1){
-                w.push(filters.dep_id)
-            }
-            if(filters.search){
-                w.push(`%${filters.search}%`)
-            }
+            //la valeur de date_by
+            //sera ['insert','validate'] //pour date d'insertion et date de validation
 
-            if(filters.validate != '-1'){
-                w.push(parseInt(filters.validate))
-            }
+            dep_id = parseInt(dep_id)
+            limit = parseInt(limit)
+            page = parseInt(page)
+            pat_label = `%${pat_label}%`
 
-            //console.log(filters)
+            let offset = (page - 1) * limit
 
             let list_enc = await D.exec_params(`select * from encaissement
             left join patient on pat_id = enc_pat_id
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
             left join departement on dep_id = enc_dep_id
-            where enc_to_caisse = 1 and date(enc_date) between ? and ? 
-            ${ (filters.dep_id != -1)?'and enc_dep_id = ?':'' }
-            ${ (filters.search)?`and ${filters.search_by} like ?`:'' }
-            ${ (filters.validate != '-1')?'and enc_validate = ?':'' }
-            order by enc_date desc
-            `,w)
+            where enc_to_caisse = 1 and enc_is_hosp is null
+            and date(${date_by=='insert'?'enc_date':'enc_date_validation'}) between date(?) and date(?) 
+            and pat_nom_et_prenom like ?
+            and enc_validate ${(validate == -1)?'<>':'='} ?
+            order by ${date_by=='insert'?'enc_date':'enc_date_validation'} desc limit ? offset ?
+            `,[date_1,date_2,pat_label,validate,limit,offset])
 
-            let total_montant = (await D.exec_params(`select sum(enc_montant) as total from encaissement
-            where enc_to_caisse = 1 and date(enc_date) between ? and ? 
-            ${ (filters.dep_id != -1)?'and enc_dep_id = ?':'' }
-            ${ (filters.search)?`and ${filters.search_by} like ?`:'' }
-            `,w))[0].total
-
-
-            //avant calcul total encaissement il faut aussi 
-            //récupéré la liste des encaissement d'avance
-            let list_avance = await D.exec_params(`select *,encav_versement as enc_versement,encav_validate as enc_validate,
-            encav_date_enreg as enc_date
-            from enc_avance
-            left join encaissement on enc_id = encav_enc_id
+            //ici on va compter le nombre total de résultats
+            let result = (await D.exec_params(`select count(*) as nb_result,sum(enc_montant) as somme_result from encaissement
             left join patient on pat_id = enc_pat_id
             left join entreprise on ent_id = enc_ent_id
             left join tarif on tarif_id = enc_tarif_id
             left join departement on dep_id = enc_dep_id
-            where date(encav_date_enreg) between ? and ? 
-            ${ (filters.dep_id != -1)?'and enc_dep_id = ?':'' }
-            ${ (filters.search)?`and ${filters.search_by} like ?`:'' }
-            ${ (filters.validate != '-1')?'and encav_validate = ?':'' }
-            order by encav_date_enreg desc
-            `,w)
+            where enc_to_caisse = 1 and enc_is_hosp is null
+            and date(${date_by=='insert'?'enc_date':'enc_date_validation'}) between date(?) and date(?) 
+            and pat_nom_et_prenom like ?
+            and enc_validate ${(validate == -1)?'<>':'='} ?
+            order by ${date_by=='insert'?'enc_date':'enc_date_validation'} desc
+            `,[date_1,date_2,pat_label,validate]))[0]
 
-            total_montant = 0
+
+            let total_montant = 0
             for (let i = 0; i < list_enc.length; i++) {
                 const e = list_enc[i];
                 total_montant += parseInt(e.enc_montant) - parseInt((e.enc_total_avance)?e.enc_total_avance:0)
             }
 
-            //ajout des montans de l'avance encaissé
-            for (let i = 0; i < list_avance.length; i++) {
-                const e = list_avance[i];
-                total_montant += parseInt(e.encav_montant)
-            }
-
-            list_enc = [...list_enc,...list_avance]
-
-            return res.send({status:true,list_enc,list_dep,total_montant})
+            return res.send({status:true,list_enc,total_montant,result})
         }catch(e){
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+    static async getEncMainHosp(req,res){
+        try {
+            let {filters} = req.query
+
+            // console.error(filters)
+
+            let {pat_label,validate,dep_id,date_1,date_2,limit,page,date_by} = filters
+
+            date_1 = new Date(date_1)
+            date_2 = new Date(date_2)
+            validate = parseInt(validate)
+            dep_id = parseInt(dep_id)
+            limit = parseInt(limit)
+            page = parseInt(page)
+            pat_label = `%${pat_label}%`
+
+            let offset = (page - 1) * limit
+
+            let list_enc = await D.exec_params(`select * from encaissement
+            left join patient on pat_id = enc_pat_id
+            left join entreprise on ent_id = enc_ent_id
+            left join tarif on tarif_id = enc_tarif_id
+            left join departement on dep_id = enc_dep_id
+            where enc_to_caisse = 1 and enc_is_hosp = 1
+            and date(${date_by=='insert'?'enc_date':'enc_date_validation'}) between date(?) and date(?) 
+            and enc_dep_id ${dep_id == -1?'<>':'='} ?
+            and pat_nom_et_prenom like ?
+            and enc_validate ${(validate == -1)?'<>':'='} ?
+            order by ${date_by=='insert'?'enc_date':'enc_date_validation'} desc limit ? offset ?
+            `,[date_1,date_2,dep_id,pat_label,validate,limit,offset])
+
+            //ici on va compter le nombre total de résultats
+            let result = (await D.exec_params(`select count(*) as nb_result,sum(enc_montant) as somme_result, 
+            sum(enc_total_avance) as avance_result from encaissement
+            left join patient on pat_id = enc_pat_id
+            left join entreprise on ent_id = enc_ent_id
+            left join tarif on tarif_id = enc_tarif_id
+            left join departement on dep_id = enc_dep_id
+            where enc_to_caisse = 1 and enc_is_hosp = 1
+            and date(${date_by=='insert'?'enc_date':'enc_date_validation'}) between date(?) and date(?) 
+            and enc_dep_id ${dep_id == -1?'<>':'='} ?
+            and pat_nom_et_prenom like ?
+            and enc_validate ${(validate == -1)?'<>':'='} ?
+            order by ${date_by=='insert'?'enc_date':'enc_date_validation'} desc
+            `,[date_1,date_2,dep_id,pat_label,validate]))[0]
+
+
+            let total_montant = 0,total_avance = 0
+            for (let i = 0; i < list_enc.length; i++) {
+                const e = list_enc[i];
+                total_montant += parseInt(e.enc_montant) - ((filters.validate == 0)?parseInt((e.enc_total_avance)?e.enc_total_avance:0):0)
+
+                total_avance += parseInt((e.enc_total_avance)?e.enc_total_avance:0)
+            }
+
+            return res.send({status:true,list_enc,total_montant,total_avance,result})
+        }catch(e){
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    //récupération des données dans dashboard
+    //ça va être chaud
+    static async dashData(req,res){
+        try {
+            //récupération de la journée d'aujourd'hui
+            let count_now = 0
+            let tmp = (await D.exec_params(`select sum(enc_montant) as mnt,sum(enc_total_avance) as avance from 
+            encaissement where enc_validate = 1 and date(enc_date_validation) = date(?)`,[new Date()]))[0]
+            count_now = parseInt(tmp.mnt) - parseInt(tmp.avance)
+            tmp = (await D.exec_params(`select sum(encav_montant) as mnt from 
+            enc_avance where encav_validate = 1 and date(encav_date_validation) = date(?)`,[new Date()]))[0]
+            count_now += parseInt(tmp.mnt)
+            count_now = (count_now)?count_now:0
+            // - Vita ny montant androany
+
+            //Montant tamin'ity semaine ity jusqu'à Androany ndray (chatgpt)
+            let nw = U.getDateBeginEndWeek(new Date())
+            let count_week = 0
+            tmp = (await D.exec_params(`select sum(enc_montant) as mnt,sum(enc_total_avance) as avance from 
+            encaissement where enc_validate = 1 and date(enc_date_validation) between date(?) and date(?)`,[nw.begin,new Date()]))[0]
+            count_week = parseInt(tmp.mnt) - parseInt(tmp.avance)
+            tmp = (await D.exec_params(`select sum(encav_montant) as mnt from 
+            enc_avance where encav_validate = 1 and date(encav_date_validation) between date(?) and date(?)`,[nw.begin,new Date()]))[0]
+            count_week += parseInt(tmp.mnt)
+            count_week = (count_week)?count_week:0
+
+
+            //Montant du mois
+            let nm = U.getDateBeginEndMonth(new Date())
+            let count_month = 0
+            tmp = (await D.exec_params(`select sum(enc_montant) as mnt,sum(enc_total_avance) as avance from 
+            encaissement where enc_validate = 1 and date(enc_date_validation) between date(?) and date(?)`,[nm.begin,new Date()]))[0]
+            count_month = parseInt(tmp.mnt) - parseInt(tmp.avance)
+            tmp = (await D.exec_params(`select sum(encav_montant) as mnt from 
+            enc_avance where encav_validate = 1 and date(encav_date_validation) between date(?) and date(?)`,[nm.begin,new Date()]))[0]
+            count_month += parseInt(tmp.mnt)
+            count_month = (count_month)?count_month:0
+
+
+            return res.send({status:true,
+                count_now,
+                count_week,
+                count_month
+            })
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
 }
+
+
+
+
+//-------------------------------------------------------
+//------------ ICI LES FONCTION DE CREATION DE PDF ------
+//-------------------------------------------------------
+
+
 async function createRapportVt(dt){
     let {enc,serv_p,dep,vt} = dt
 

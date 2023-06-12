@@ -133,7 +133,7 @@ class Facture{
     static async update(req,res){  
         try {  
             
-            let {f,del,modif,add,user_id} = req.body
+            let {f,fact_serv,user_id,pec} = req.body
 
             //console.log(del,add)
             
@@ -141,59 +141,46 @@ class Facture{
             delete f.fact_serv
             f.fact_date = new Date(f.fact_date)
 
-            
+            //Mise à jour prise en charge
+            pec.encharge_date_sortie = (pec.encharge_date_sortie)?new Date(pec.encharge_date_sortie):null
+            await D.updateWhere('encharge',pec,{encharge_id:pec.encharge_id})
+            // --------------------------
 
             //Modification de la facture
             await D.updateWhere('facture',f,{fact_id:f.fact_id})
 
+
+            let {del,add} = fact_serv
+            let datas = [], sql = '', sql_modif = ''
             //Suppression des éléments fact_service
-            let del_k = Object.keys(del)
-
-            let sql = ''
-            if(del_k.length > 0){
-                sql = ''
-                for (let i = 0; i < del_k.length; i++) {
-                    const e = del_k[i];
-                    const es = del[e]
-
-                    sql+=`delete from fact_service where fserv_serv_id = ${es.fserv_serv_id} and fserv_is_product = ${es.fserv_is_product} and fserv_fact_id = ${f.fact_id};`
-                }
-
-                await D.exec(sql)
-
-                console.log(sql)
+            if(del && del.length > 0){
+                await D.exec_params('delete from fact_service where fserv_id in (?)',[del])
             }
 
-            //Ajout des nouveaux
-            let add_k = Object.keys(add)
-            if(add_k.length > 0){
-                sql = ''
-                for (let i = 0; i < add_k.length; i++) {
-                    const e = add_k[i]
-                    const es = add[e]
+            //Ajout et modification
+            if(add && add.length > 0){
 
-                    sql+=`insert into fact_service (fserv_serv_id,fserv_is_product,fserv_fact_id,fserv_qt,fserv_montant,fserv_prix_unitaire,fserv_prix_patient,fserv_prix_societe) 
-                    values (${es.fserv_serv_id},${es.fserv_is_product},${f.fact_id},${es.fserv_qt},${es.fserv_montant},${es.fserv_prix_unitaire},${es.fserv_prix_patient},
-                        ${es.fserv_prix_societe});`
+                datas = []
+                sql = `insert into fact_service 
+                (fserv_serv_id,fserv_fact_id,fserv_is_product,fserv_qt,fserv_montant,fserv_prix_unitaire,fserv_prix_patient,fserv_prix_societe) values ?;`
+
+
+                for (let i = 0; i < add.length; i++) {
+                    const e = add[i];
+                    if(!e) continue
+
+                    if(!e.fserv_fact_id){
+                        datas.push([e.fserv_serv_id,f.fact_id,e.fserv_is_product,e.fserv_qt,e.fserv_montant,e.fserv_prix_unitaire,
+                            e.fserv_prix_patient,e.fserv_prix_societe])
+                    }else{
+                        sql_modif +=`update fact_service set fserv_qt = ${e.fserv_qt}, fserv_montant = ${e.fserv_montant}, 
+                        fserv_prix_patient = ${e.fserv_prix_patient}, fserv_prix_societe = ${e.fserv_prix_societe} 
+                        where fserv_fact_id = ${f.fact_id} and fserv_serv_id = ${e.fserv_serv_id} and fserv_is_product = ${e.fserv_is_product};`
+                    }
                 }
 
-                await D.exec(sql)
-            }
-
-
-            //Modification des fserv
-            let modif_k = Object.keys(modif)
-            if(modif_k.length > 0){
-                sql = ''
-                for (let i = 0; i < modif_k.length; i++) {
-                    const e = modif_k[i];
-                    const es = modif[e]
-
-                    sql+=`update fact_service set fserv_qt = ${es.fserv_qt}, fserv_montant = ${es.fserv_montant}, fserv_prix_patient = ${es.fserv_prix_patient},
-                    fserv_prix_societe = ${es.fserv_prix_societe} where fserv_serv_id = ${es.fserv_serv_id} and fserv_is_product = ${es.fserv_is_product} and fserv_fact_id = ${f.fact_id}`
-                }
-
-                await D.exec(sql)
+                if(datas.length > 0) await D.exec_params(sql,[datas])
+                if(sql_modif) await D.exec(sql_modif)
             }
 
 

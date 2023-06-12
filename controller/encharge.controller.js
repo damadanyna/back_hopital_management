@@ -152,7 +152,8 @@ class Encharge{
         try { 
             //A reserver recherche par nom_prenom
             let reponse = await D.exec_params(`select encharge.*,tarif.*,patient.*,
-            e2.ent_label as ent_label_payeur,e2.ent_num_compte as ent_num_compte_payeur,e1.ent_label,e2.ent_pat_percent,e2.ent_soc_percent
+            e2.ent_label as ent_label_payeur,e2.ent_num_compte as ent_num_compte_payeur,e1.ent_label,e2.ent_pat_percent,e2.ent_soc_percent,
+            e2.ent_code as code_payeur, e1.ent_code as code_soc
             from encharge 
             left join tarif on tarif_id = encharge_tarif_id
             left join patient on pat_id = encharge_pat_id
@@ -260,8 +261,8 @@ class Encharge{
                 await D.updateWhere('encharge',{encharge_printed:1},{encharge_id:pec.encharge_id})
             }
 
-            if(fact_serv.length == 0){
-                return res.send({status:false,message:"Facture pas complet"})
+            if(fact_serv.length == 0 || !fact.fact_resume_intervention || !fact.fact_dep_id){
+                return res.send({status:false,message:"Facture pas complète"})
             }
 
 
@@ -386,21 +387,6 @@ class Encharge{
             doc.moveDown(2)
             let y_table = doc.y
             doc.text('',15,y_table)
-
-            //Eto ny tableau compliqué be io
-
-            //Header du tableau
-            //création de header du tableau -- C'est ça le header
-            // let _head = [
-            //     { label:"Description des interventions", width:200,property: 'desc',renderer: null },
-            //     { label:"Qté", property: 'qt', renderer: null },
-            //     { label:"Unité", property: 'unit',renderer: null },
-            //     { label:"P-U", property: 'pu',renderer: null },
-            //     { label:"Montant", property: 'montant',renderer: null },
-            //     { label:"Part Employé", property: 'part_pat',renderer: null },
-            //     { label:"Part Société", property: 'part_soc',renderer: null },
-            // ]
-
 
             let _head = [
                 { label:"Description des interventions", width:255, property: 'desc',renderer: null },

@@ -554,23 +554,37 @@ class Mouvement{
 
     static async getEntre(req,res){
         try {
-            let {date,date2,filters} = req.query
+            let {filters} = req.query
 
 
-            let {art_label,fourn_id} = filters
+            let {date_1,date_2,fourn_id,page,limit} = filters
+
             fourn_id = parseInt(fourn_id)
 
-            date = new Date(date)
-            date2 = new Date(date2)
+            page = parseInt(page)
+            limit = parseInt(limit)
+
+            let offset = (page - 1) * limit
+
+            date_1 = new Date(date_1)
+            date_2 = new Date(date_2)
             
             let sql = `select *,(select count(*) from mvmt_art where mart_mvmt_id = mvmt_id) as nb_art from mvmt 
             left join depot on mvmt_depot_dest = depot_id
             left join fournisseur on mvmt_tiers = fourn_id
-            where  DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'entre' and mvmt_tiers ${(fourn_id == -1)?'<>':'='} ?`
+            where  DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'entre' and mvmt_tiers ${(fourn_id == -1)?'<>':'='} ?
+            order by mvmt_id desc
+            limit ? offset ?`
 
-            let list = await D.exec_params(sql,[date2,date,fourn_id])
+            let result = (await D.exec_params(`select count(*) as nb_total from mvmt 
+            left join depot on mvmt_depot_dest = depot_id
+            left join fournisseur on mvmt_tiers = fourn_id
+            where  DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'entre' and mvmt_tiers ${(fourn_id == -1)?'<>':'='} ?`,
+            [date_1,date_2,fourn_id]))[0]
 
-            return res.send({status:true,list})
+            let list = await D.exec_params(sql,[date_1,date_2,fourn_id,limit,offset])
+
+            return res.send({status:true,list,result})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -579,22 +593,37 @@ class Mouvement{
 
     static async getSortie(req,res){
         try {
-            let {date,date2} = req.query
+            let {date_1,date_2,page,limit} = req.query.filters
 
-            date = new Date(date)
-            date2 = new Date(date2)
+            page = parseInt(page)
+            limit = parseInt(limit)
+
+            let offset = (page - 1) * limit
+
+            date_1 = new Date(date_1)
+            date_2 = new Date(date_2)
             
-            let sql = `select *,(select count(*) from mvmt_art where mart_mvmt_id = mvmt_id) as nb_art,
+            let sql = `select *,
             d_dest.depot_label as depot_dest,d_exp.depot_label as depot_exp
             from mvmt 
             left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
             left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
             left join departement on mvmt_tiers = dep_id
-            where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'sortie'`
+            where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'sortie'
+            order by mvmt_id desc 
+            limit ? offset ?`
 
-            let list = await D.exec_params(sql,[date2,date])
 
-            return res.send({status:true,list})
+            let result = (await D.exec_params(`select count(*) as nb_total from mvmt 
+            left join depot d_dest on mvmt_depot_dest = d_dest.depot_id
+            left join depot d_exp on mvmt_depot_exp = d_exp.depot_id
+            left join departement on mvmt_tiers = dep_id
+            where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'sortie'`,
+            [date_1,date_2]))[0]
+
+            let list = await D.exec_params(sql,[date_1,date_2,limit,offset])
+
+            return res.send({status:true,list,result})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -647,27 +676,33 @@ class Mouvement{
     //recherche suivi avec filtre
     static async getSuiviFilters(req,res){
         try {
-            let {filters} = req.query
+            let {date_1,date_2,fourn_id,art_label,
+                dep_id,depot_dest,depot_exp,type,
+                action,limit,page} = req.query.filters
 
-            filters.date_1 = new Date(filters.date_1)
-            filters.date_2 = new Date(filters.date_2)
+            date_1 = new Date(date_1)
+            date_2 = new Date(date_2)
+            page = parseInt(page)
+            limit = parseInt(limit)
+            fourn_id = parseInt(fourn_id)
+
+            let offset = (page - 1) * limit
 
             let mart_list = []
             let nb = 0
-            if(filters.action == 'entre'){
+            if(action == 'entre'){
 
                 mart_list = await D.exec_params(`select * from mvmt_art
                 left join mvmt on mvmt_id = mart_mvmt_id
                 left join depot on mvmt_depot_dest = depot_id
                 left join fournisseur on mvmt_tiers = fourn_id 
                 left join article on mart_art_id = art_id
-
-                where art_label like ? and mvmt_action = 'entre' and  fourn_id ${(filters.fourn_id != -1)?'=':'<>'} ? 
+                where art_label like ? and mvmt_action = 'entre' and  fourn_id ${(fourn_id != -1)?'=':'<>'} ? 
                 and date(mvmt_date) between date(?) and date(?)
-                limit ?
-                `,[`%${filters.art_label}%`,filters.fourn_id,
-                filters.date_1,filters.date_2,
-                parseInt(filters.limit)])
+                limit ? offset ?
+                `,[`%${art_label}%`,fourn_id,
+                date_1,date_2,
+                limit,offset])
 
 
                 nb = (await D.exec_params(`select count(*) as nb from mvmt_art
@@ -676,28 +711,29 @@ class Mouvement{
                 left join fournisseur on mvmt_tiers = fourn_id 
                 left join article on mart_art_id = art_id
 
-                where art_label like ? and mvmt_action = 'entre' and  fourn_id ${(filters.fourn_id != -1)?'=':'<>'} ?
+                where art_label like ? and mvmt_action = 'entre' and  fourn_id ${(fourn_id != -1)?'=':'<>'} ?
                 and date(mvmt_date) between date(?) and date(?)
-                `,[`%${filters.art_label}%`,filters.fourn_id,
-                filters.date_1,filters.date_2,]))[0].nb
+                `,[`%${art_label}%`,fourn_id,
+                date_1,date_2,]))[0].nb
 
-            }else if(filters.action == 'sortie'){
+            }else if(action == 'sortie'){
                 
-                let ll = [`%${filters.art_label}%`]
+                let ll = [`%${art_label}%`]
 
-                if(filters.type == 'transfert'){
-                    ll.push(filters.depot_dest)
+                if(type == 'transfert'){
+                    ll.push(depot_dest)
                 }else{
-                    ll.push(filters.dep_id)
+                    ll.push(dep_id)
                 }
 
-                ll.push(filters.depot_exp)
-                ll.push(filters.type)
+                ll.push(depot_exp)
+                ll.push(type)
 
-                ll.push(filters.date_1)
-                ll.push(filters.date_2)
+                ll.push(date_1)
+                ll.push(date_2)
 
-                ll.push(parseInt(filters.limit))
+                ll.push(limit)
+                ll.push(offset)
 
                 mart_list = await D.exec_params(`select *,
                 d_dest.depot_label as depot_dest,d_exp.depot_label as depot_exp
@@ -711,10 +747,10 @@ class Mouvement{
 
                 left join article on mart_art_id = art_id
                 
-                where art_label like ? and ${ (filters.type == 'transfert')?'d_dest.depot_id':'dep_id'} = ?
+                where art_label like ? and ${ (type == 'transfert')?'d_dest.depot_id':'dep_id'} = ?
                 and d_exp.depot_id = ? and mvmt_action = 'sortie' and mvmt_type = ? 
                 and date(mvmt_date) between date(?) and date(?)
-                limit ?
+                limit ? offset ?
                 `,ll)
 
                 nb = (await D.exec_params(`select count(*) as nb
@@ -728,7 +764,7 @@ class Mouvement{
 
                 left join article on mart_art_id = art_id
                 
-                where art_label like ? and ${ (filters.type == 'transfert')?'d_dest.depot_id':'dep_id'} = ?
+                where art_label like ? and ${ (type == 'transfert')?'d_dest.depot_id':'dep_id'} = ?
                 and d_exp.depot_id = ? and mvmt_action = 'sortie' and mvmt_type = ?
                 and date(mvmt_date) between date(?) and date(?)
                 `,ll))[0].nb
@@ -763,7 +799,6 @@ class Mouvement{
 
                 where art_label like ? and mvmt_action = 'entre' and  fourn_id ${(filters.fourn_id != -1)?'=':'<>'} ? 
                 and date(mvmt_date) between date(?) and date(?)
-                limit ?
                 `,[`%${filters.art_label}%`,filters.fourn_id,
                 filters.date_1,filters.date_2])
 
@@ -997,33 +1032,8 @@ class Mouvement{
             sheet.getRow(1).font = {bold:true,size: 16,underline: true,}
 
 
-            /*
-                var fileName = 'FileName.xlsx';
-
-                response.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-                response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
-
-                await workbook.xlsx.write(response);
-
-                response.end();
-            
-            
-
-                var fileName = 'FileName.xlsx';
-
-                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-                res.setHeader("Content-Disposition", "attachment; filename=" + fileName);
-
-                await workbook.xlsx.write(res);
-
-                res.end();
-            */
-            
-
-            await workbook.xlsx.writeFile(`${filepath}.xlsx`);
-            return res.send({status:true})
-
-
+            const d = await workbook.xlsx.writeBuffer();
+            res.send({status:true,data:d});
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -1103,10 +1113,12 @@ class Mouvement{
 
     static async exportMvmt(req,res){
         try {
-            let {action,date,date2,filepath} = req.query
+            let {action,date_1,date_2,fourn_id} = req.query.filters
 
-            date = new Date(date)
-            date2 = new Date(date2)
+            date_1 = new Date(date_1)
+            date_2 = new Date(date_2)
+
+            fourn_id = parseInt(fourn_id)
             
             let sql = ``
 
@@ -1116,7 +1128,8 @@ class Mouvement{
                 left join depot on mvmt_depot_dest = depot_id
                 left join fournisseur on mvmt_tiers = fourn_id
                 left join article on art_id = mart_art_id
-                where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'entre'`
+                where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'entre' 
+                and mvmt_tiers ${fourn_id == -1?' <> ':' = '} ?`
             }else{
                 sql = `select *,d_dest.depot_label as depot_dest,d_exp.depot_label as depot_exp
                 from mvmt_art 
@@ -1128,7 +1141,7 @@ class Mouvement{
                 where DATE(mvmt_date) BETWEEN DATE(?) and DATE(?) and mvmt_action = 'sortie'`
             }
 
-            let mvmts = await D.exec_params(sql,[date2,date])
+            let mvmts = await D.exec_params(sql,[date_1,date_2,fourn_id])
 
 
             let mt = {
@@ -1226,7 +1239,7 @@ class Mouvement{
             sheet.addRows(_datas);
             let title_pdf = `détails Mouvement - ${(mt.action == 'entre')?'entrées':'sorties'}`.toUpperCase()
             title_pdf += `    Journée du : `
-            title_pdf += `${new Date(date2).toLocaleDateString()} au ${new Date(date).toLocaleDateString()}`
+            title_pdf += `${new Date(date_2).toLocaleDateString()} au ${new Date(date_1).toLocaleDateString()}`
 
             sheet.insertRow(1, [title_pdf]);
             sheet.insertRow(2, ['']);
@@ -1244,22 +1257,11 @@ class Mouvement{
                 await workbook.xlsx.write(response);
 
                 response.end();
-
-            
-
-                var fileName = 'FileName.xlsx';
-
-                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-                res.setHeader("Content-Disposition", "attachment; filename=" + fileName);
-
-                await res.xlsx.write(response);
-
-                res.end();
             */
 
-            await workbook.xlsx.writeFile(`${filepath}.xlsx`);
+            const d = await workbook.xlsx.writeBuffer();
+            res.send({status:true,data:d});
 
-            return res.send({status:true})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

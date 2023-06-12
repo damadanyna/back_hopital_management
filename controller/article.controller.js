@@ -457,11 +457,10 @@ class Article{
             // sheet.addRow({id: 1, name: 'John Doe', dob: new Date(1970,1,1)});
             // sheet.addRow({id: 2, name: 'Jane Doe', dob: new Date(1965,1,7)});
 
+            
+            const d = await workbook.xlsx.writeBuffer();
 
-            let path = req.query.filepath
-            await workbook.xlsx.writeFile(`${path}.xlsx`);
-            // console.log('Exportation article en Excel');
-            return res.send({status:true})
+            res.send({status:true,data:d});
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
