@@ -1634,10 +1634,10 @@ class Caisse{
             left join departement on dep_id = enc_dep_id
             where enc_to_caisse = 1 and enc_is_hosp is null
             and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
-            and pat_nom_et_prenom like ?
+            and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
             and enc_validate ${(validate == -1)?'<>':'='} ?
             order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc limit ? offset ?
-            `,[date_1,date_2,pat_label,validate,limit,offset])
+            `,[date_1,date_2,pat_label,pat_label,validate,limit,offset])
 
             //ici on va compter le nombre total de résultats
             let result = (await D.exec_params(`select count(*) as nb_result,sum(enc_montant) as somme_result from encaissement
@@ -1647,10 +1647,10 @@ class Caisse{
             left join departement on dep_id = enc_dep_id
             where enc_to_caisse = 1 and enc_is_hosp is null
             and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
-            and pat_nom_et_prenom like ?
+            and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
             and enc_validate ${(validate == -1)?'<>':'='} ?
             order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc
-            `,[date_1,date_2,pat_label,validate]))[0]
+            `,[date_1,date_2,pat_label,pat_label,validate]))[0]
 
 
             let total_montant = 0
@@ -1692,10 +1692,10 @@ class Caisse{
             where enc_to_caisse = 1 and enc_is_hosp = 1
             and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
             and enc_dep_id ${dep_id == -1?'<>':'='} ?
-            and pat_nom_et_prenom like ?
+            and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
             and enc_validate ${(validate == -1)?'<>':'='} ?
             order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc limit ? offset ?
-            `,[date_1,date_2,dep_id,pat_label,validate,limit,offset])
+            `,[date_1,date_2,dep_id,pat_label,pat_label,validate,limit,offset])
 
             //ici on va compter le nombre total de résultats
             let result = (await D.exec_params(`select count(*) as nb_result,sum(enc_montant) as somme_result, 
@@ -1707,10 +1707,10 @@ class Caisse{
             where enc_to_caisse = 1 and enc_is_hosp = 1
             and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
             and enc_dep_id ${dep_id == -1?'<>':'='} ?
-            and pat_nom_et_prenom like ?
+            and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
             and enc_validate ${(validate == -1)?'<>':'='} ?
             order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc
-            `,[date_1,date_2,dep_id,pat_label,validate]))[0]
+            `,[date_1,date_2,dep_id,pat_label,pat_label,validate]))[0]
 
 
             let total_montant = 0,total_avance = 0
@@ -1733,44 +1733,92 @@ class Caisse{
     static async dashData(req,res){
         try {
             //récupération de la journée d'aujourd'hui
-            let count_now = 0
-            let tmp = (await D.exec_params(`select sum(enc_montant) as mnt,sum(enc_total_avance) as avance from 
-            encaissement where enc_validate = 1 and date(enc_date_validation) = date(?)`,[new Date()]))[0]
-            count_now = parseInt(tmp.mnt) - parseInt((tmp.avance)?tmp.avance:0)
-            tmp = (await D.exec_params(`select sum(encav_montant) as mnt from 
-            enc_avance where encav_validate = 1 and date(encav_date_validation) = date(?)`,[new Date()]))[0]
-            count_now += parseInt((tmp.mnt)?tmp.mnt:0)
-            count_now = (count_now)?count_now:0
-            // - Vita ny montant androany
-
-            //Montant tamin'ity semaine ity jusqu'à Androany ndray (chatgpt)
+            let now = new Date()
+            let count_now = 0, count_month = 0, count_week = 0
             let nw = U.getDateBeginEndWeek(new Date())
-            let count_week = 0
-            tmp = (await D.exec_params(`select sum(enc_montant) as mnt,sum(enc_total_avance) as avance from 
-            encaissement where enc_validate = 1 and date(enc_date_validation) between date(?) and date(?)`,[nw.begin,new Date()]))[0]
-            count_week = parseInt(tmp.mnt) - parseInt((tmp.avance)?tmp.avance:0)
-            tmp = (await D.exec_params(`select sum(encav_montant) as mnt from 
-            enc_avance where encav_validate = 1 and date(encav_date_validation) between date(?) and date(?)`,[nw.begin,new Date()]))[0]
-            count_week += parseInt((tmp.mnt)?tmp.mnt:0)
-            count_week = (count_week)?count_week:0
-
-
-            //Montant du mois
             let nm = U.getDateBeginEndMonth(new Date())
-            let count_month = 0
-            tmp = (await D.exec_params(`select sum(enc_montant) as mnt,sum(enc_total_avance) as avance from 
-            encaissement where enc_validate = 1 and date(enc_date_validation) between date(?) and date(?)`,[nm.begin,new Date()]))[0]
-            count_month = parseInt(tmp.mnt) - parseInt((tmp.avance)?tmp.avance:0)
-            tmp = (await D.exec_params(`select sum(encav_montant) as mnt from 
-            enc_avance where encav_validate = 1 and date(encav_date_validation) between date(?) and date(?)`,[nm.begin,new Date()]))[0]
-            count_month += parseInt((tmp.mnt)?tmp.mnt:0)
-            count_month = (count_month)?count_month:0
+
+            //ici je vais essayé de regrouper les calculs
+            let tmp = (await D.exec_params(`select
+                 ( (select coalesce(sum(enc_montant),0) - coalesce(sum(enc_total_avance),0) from encaissement where enc_validate = 1 and date(enc_date_validation) = date(?)) + 
+                 (select coalesce(sum(encav_montant),0) from enc_avance where encav_validate = 1 and date(encav_date_validation) = date(?) ) ) as count_now,
+
+                 ( (select coalesce(sum(enc_montant),0) - coalesce(sum(enc_total_avance),0) from encaissement where enc_validate = 1 and 
+                 date(enc_date_validation) between date(?) and date(?) ) + 
+                 (select coalesce(sum(encav_montant),0) from enc_avance where encav_validate = 1 and 
+                 date(encav_date_validation) between date(?) and date(?) ) ) as count_week,
+
+
+                 ( (select coalesce(sum(enc_montant),0) - coalesce(sum(enc_total_avance),0) from encaissement where enc_validate = 1 and 
+                 date(enc_date_validation) between date(?) and date(?) ) + 
+                 (select coalesce(sum(encav_montant),0) from enc_avance where encav_validate = 1 and 
+                 date(encav_date_validation) between date(?) and date(?) ) ) as count_month
+            ;`,[
+                now,now, //Pour aujourd'hui
+
+                nw.begin,now, //Pour La semaine
+                nw.begin,now,
+
+                nm.begin,now, //Pour le mois
+                nm.begin,now,
+            ]))[0]
+
+            //pour l'annuel
+            let months_list = []
+            let sql_m = '',sql_av = ''
+            for (let i = 0; i < 12; i++) {
+                const dd = new Date(now.getFullYear(),i,1)
+                months_list.push(dd)
+                months_list.push(dd)
+                months_list.push(dd)
+                months_list.push(dd)
+                sql_m += `(select (coalesce(sum(enc_montant),0) - coalesce(sum(enc_total_avance),0) +
+                (select coalesce(sum(encav_montant),0) from enc_avance where encav_validate = 1 and month(encav_date_validation) = month(?) and year(encav_date_validation) = year(?) )
+                ) from encaissement where enc_validate = 1 and month(enc_date_validation) = month(?) and year(enc_date_validation) = year(?)) as ${'m'+i}${(i != 11 )?',':''}`
+                //sql_m += `(select sum(encav_montant) from enca_avance where month(enc_date_validation) = month(?) and year(enc_date_validation) = year(?)) as ${'m'+i}${(i != 11 )?',':''}`
+            }
+            // console.log(months_list);
+            let rapport_year = (await D.exec_params(`select ${sql_m};`,months_list))[0]
+
+
+            //Rapport des 4 derniers jours
+            let days_list_disp = [],days_list_hosp = []
+            sql_m = '',sql_av = ''
+            let all_days_list= []
+            for (let i = 1; i < 5; i++) {
+                const dd = new Date(now.getFullYear(),now.getMonth(),now.getDate() - i)
+
+                all_days_list.push(dd)
+
+                days_list_disp.push(dd)
+                days_list_disp.push(dd)
+                days_list_disp.push(dd)
+
+                days_list_hosp.push(dd)
+                days_list_hosp.push(dd)
+                days_list_hosp.push(dd)
+                days_list_hosp.push(dd)
+                days_list_hosp.push(dd)
+                //dispensaire
+                sql_m +=`date(?) as date${i}, (select coalesce(sum(enc_montant),0) from encaissement 
+                where enc_validate = 1 and enc_is_hosp is null and date(enc_date_validation) = date(?) and year(enc_date_validation) = year(?)) as ${'m'+i}${(i != 4 )?',':''}` 
+
+                sql_av += `date(?) as date${i}, (select (coalesce(sum(enc_montant),0) - coalesce(sum(enc_total_avance),0) +
+                (select coalesce(sum(encav_montant),0) from enc_avance where encav_validate = 1 and date(encav_date_validation) = date(?) and year(encav_date_validation) = year(?) )
+                ) from encaissement where enc_validate = 1 and enc_is_hosp = 1 and date(enc_date_validation) = date(?) and year(enc_date_validation) = year(?)) as ${'m'+i}${(i != 4 )?',':''}`
+            }
+
+
+            let rapport_disp = (await D.exec_params(`select ${sql_m};`,days_list_disp))[0]
+            let rapport_hosp = (await D.exec_params(`select ${sql_av};`,days_list_hosp))[0]
 
 
             return res.send({status:true,
-                count_now,
-                count_week,
-                count_month
+                count_now:tmp.count_now || 0,
+                count_week:tmp.count_week || 0,
+                count_month:tmp.count_month || 0,
+
+                rapport_year,rapport_disp,rapport_hosp
             })
 
         } catch (e) {
