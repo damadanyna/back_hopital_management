@@ -139,7 +139,7 @@ class Facture{
             
             delete f.fact_date_enreg
             delete f.fact_serv
-            f.fact_date = new Date(f.fact_date)
+            f.fact_date = null
 
             //Mise à jour prise en charge
             pec.encharge_date_sortie = (pec.encharge_date_sortie)?new Date(pec.encharge_date_sortie):null

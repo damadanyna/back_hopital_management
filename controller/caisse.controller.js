@@ -1728,6 +1728,127 @@ class Caisse{
         }
     }
 
+    static async getEncservMain(req,res){
+        try {
+            
+            let {date_1,date_2,dep_id,service_parent,service_label,pat_label,limit,page} = req.query.filters
+
+            date_1 = new Date(date_1)
+            date_2 = new Date(date_2)
+
+            limit = parseInt(limit)
+            page = parseInt(page)
+            service_parent = parseInt(service_parent)
+            dep_id = parseInt(dep_id)
+
+            pat_label = `%${pat_label}%`
+            service_label = `%${service_label}%`
+
+            let offset = (page - 1) * limit
+
+            let is_product = (service_parent == -42)?1:0
+
+            let encserv = await D.exec_params(`select *${(is_product)?', art_label as service_label,art_code as service_code':''}
+            from encaissement
+            left join enc_serv on enc_id = encserv_enc_id
+            left join patient on pat_id = enc_pat_id
+            left join departement on dep_id = enc_dep_id
+            ${ (is_product)?'left join article on encserv_serv_id = art_id':'left join service on encserv_serv_id = service_id' }
+            where date(enc_date_validation) between date(?) and date(?) 
+            and (enc_dep_id ${dep_id == -1?' <> ? or enc_dep_id is null':' = ?'})
+            and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
+            and encserv_is_product = ${is_product}
+            and (${ (is_product)?'art_label like ?':`service_label like ? and service_parent_id ${(service_parent != -1)?' = '+service_parent:' is not null'}` })
+            and enc_validate = 1
+            order by enc_date_validation desc
+            limit ? offset ?
+            `,[date_1,date_2,dep_id,pat_label,pat_label,service_label,limit,offset])
+
+            let result = (await D.exec_params(`select count(*) as nb_result,sum(encserv_montant) as somme_encserv,coalesce(sum(encserv_qt),0) as somme_qt
+            from encaissement
+            left join enc_serv on enc_id = encserv_enc_id
+            left join patient on pat_id = enc_pat_id
+            left join departement on dep_id = enc_dep_id
+            ${ (is_product)?'left join article on encserv_serv_id = art_id':'left join service on encserv_serv_id = service_id' }
+            where date(enc_date_validation) between date(?) and date(?) 
+            and (enc_dep_id ${dep_id == -1?' <> ? or enc_dep_id is null':' = ?'})
+            and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
+            and encserv_is_product = ${is_product}
+            and (${ (is_product)?'art_label like ?':`service_label like ? and service_parent_id ${(service_parent != -1)?' = '+service_parent:' is not null'}` })
+            and enc_validate = 1
+            order by enc_date_validation desc
+            `,[date_1,date_2,dep_id,pat_label,pat_label,service_label]))[0]
+
+
+            //count(*) as nb_result,sum(enc_montant) as somme_result
+
+            return res.send({status:true,encserv,result,message:'42'})
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getEncMainAvance(req,res){
+        try {
+            let {filters} = req.query
+
+            // console.error(filters)
+
+            let {pat_label,validate,dep_id,date_1,date_2,limit,page,date_by} = filters
+
+            date_1 = new Date(date_1)
+            date_2 = new Date(date_2)
+            validate = parseInt(validate)
+            dep_id = parseInt(dep_id)
+            limit = parseInt(limit)
+            page = parseInt(page)
+            pat_label = `%${pat_label}%`
+
+            let offset = (page - 1) * limit
+
+            let list_avance = await D.exec_params(`select * from enc_avance
+            left join encaissement on enc_id = encav_enc_id
+            left join patient on pat_id = enc_pat_id
+            left join entreprise on ent_id = enc_ent_id
+            left join tarif on tarif_id = enc_tarif_id
+            left join departement on dep_id = enc_dep_id
+            where date(${date_by=='insert'?'encav_date_enreg':'encav_date_validation'}) between date(?) and date(?) 
+            and enc_dep_id ${dep_id == -1?'<>':'='} ?
+            and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
+            and encav_validate ${(validate == -1)?'<>':'='} ?
+            order by ${date_by=='insert'?'encav_date_enreg':'encav_date_validation'} desc limit ? offset ?
+            `,[date_1,date_2,dep_id,pat_label,pat_label,validate,limit,offset])
+
+            //ici on va compter le nombre total de résultats
+            let result = (await D.exec_params(`select count(*) as nb_result,sum(encav_montant) as somme_result from enc_avance
+            left join encaissement on enc_id = encav_enc_id
+            left join patient on pat_id = enc_pat_id
+            left join entreprise on ent_id = enc_ent_id
+            left join tarif on tarif_id = enc_tarif_id
+            left join departement on dep_id = enc_dep_id
+            where date(${date_by=='insert'?'encav_date_enreg':'encav_date_validation'}) between date(?) and date(?) 
+            and enc_dep_id ${dep_id == -1?'<>':'='} ?
+            and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
+            and encav_validate ${(validate == -1)?'<>':'='} ?
+            order by ${date_by=='insert'?'encav_date_enreg':'encav_date_validation'} desc
+            `,[date_1,date_2,dep_id,pat_label,pat_label,validate]))[0]
+
+
+            let total_montant = 0,total_avance = 0
+            for (let i = 0; i < list_avance.length; i++) {
+                const e = list_avance[i];
+                total_montant += parseInt(e.encav_montant)
+            }
+
+            return res.send({status:true,list_avance,total_montant,result})
+        }catch(e){
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
     //récupération des données dans dashboard
     //ça va être chaud
     static async dashData(req,res){
@@ -1826,6 +1947,254 @@ class Caisse{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+
+    static async setMainRapportVt(req,res){
+        try {
+            
+            let {date_1,date_2,type} = req.query.filters
+
+            date_1 = new Date(date_1)
+            date_2 = new Date(date_2)
+
+            let vt = {
+                vt_remise:0,
+                vt_total:0,
+                vt_det:{}
+            }
+            let vts = await D.exec_params(`select * from versement
+                where date(vt_date) between date(?) and date(?)`,[date_1,date_2])
+
+            let tmp_billetage = {},l_key = []
+            //ici on fait la somme des vt
+
+            for (let i = 0; i < vts.length; i++) {
+                const e = vts[i]
+
+                //les plus simples
+                vt.vt_total += (e.vt_total)?parseInt(e.vt_total):0
+                vt.vt_remise += (e.vt_remise)?parseInt(e.vt_remise):0
+
+
+                //Gestion billetages
+                tmp_billetage = JSON.parse(e.vt_det)
+                for (const k in tmp_billetage) {
+                    if (Object.hasOwnProperty.call(tmp_billetage, k)) {
+                        const e = tmp_billetage[k];
+                        vt.vt_det[k] = (vt.vt_det[k])?parseInt(e) + vt.vt_det[k]:parseInt(e)
+                    }
+                }
+
+            }
+
+            //on remet le billetage en format texte
+            vt.vt_det = JSON.stringify(vt.vt_det)
+
+
+            let vt_ids = vts.map(x => x.vt_id)
+
+            //Récupération des encaissements dans le versememnt
+            let enc = await D.exec_params(`select * from encaissement
+                where enc_versement in (?)`,[vt_ids])
+
+            //Récupération des avances dans le versement
+            let list_avance = await D.exec_params(`select * from enc_avance
+                left join encaissement on enc_id = encav_enc_id
+                where encav_versement in (?)`,[vt_ids])
+
+
+
+            //calcul des sommes espèces et chèques
+            vt.recette_chq = 0
+            vt.recette_esp = 0
+
+            for (var i = 0; i < enc.length; i++) {
+                const en = enc[i]
+                let tt_mt = parseInt(en.enc_montant) - parseInt((en.enc_total_avance)?en.enc_total_avance:0)
+                if(en.enc_mode_paiement == 'esp'){
+                    vt.recette_esp = (vt.recette_esp)?vt.recette_esp + tt_mt:tt_mt
+                }else{
+                    vt.recette_chq = (vt.recette_chq)?vt.recette_chq + tt_mt:tt_mt
+                }
+            }
+
+            vt.recette_avance = 0
+            for (let i = 0; i < list_avance.length; i++) {
+                const e = list_avance[i];
+                vt.recette_avance += (e.encav_montant)?parseInt(e.encav_montant):0
+            }
+
+            vt.recette_esp += vt.recette_avance 
+
+            vt.vt_remise = Math.abs(parseInt(vt.vt_total) - (vt.recette_chq + vt.recette_esp))
+
+            // console.log(`vt_remise : ${vt.vt_remise}`);
+            // console.log(`recette_avance : ${vt.recette_avance}`);
+            // console.log(`recette_esp : ${vt.recette_esp}`);
+            // console.log(`vt_total : ${vt.vt_total}`);
+
+            //Liste des département
+            //Qlques Gestions
+            let dep = await D.exec('select * from departement')
+            //dep_code d'un département dispensaire est : C017
+            let dep_code_autre = "C017"
+            let dep_autre_in = false
+            for (let i = 0; i < dep.length; i++) {
+                const de = dep[i];
+                if(de.dep_code == dep_code_autre){
+                    dep_autre_in = true
+                    break
+                }
+            }
+
+            if(!dep_autre_in) dep.push({dep_label:"AUTRES",dep_code:dep_code_autre,dep_id:-1})
+
+            let enc_ids = enc.map( x => parseInt(x.enc_id) )
+            // Fin gestion département
+
+            //Récupération de la liste des encserv
+            let list_serv = await D.exec_params(`select * from enc_serv
+            left join service on service_id = encserv_serv_id
+            where encserv_enc_id in (?) and encserv_is_product = 0`,[enc_ids])
+
+            let list_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_serv
+            left join article on art_id = encserv_serv_id
+            where encserv_enc_id in (?) and encserv_is_product = 1`,[enc_ids])
+
+            //Récupération de la liste des encprescri
+            let list_servp = await D.exec_params(`select * from enc_prescri
+            left join service on service_id = encp_serv_id
+            where encp_enc_id in (?) and encp_is_product = 0`,[enc_ids])
+
+            let list_medp = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_prescri
+            left join article on art_id = encp_serv_id
+            where encp_enc_id in (?) and encp_is_product = 1`,[enc_ids])
+
+
+            //Ici on va supposé que le index (ID) du service médicaments et de  [s500]
+            let id_med = 's500'
+
+            let serv_p = await D.exec_params('select * from service where service_parent_id is null order by service_rang')
+            //Ici on va séparer les rang null et les autres
+            // 🤣😂 Vraiment ridicule ce bout de code
+            let lnull = [], nnull = []
+            for (let i = 0; i < serv_p.length; i++) {
+                const e = serv_p[i];
+                if(!e.service_rang){
+                    lnull.push(e)
+                }else{
+                    nnull.push(e)
+                }
+            }
+            serv_p = [...nnull,...lnull]
+            // ----------------------
+            serv_p.splice(2,0,{service_id:id_med,service_label:'MEDICAMENTS',service_code:'MED',service_parent_id:null})
+
+            //répartition des avances par département
+            for (var k = 0; k < list_avance.length; k++) {
+                const la = list_avance[k]
+                let laav = (la.encav_montant)?parseInt(la.encav_montant):0
+                
+                for (let j = 0; j < dep.length; j++) {
+                    const de = dep[j];
+                    if((la.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !la.enc_dep_id))){
+
+                        dep[j]['avance_plus'] = (dep[j]['avance_plus'])?dep[j]['avance_plus'] + laav:laav
+
+                        dep[j]['total_net'] = dep[j]['avance_plus']
+
+
+                        dep[j]['esp'] = dep[j]['avance_plus']
+                        //dep[j]['chq'] = (dep[j]['chq'])?dep[j]['chq']+dep[j]['avance_plus']:dep[j]['avance_plus']
+
+                    }
+                }
+            }
+
+
+            // répartition des montants par département
+            for (var i = 0; i < enc.length; i++) {
+                const e = enc[i]
+
+                //parcours département
+                for(var j = 0; j < dep.length; j++){
+                    const de = dep[j]
+
+                    //parcours list_service
+                    for(var k = 0; k < list_serv.length; k++){
+                        const ls = list_serv[k]
+                        if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && ls.encserv_enc_id == e.enc_id){
+                            dep[j][ls.service_parent_id] = (dep[j][ls.service_parent_id])?dep[j][ls.service_parent_id]+parseInt(ls.encserv_montant):parseInt(ls.encserv_montant)
+                        }
+                    }
+
+                    //parcours des médicaments
+                    for(var k = 0; k < list_med.length; k++){
+                        const ls = list_med[k]
+                        if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && ls.encserv_enc_id == e.enc_id){
+                            dep[j][id_med] = (dep[j][id_med])?dep[j][id_med]+parseInt(ls.encserv_montant):parseInt(ls.encserv_montant)
+                        }
+                    }
+
+                    //parcours list_service dans la prescription
+                    for(var k = 0; k < list_servp.length; k++){
+                        const ls = list_servp[k]
+                        if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && ls.encp_enc_id == e.enc_id){
+                            dep[j][ls.service_parent_id] = (dep[j][ls.service_parent_id])?dep[j][ls.service_parent_id]+parseInt(ls.encp_montant):parseInt(ls.encp_montant)
+                        }
+                    }
+
+                    //parcours des médicaments dans la presciption
+                    for(var k = 0; k < list_medp.length; k++){
+                        const ls = list_medp[k]
+                        if((e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)) && ls.encp_enc_id == e.enc_id){
+                            dep[j][id_med] = (dep[j][id_med])?dep[j][id_med]+parseInt(ls.encp_montant):parseInt(ls.encp_montant)
+                        }
+                    }
+
+                    //Insertion avance,total_net et total espèce, total chèque
+                    if(e.enc_dep_id == de.dep_id || (de.dep_code == dep_code_autre && !e.enc_dep_id)){
+                        let ta = (e.enc_total_avance)?parseInt(e.enc_total_avance):0
+                        dep[j]['avance'] = (dep[j]['avance'])?dep[j]['avance'] + ta:ta
+
+                        const t_net = e.enc_montant - ta + ( (dep[j]['avance_plus'] && !dep[j]['total_net'])?dep[j]['avance_plus']:0 )
+
+                        dep[j]['total_net'] = (dep[j]['total_net'])?dep[j]['total_net'] + t_net:t_net
+
+
+                        dep[j]['esp'] = (e.enc_mode_paiement == 'esp')?((dep[j]['esp'])?dep[j]['esp']+t_net:t_net):(dep[j]['esp'])?dep[j]['esp']:0
+                        dep[j]['chq'] = (e.enc_mode_paiement == 'chq')?((dep[j]['chq'])?dep[j]['chq']+t_net:t_net):(dep[j]['chq'])?dep[j]['chq']:0
+
+                        // if(e.enc_mode_paiement == 'chq'){
+                        //     console.log(`${de.dep_label}[chq] : ${(dep[j]['chq'])?dep[j]['chq']:0}`)
+                        // }
+                    }
+                }
+            }
+
+            vt.date_1 = date_1
+            vt.date_2 = date_2
+
+            let dt = {enc,serv_p,dep,vt}
+            await createRapportVt(dt)
+            return res.send({status:true})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getNbVersementMain(req,res){
+        try {
+            let {date_1,date_2} = req.query.filters
+            let nb_versement = (await D.exec_params('select count(*) as nb from versement where date(vt_date) between date(?) and date(?)',[date_1,date_2]))[0].nb
+
+            return res.send({status:true,nb_versement})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
 }
 
 
@@ -1908,7 +2277,7 @@ async function createRapportVt(dt){
     let nom_hop = 'HOPITALY LOTERANA - ANDRANOMADIO'
     let title_pdf = 'RAPPPORT DE VERSEMENT JOURNALIER'
     let date_label = `Journée du : `
-    let date_value = new Date(vt.vt_date).toLocaleDateString()
+    let date_value = (vt.date_2)?`${new Date(vt.date_1).toLocaleDateString()} au ${new Date(vt.date_2).toLocaleDateString()}`:new Date(vt.vt_date).toLocaleDateString()
 
     let total_esp_l = 'TOTAL ESP'
     let fd_caisse = 'Fond de Caisse'
@@ -2440,7 +2809,8 @@ async function createFactPDF(fact,list_serv,mode,encav_last){
     const separateNumber = (n)=>{
         return (n)?n.toLocaleString('fr-CA'):''
     }
-    let date_fact = new Date(fact.enc_date)
+
+    let date_fact = (encav_last.encav_date_validation)?new Date(encav_last.encav_date_validation):(fact.enc_date_validation)?new Date(fact.enc_date_validation):new Date()
     let f_date = date_fact.toLocaleDateString()
     let f_time = date_fact.toLocaleTimeString().substr(0,5)
 

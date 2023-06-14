@@ -114,3 +114,7 @@ create table if not exists enc_prescri(
     encp_date_enreg datetime default NOW(),
     primary key (encp_id)
 )Engine=InnoDB; 
+
+-- Et encore une autre
+-- Modification facture 13/06/2023
+alter table facture add fact_code_patient varchar(255) null;

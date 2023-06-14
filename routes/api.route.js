@@ -284,8 +284,13 @@ router.get('/caisse/main/data-for-filters',require('../controller/caisse.control
 //récupération de la liste des encaissement dans la caisse principale
 router.get('/caisse/main/disp',require('../controller/caisse.controller').getEncMainDisp)
 router.get('/caisse/main/hosp',require('../controller/caisse.controller').getEncMainHosp)
+router.get('/caisse/main/avance',require('../controller/caisse.controller').getEncMainAvance)
+router.get('/caisse/main/encserv',require('../controller/caisse.controller').getEncservMain)
 
 router.get('/caisse/main/dash',require('../controller/caisse.controller').dashData)
+router.get('/caisse/main/versement/pdf',require('../controller/caisse.controller').setMainRapportVt)
+router.get('/caisse/main/versement/nb',require('../controller/caisse.controller').getNbVersementMain)
+
 
 
 //GESTION AVANCE ENCAISSEMENT

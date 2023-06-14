@@ -228,8 +228,8 @@ class Encharge{
             return n.toLocaleString('fr-CA')
         }
 
-        
-        
+
+
         try {
             //on va récupérer d'abord les données du prise en charge
             let pec = (await D.exec_params(`select encharge.*,tarif.*,patient.*,
@@ -243,6 +243,10 @@ class Encharge{
 
             //Ici on va récupérer la facture qui contient l'id du prise en charge
             let fact = (await D.exec_params('select * from facture where fact_encharge_id = ?',[d.encharge_id]))[0]
+
+            let fact_date = (fact.fact_date)?fact.fact_date:new Date()
+
+            await D.updateWhere('facture',{fact_date:new Date()},{fact_id:fact.fact_id})
 
             //Ici on récupère les fact_service
             let fact_serv = await D.exec_params(`select * from fact_service 
@@ -365,7 +369,7 @@ class Encharge{
 
             //Cadre numéro et date
             let num = `N° ${(pec.encharge_seq)?pec.encharge_seq:' - '}`
-            let date = (new Date(pec.encharge_date_enreg)).toLocaleDateString()
+            let date = (new Date(fact_date)).toLocaleDateString()
             doc.lineJoin('miter')
             .rect(300, y_line_title + h_cadre_title, w_cadre_title /2,doc.heightOfString(num) + 10)
             .stroke();
@@ -384,9 +388,22 @@ class Encharge{
             doc.text(`${pec.ent_label_payeur.toUpperCase()} `)
             doc.text(`${pec.ent_num_compte_payeur}`,doc.page.width - doc.widthOfString(pec.ent_num_compte_payeur)-15,y_num_compte)
 
-            doc.moveDown(2)
+            doc.moveDown()
+
             let y_table = doc.y
             doc.text('',15,y_table)
+
+            doc.font('fira_bold')
+            doc.text('Code Patient :',{underline:true})
+            doc.font('fira')
+            let cpat = (fact.fact_code_patient)?fact.fact_code_patient:'-'
+            doc.text(cpat.toUpperCase())
+
+
+
+            doc.moveDown(2)
+            
+            // doc.text('',15,y_table)
 
             let _head = [
                 { label:"Description des interventions", width:255, property: 'desc',renderer: null },
