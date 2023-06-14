@@ -2810,7 +2810,7 @@ async function createFactPDF(fact,list_serv,mode,encav_last){
         return (n)?n.toLocaleString('fr-CA'):''
     }
 
-    let date_fact = (encav_last.encav_date_validation)?new Date(encav_last.encav_date_validation):(fact.enc_date_validation)?new Date(fact.enc_date_validation):new Date()
+    let date_fact = (encav_last)?new Date(encav_last.encav_date_validation):(fact.enc_date_validation)?new Date(fact.enc_date_validation):new Date()
     let f_date = date_fact.toLocaleDateString()
     let f_time = date_fact.toLocaleTimeString().substr(0,5)
 
