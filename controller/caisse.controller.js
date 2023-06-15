@@ -1057,7 +1057,7 @@ class Caisse{
             left join article on art_id = encserv_serv_id
             where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
 
-            //Récupération de la liste des produits liés à la facture
+            //Récupération de la liste des produits liés à la facture //côté prescription
             let factp_serv = await D.exec_params(`select * from enc_prescri
             left join service on service_id = encp_serv_id
             where encp_enc_id = ? and encp_is_product = 0`,[enc_id])
@@ -1081,6 +1081,7 @@ class Caisse{
                     }
                 }
 
+                //Pour la prescription
                 for (let j = 0; j < factp_serv.length; j++) {
                     const es = factp_serv[j];
                     if(e.service_id == es.service_parent_id){
