@@ -1170,7 +1170,17 @@ class Caisse{
             left join article on art_id = encserv_serv_id
             where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
 
-            let list_serv = [...fact_serv,...fact_med]
+
+            //resaka prescription
+            let factp_serv = await D.exec_params(`select * from enc_prescri
+            left join service on service_id = encp_serv_id
+            where encp_enc_id = ? and encp_is_product = 0`,[enc_id])
+
+            let factp_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_prescri
+            left join article on art_id = encp_serv_id
+            where encp_enc_id = ? and encp_is_product = 1`,[enc_id])
+
+            let list_serv = [...fact_serv,...fact_med,...factp_serv,...factp_med]
 
             return res.send({status:true,list_serv})
         } catch (e) {
@@ -1201,6 +1211,20 @@ class Caisse{
             left join article on art_id = encserv_serv_id
             where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
 
+
+            //resaka prescription
+            let encp_serv = await D.exec_params(`select *,encp_montant as encserv_montant,encp_qt as encserv_qt from enc_prescri
+            left join service on service_id = encp_serv_id
+            where encp_enc_id = ? and encp_is_product = 0`,[enc_id])
+
+            let encp_med = await D.exec_params(`select *,encp_montant as encserv_montant,encp_qt as encserv_qt,
+            art_code as service_code,art_label as service_label from enc_prescri
+            left join article on art_id = encp_serv_id
+            where encp_enc_id = ? and encp_is_product = 1`,[enc_id])
+
+            enc_serv = [...enc_serv,...encp_serv]
+            enc_med = [...enc_med,...encp_med]
+
             //Regroupement des services dans le service parent //juste pour les services
             for (var i = 0; i < serv_p.length; i++) {
                 const sp = serv_p[i]
@@ -1218,7 +1242,9 @@ class Caisse{
 
                     }
                 }
+
             }
+
             //Regroupement pour les médicaments
             serv_p.push({service_id:123456,service_label:'MEDICAMENTS',service_code:'MED',child:(enc_med.length > 0)?enc_med:undefined})
 
@@ -1624,18 +1650,6 @@ class Caisse{
 
             let offset = (page - 1) * limit
 
-            let list_enc = await D.exec_params(`select * from encaissement
-            left join patient on pat_id = enc_pat_id
-            left join entreprise on ent_id = enc_ent_id
-            left join tarif on tarif_id = enc_tarif_id
-            left join departement on dep_id = enc_dep_id
-            where enc_to_caisse = 1 and enc_is_hosp is null
-            and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
-            and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
-            and enc_validate ${(validate == -1)?'<>':'='} ?
-            order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc limit ? offset ?
-            `,[date_1,date_2,pat_label,pat_label,validate,limit,offset])
-
             //ici on va compter le nombre total de résultats
             let result = (await D.exec_params(`select count(*) as nb_result,sum(enc_montant) as somme_result from encaissement
             left join patient on pat_id = enc_pat_id
@@ -1650,13 +1664,56 @@ class Caisse{
             `,[date_1,date_2,pat_label,pat_label,validate]))[0]
 
 
-            let total_montant = 0
-            for (let i = 0; i < list_enc.length; i++) {
-                const e = list_enc[i];
-                total_montant += parseInt(e.enc_montant) - parseInt((e.enc_total_avance)?e.enc_total_avance:0)
+            if(req.query.down){
+                let list_enc = await D.exec_params(`select * from encaissement
+                left join patient on pat_id = enc_pat_id
+                left join entreprise on ent_id = enc_ent_id
+                left join tarif on tarif_id = enc_tarif_id
+                left join departement on dep_id = enc_dep_id
+                where enc_to_caisse = 1 and enc_is_hosp is null
+                and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
+                and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
+                and enc_validate ${(validate == -1)?'<>':'='} ?
+                order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc
+                `,[date_1,date_2,pat_label,pat_label,validate])
+
+                let dt = {
+                    filters,list_enc,result,
+                    pdf_name:'caisse-main-disp'
+                }
+
+                if(req.query.type == 'pdf'){
+                    await createCaisseMainDispPDF(dt)
+                    return res.send({status:true,pdf_name:dt.pdf_name})
+                }else if(req.query.type == "excel"){
+                    let dd = await createCaisseMainDispExcel(dt)
+
+                    return res.send({status:true,data:dd})
+                }
+
+            }else{
+                let list_enc = await D.exec_params(`select * from encaissement
+                left join patient on pat_id = enc_pat_id
+                left join entreprise on ent_id = enc_ent_id
+                left join tarif on tarif_id = enc_tarif_id
+                left join departement on dep_id = enc_dep_id
+                where enc_to_caisse = 1 and enc_is_hosp is null
+                and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
+                and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
+                and enc_validate ${(validate == -1)?'<>':'='} ?
+                order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc limit ? offset ?
+                `,[date_1,date_2,pat_label,pat_label,validate,limit,offset])
+
+                let total_montant = 0
+                for (let i = 0; i < list_enc.length; i++) {
+                    const e = list_enc[i];
+                    total_montant += parseInt(e.enc_montant) - parseInt((e.enc_total_avance)?e.enc_total_avance:0)
+                }
+
+                return res.send({status:true,list_enc,total_montant,result})
             }
 
-            return res.send({status:true,list_enc,total_montant,result})
+            
         }catch(e){
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -2824,7 +2881,7 @@ async function createCaisseMainAvanceExcel(dt){
 }
 
 
-//ICI POUR L'EXPORTATION DES AVANCES
+//ICI POUR L'EXPORTATION DES HOSPITALISATIONS
 async function createCaisseMainHospPDF(dt){
 
     let {filters,list_enc,result} = dt
@@ -3030,10 +3087,10 @@ async function createCaisseMainHospExcel(dt){
         { header:"Date".toUpperCase(), width:10, key: 'date'},
         { header:"N° mouvement", width:10, key: 'num_mvmt'},
         { header:"Patient", width:40, key: 'patient'},
-        { header:"Prise en charge", width:40, key: 'pec'},
-        { header:"Société", width:40, key: 'soc'},
-        { header:"Avance", width:40, key: 'avance'},
-        { header:"Montant total", width:40, key: 'montant'},
+        { header:"Prise en charge", width:14, key: 'pec'},
+        { header:"Société", width:10, key: 'soc'},
+        { header:"Avance", width:10, key: 'avance'},
+        { header:"Montant total", width:10, key: 'montant'},
         { header:"département".toUpperCase(), width:12, key: 'dep'},
     ]
 
@@ -3060,6 +3117,258 @@ async function createCaisseMainHospExcel(dt){
 
     sheet.addRows(_datas);
     let title_pdf = `suivi Hospitalisation - caisse principale`.toUpperCase()
+    title_pdf += `    Journée du : `
+    title_pdf += `${new Date(date_1).toLocaleDateString()} au ${new Date(date_2).toLocaleDateString()}`
+
+
+    sheet.insertRow(1, [title_pdf]);
+    sheet.insertRow(2, ['']);
+
+    // sheet.getRow(6).font = {bold:true,}
+    sheet.getRow(3).font = {bold:true,size: 14,underline: true,}
+    sheet.getRow(1).font = {bold:true,size: 16,underline: true,}
+
+
+    const d = await workbook.xlsx.writeBuffer();
+    return d
+}
+
+//ICI POUR L'EXPORTATION DES AVANCES
+async function createCaisseMainDispPDF(dt){
+
+    let {filters,list_enc,result} = dt
+    let {date_1,date_2} = filters
+
+    let {somme_result,nb_result} = result
+
+    //Les débuts du PDF
+    let year_cur = new Date().getFullYear()
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //Les options du PDF
+    //Création de pdf amzay e 🤣😂, 
+    let opt = {
+        margin: 15, size: 'A4' ,
+        layout:'landscape'
+    }   
+    let doc = new PDFDocument(opt)
+
+    //les fonts
+    doc.registerFont('fira', 'fonts/fira.ttf');
+    doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+    doc.font("fira")
+
+    //Ecriture du PDF
+    doc.pipe(fs.createWriteStream(`./files/${dt.pdf_name}.pdf`))
+
+    //les marges et le truc en bas
+    //______________________________________
+    let bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
+    doc.fontSize(8)
+
+    doc.text(
+        `Hôpital Andranomadio ${year_cur}`, 
+        0.5 * (doc.page.width - 300),
+        doc.page.height - 20,
+        {
+            width: 300,
+            align: 'center',
+            lineBreak: false,
+        })
+
+    // Reset text writer position
+    doc.text('', 15, 15);
+    doc.page.margins.bottom = bottom;
+    doc.on('pageAdded', () => {
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+    
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+    
+        // Reset text writer position
+        doc.text('', 50, 50);
+        doc.page.margins.bottom = bottom;
+    })
+    //-----------------___________________---------------
+    //------------- Ajout des titres en haut
+
+    //Textes d'en haut du PDF
+    let nom_hop = 'HOPITALY LOTERANA - ANDRANOMADIO'
+    let title_pdf = 'suivi dispensaire - caisse principale'.toUpperCase()
+    let date_label = `Journée du : `
+    let date_value = `${new Date(date_1).toLocaleDateString()} au ${new Date(date_2).toLocaleDateString()}`
+    // ----- LES TITRES D'EN HAUT ------------
+    doc.font("fira_bold")
+    let y_ttl = doc.y
+    doc.text(nom_hop,{underline:true})
+
+    let ttl_w = doc.widthOfString(title_pdf)
+    
+    doc.text(title_pdf,doc.page.width/2 - ttl_w/2,y_ttl)
+    let ddl_w = doc.widthOfString(date_label)
+    let ddlv_w = doc.widthOfString(date_value)
+    doc.text(date_label,doc.page.width - (ddl_w + ddlv_w) - opt.margin,y_ttl)
+    
+    doc.text(date_value,doc.page.width - ddlv_w - opt.margin,y_ttl)
+
+    y_ttl += 15
+    //La ligne au dessous
+    doc.lineWidth(.5)
+    .moveTo(opt.margin, y_ttl)
+    .lineTo(doc.page.width - opt.margin, y_ttl)
+    .stroke();
+
+    // ------- FIN HEADER 
+
+    // DEBUT DES CALCULS
+    doc.moveDown(5)
+    doc.text('',opt.margin)
+
+    let _head = []
+    let _datas = []
+    let table = {}
+
+
+    //ICI création des tableaux des récapitulatifs
+    _head = [
+        { label:"Résultat Total", width:100, property: 'total',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Montant Total",width:100, property: 'somme_total',renderer: null ,headerAlign:"center",align:"right"},
+    ]
+
+    _datas = [
+        {total:separateNumber(nb_result),somme_total:separateNumber(somme_result)}
+    ]
+
+    table = opt_tab(_head,_datas,doc)
+    await doc.table(table, { /* options */ });
+
+    //Réinitialisation Data
+    _datas = []
+
+    let l_h = 9
+    let p_w = 150,d_w = 150
+
+    let w_a = ( doc.page.width - (p_w) - opt.margin * 2) / 7
+    _head = [
+        { label:"Date", width:w_a,  property: 'date',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"N°Mvmt", width:w_a,  property: 'num_mvmt',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Patient", width:p_w,  property: 'patient',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Prise en charge", width:w_a,  property: 'pec',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Société", width:w_a,  property: 'soc',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Montant ", width:w_a,  property: 'montant',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Avance", width:w_a,  property: 'avance',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Département", width:w_a,  property: 'dep',renderer: null ,headerAlign:"center",align:"left"},
+    ]
+
+
+    for (let i = 0; i < list_enc.length; i++) {
+        const e = list_enc[i];
+        _datas.push({
+            date:new Date(e.enc_date_validation).toLocaleString(),
+            num_mvmt:(e.enc_is_hosp)?e.enc_num_hosp:`${ (new Date(e.enc_date_enreg)).getFullYear().toString().substr(2)}/${e.enc_num_mvmt.toString().padStart(5,0)}`,
+            patient:(e.pat_nom_et_prenom)?e.pat_nom_et_prenom:e.enc_pat_externe,
+            montant:separateNumber(e.enc_montant),
+            avance:(e.enc_total_avance)?separateNumber(e.enc_total_avance):'-',
+            soc:(e.ent_label)?e.ent_label:'-',
+            pec:(e.enc_is_pec)?'OUI':'NON',
+            dep:(e.dep_label)?e.dep_label:'-'
+        })
+    }
+
+    doc.moveDown(5)
+
+    table = opt_tab(_head,_datas,doc)
+    await doc.table(table, { /* options */ });
+
+    doc.end()
+}
+
+//Fonction d'exportation en excel de suivi
+async function createCaisseMainDispExcel(dt){
+    let {filters,list_enc,result} = dt
+    let {date_1,date_2} = filters
+
+    let {nb_result} = result
+
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //initialisation de l'Excel
+    const workbook = new ExcelJS.Workbook();
+
+    //----------------------------------------
+    workbook.creator = 'xd creator';
+    workbook.lastModifiedBy = 'xd creator';
+    workbook.lastPrinted = new Date(2016, 9, 27);
+    workbook.properties.date1904 = true;
+    workbook.calcProperties.fullCalcOnLoad = true;
+
+    //-----------------------------------------
+    workbook.views = [
+        {
+          x: 0, y: 0, width: 10000, height: 20000,
+          firstSheet: 0, activeTab: 1, visibility: 'visible'
+        }
+      ]
+    //________________________________________
+
+    //Ajout du sheet
+    const sheet = workbook.addWorksheet('Suivi Med_Services')
+
+    //INSERTION DU HEADER
+    let _head = []
+    let _datas = []
+    // --------
+
+    _head = [
+        { header:"Date".toUpperCase(), width:10, key: 'date'},
+        { header:"N° mouvement", width:10, key: 'num_mvmt'},
+        { header:"Patient", width:40, key: 'patient'},
+        { header:"Prise en charge", width:14, key: 'pec'},
+        { header:"Société", width:10, key: 'soc'},
+        { header:"Avance", width:10, key: 'avance'},
+        { header:"Montant total", width:10, key: 'montant'},
+        { header:"département".toUpperCase(), width:12, key: 'dep'},
+    ]
+
+    sheet.columns = _head //😑😑
+
+    _datas = []
+    let tmp_d = {}
+
+    for (var i = 0; i < list_enc.length; i++) {
+        const e = list_enc[i]
+        _datas.push({
+            date:new Date(e.enc_date_validation).toLocaleString(),
+            num_mvmt:(e.enc_is_hosp)?e.enc_num_hosp:`${ (new Date(e.enc_date_enreg)).getFullYear().toString().substr(2)}/${e.enc_num_mvmt.toString().padStart(5,0)}`,
+            patient:(e.pat_nom_et_prenom)?e.pat_nom_et_prenom:e.enc_pat_externe,
+            montant:separateNumber(e.enc_montant),
+            avance:(e.enc_total_avance)?separateNumber(e.enc_total_avance):'-',
+            soc:(e.ent_label)?e.ent_label:'-',
+            pec:(e.enc_is_pec)?'OUI':'NON',
+            dep:(e.dep_label)?e.dep_label:'-'
+        })
+
+    }
+
+
+    sheet.addRows(_datas);
+    let title_pdf = `suivi dispensaire - caisse principale`.toUpperCase()
     title_pdf += `    Journée du : `
     title_pdf += `${new Date(date_1).toLocaleDateString()} au ${new Date(date_2).toLocaleDateString()}`
 
@@ -3536,7 +3845,7 @@ async function createDetFactPDF(list_serv,pdf_name,enc){
         _datas.push({desc:`----- ${ls.service_label} ----`,qt:'',mnt:''})
         for(let j = 0;j < ls.child.length;j++){
             const ch = ls.child[j]
-            _datas.push({desc:`    ${ch.service_label}`,qt:ch.encserv_qt,mnt:separateNumber(ch.encserv_montant)})
+            _datas.push({desc:`    ${ch.service_label}${(ch.encp_id)?' - (prescri)':''}`,qt:ch.encserv_qt,mnt:separateNumber(ch.encserv_montant)})
         }
     }
 
