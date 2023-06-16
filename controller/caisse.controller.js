@@ -3,6 +3,7 @@ let U = require('../utils/utils')
 let PDFDocument = require("pdfkit-table");
 let fs = require('fs')
 const { NumberToLetter } = require("convertir-nombre-lettre");
+const ExcelJS = require('exceljs');
 
 let _prep_enc_data = {
     enc_pat_id:{front_name:'enc_pat_id',fac:true,},
@@ -43,26 +44,28 @@ function opt_tab (head,datas,doc){
             padding:5,
             align:'center',
             divider: {
-                header: { disabled: false, width: 1, opacity: 0.5 },
-                horizontal: { disabled: false, width: 0.5, opacity: 0 },
-                vertical: { disabled: false, width: 0.5, opacity: 0.5 },
+                header: { disabled: false, width: 2, opacity: 0.5 },
+                horizontal: { disabled: false, width: 2, opacity: 0 },
+                vertical: { disabled: false, width: 2, opacity: 0.5 },
             },
             prepareHeader: () => {
-                doc.font("fira_bold").fontSize(5)
-                doc.fillAndStroke('#575a61')
+                doc.font("fira_bold").fontSize(6)
+                doc.fillAndStroke('black')
             },
             prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
-                doc.font("fira").fontSize(7)
+                doc.font("fira_bold").fontSize(7)
                 doc.fillAndStroke('#47494d')
                 //#47494d
 
                 const {x, y, width, height} = rectCell;
                 let head_h = 17
+                let line_h = 2
+
+                doc.lineWidth(line_h)
 
                 // first line 
                 if(indexColumn === 0){
                     doc
-                    .lineWidth(.5)
                     .moveTo(x, y)
                     .lineTo(x, y + height+1)
                     .stroke();
@@ -70,19 +73,17 @@ function opt_tab (head,datas,doc){
 
                 if(indexRow == 0 && indexColumn === 0){
                     doc
-                    .lineWidth(.5)
+                    .lineWidth(line_h)
                     .moveTo(x, y)
                     .lineTo(x, y - head_h)
                     .stroke(); 
 
                     doc
-                    .lineWidth(.5)
                     .moveTo(x+width, y)
                     .lineTo(x+width, y - head_h)
                     .stroke(); 
 
                     doc
-                    .lineWidth(.5)
                     .moveTo(x, y-head_h)
                     .lineTo(x+width, y - head_h)
                     .stroke();
@@ -90,33 +91,28 @@ function opt_tab (head,datas,doc){
 
                 }else if(indexRow == 0){
                     doc
-                    .lineWidth(.5)
                     .moveTo(x+width, y)
                     .lineTo(x+width, y - head_h)
                     .stroke(); 
 
                     doc
-                    .lineWidth(.5)
                     .moveTo(x, y-head_h)
                     .lineTo(x+width, y - head_h)
                     .stroke();
                 }
 
                 doc
-                .lineWidth(.5)
                 .moveTo(x + width, y)
                 .lineTo(x + width, y + height+1)
                 .stroke();
 
                 if(indexRow == datas.length-1){
                     doc
-                    .lineWidth(.5)
                     .moveTo(x, y)
                     .lineTo(x + width, y)
                     .stroke();
 
                     doc
-                    .lineWidth(.5)
                     .moveTo(x, y+height)
                     .lineTo(x + width, y+height)
                     .stroke();
@@ -1685,18 +1681,7 @@ class Caisse{
 
             let offset = (page - 1) * limit
 
-            let list_enc = await D.exec_params(`select * from encaissement
-            left join patient on pat_id = enc_pat_id
-            left join entreprise on ent_id = enc_ent_id
-            left join tarif on tarif_id = enc_tarif_id
-            left join departement on dep_id = enc_dep_id
-            where enc_to_caisse = 1 and enc_is_hosp = 1
-            and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
-            and enc_dep_id ${dep_id == -1?'<>':'='} ?
-            and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
-            and enc_validate ${(validate == -1)?'<>':'='} ?
-            order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc limit ? offset ?
-            `,[date_1,date_2,dep_id,pat_label,pat_label,validate,limit,offset])
+            
 
             //ici on va compter le nombre total de résultats
             let result = (await D.exec_params(`select count(*) as nb_result,sum(enc_montant) as somme_result, 
@@ -1714,15 +1699,59 @@ class Caisse{
             `,[date_1,date_2,dep_id,pat_label,pat_label,validate]))[0]
 
 
-            let total_montant = 0,total_avance = 0
-            for (let i = 0; i < list_enc.length; i++) {
-                const e = list_enc[i];
-                total_montant += parseInt(e.enc_montant) - ((filters.validate == 0)?parseInt((e.enc_total_avance)?e.enc_total_avance:0):0)
+            if(req.query.down){
+                let list_enc = await D.exec_params(`select * from encaissement
+                left join patient on pat_id = enc_pat_id
+                left join entreprise on ent_id = enc_ent_id
+                left join tarif on tarif_id = enc_tarif_id
+                left join departement on dep_id = enc_dep_id
+                where enc_to_caisse = 1 and enc_is_hosp = 1
+                and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
+                and enc_dep_id ${dep_id == -1?'<>':'='} ?
+                and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
+                and enc_validate ${(validate == -1)?'<>':'='} ?
+                order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc
+                `,[date_1,date_2,dep_id,pat_label,pat_label,validate])
 
-                total_avance += parseInt((e.enc_total_avance)?e.enc_total_avance:0)
+
+                let dt = {
+                    filters,result,list_enc,
+                    pdf_name:'caisse-main-hosp'
+                }
+
+                if(req.query.type == 'pdf'){
+                    await createCaisseMainHospPDF(dt)
+                    return res.send({status:true,pdf_name:dt.pdf_name})
+                }else if(req.query.type == 'excel'){
+                    let dd = await createCaisseMainHospExcel(dt)
+
+                    return res.send({status:true,data:dd})
+                }
+
+            }else{
+                let list_enc = await D.exec_params(`select * from encaissement
+                left join patient on pat_id = enc_pat_id
+                left join entreprise on ent_id = enc_ent_id
+                left join tarif on tarif_id = enc_tarif_id
+                left join departement on dep_id = enc_dep_id
+                where enc_to_caisse = 1 and enc_is_hosp = 1
+                and date(${date_by=='insert'?'enc_date_enreg':'enc_date_validation'}) between date(?) and date(?) 
+                and enc_dep_id ${dep_id == -1?'<>':'='} ?
+                and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
+                and enc_validate ${(validate == -1)?'<>':'='} ?
+                order by ${date_by=='insert'?'enc_date_enreg':'enc_date_validation'} desc limit ? offset ?
+                `,[date_1,date_2,dep_id,pat_label,pat_label,validate,limit,offset])
+                
+                let total_montant = 0,total_avance = 0
+                for (let i = 0; i < list_enc.length; i++) {
+                    const e = list_enc[i];
+                    total_montant += parseInt(e.enc_montant) - ((filters.validate == 0)?parseInt((e.enc_total_avance)?e.enc_total_avance:0):0)
+
+                    total_avance += parseInt((e.enc_total_avance)?e.enc_total_avance:0)
+                }
+
+                return res.send({status:true,list_enc,total_montant,total_avance,result})
             }
-
-            return res.send({status:true,list_enc,total_montant,total_avance,result})
         }catch(e){
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -1749,22 +1778,6 @@ class Caisse{
 
             let is_product = (service_parent == -42)?1:0
 
-            let encserv = await D.exec_params(`select *${(is_product)?', art_label as service_label,art_code as service_code':''}
-            from encaissement
-            left join enc_serv on enc_id = encserv_enc_id
-            left join patient on pat_id = enc_pat_id
-            left join departement on dep_id = enc_dep_id
-            ${ (is_product)?'left join article on encserv_serv_id = art_id':'left join service on encserv_serv_id = service_id' }
-            where date(enc_date_validation) between date(?) and date(?) 
-            and (enc_dep_id ${dep_id == -1?' <> ? or enc_dep_id is null':' = ?'})
-            and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
-            and encserv_is_product = ${is_product}
-            and (${ (is_product)?'art_label like ?':`service_label like ? and service_parent_id ${(service_parent != -1)?' = '+service_parent:' is not null'}` })
-            and enc_validate = 1
-            order by enc_date_validation desc
-            limit ? offset ?
-            `,[date_1,date_2,dep_id,pat_label,pat_label,service_label,limit,offset])
-
             let result = (await D.exec_params(`select count(*) as nb_result,sum(encserv_montant) as somme_encserv,coalesce(sum(encserv_qt),0) as somme_qt
             from encaissement
             left join enc_serv on enc_id = encserv_enc_id
@@ -1783,7 +1796,64 @@ class Caisse{
 
             //count(*) as nb_result,sum(enc_montant) as somme_result
 
-            return res.send({status:true,encserv,result,message:'42'})
+            
+
+            if(req.query.down){
+
+                let _encserv = await D.exec_params(`select *${(is_product)?', art_label as service_label,art_code as service_code':''}
+                from encaissement
+                left join enc_serv on enc_id = encserv_enc_id
+                left join patient on pat_id = enc_pat_id
+                left join departement on dep_id = enc_dep_id
+                ${ (is_product)?'left join article on encserv_serv_id = art_id':'left join service on encserv_serv_id = service_id' }
+                where date(enc_date_validation) between date(?) and date(?) 
+                and (enc_dep_id ${dep_id == -1?' <> ? or enc_dep_id is null':' = ?'})
+                and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
+                and encserv_is_product = ${is_product}
+                and (${ (is_product)?'art_label like ?':`service_label like ? and service_parent_id ${(service_parent != -1)?' = '+service_parent:' is not null'}` })
+                and enc_validate = 1
+                order by enc_date_validation desc
+                `,[date_1,date_2,dep_id,pat_label,pat_label,service_label])
+
+                let dt = {
+                    list_encserv:_encserv,
+                    filters:req.query.filters,
+                    result,
+                    pdf_name:'caisse-main-suivi-med-serv'
+                }
+
+                if(req.query.type == 'pdf'){
+                    await createCaisseMainSuiviPDF(dt)
+                    return res.send({status:true,pdf_name:dt.pdf_name})
+                }else if(req.query.type == 'excel'){
+                    const ex = await createCaisseMainSuiviExcel(dt)
+                    return res.send({status:true,data:ex})
+                }else{
+                    return res.send({status:true,message:'42'})
+                }
+
+                
+
+            }else{
+                let encserv = await D.exec_params(`select *${(is_product)?', art_label as service_label,art_code as service_code':''}
+                from encaissement
+                left join enc_serv on enc_id = encserv_enc_id
+                left join patient on pat_id = enc_pat_id
+                left join departement on dep_id = enc_dep_id
+                ${ (is_product)?'left join article on encserv_serv_id = art_id':'left join service on encserv_serv_id = service_id' }
+                where date(enc_date_validation) between date(?) and date(?) 
+                and (enc_dep_id ${dep_id == -1?' <> ? or enc_dep_id is null':' = ?'})
+                and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
+                and encserv_is_product = ${is_product}
+                and (${ (is_product)?'art_label like ?':`service_label like ? and service_parent_id ${(service_parent != -1)?' = '+service_parent:' is not null'}` })
+                and enc_validate = 1
+                order by enc_date_validation desc
+                limit ? offset ?
+                `,[date_1,date_2,dep_id,pat_label,pat_label,service_label,limit,offset])
+
+
+                return res.send({status:true,encserv,result,message:'42'})
+            }
 
         } catch (e) {
             console.error(e)
@@ -1809,18 +1879,7 @@ class Caisse{
 
             let offset = (page - 1) * limit
 
-            let list_avance = await D.exec_params(`select * from enc_avance
-            left join encaissement on enc_id = encav_enc_id
-            left join patient on pat_id = enc_pat_id
-            left join entreprise on ent_id = enc_ent_id
-            left join tarif on tarif_id = enc_tarif_id
-            left join departement on dep_id = enc_dep_id
-            where date(${date_by=='insert'?'encav_date_enreg':'encav_date_validation'}) between date(?) and date(?) 
-            and enc_dep_id ${dep_id == -1?'<>':'='} ?
-            and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
-            and encav_validate ${(validate == -1)?'<>':'='} ?
-            order by ${date_by=='insert'?'encav_date_enreg':'encav_date_validation'} desc limit ? offset ?
-            `,[date_1,date_2,dep_id,pat_label,pat_label,validate,limit,offset])
+            
 
             //ici on va compter le nombre total de résultats
             let result = (await D.exec_params(`select count(*) as nb_result,sum(encav_montant) as somme_result from enc_avance
@@ -1836,14 +1895,60 @@ class Caisse{
             order by ${date_by=='insert'?'encav_date_enreg':'encav_date_validation'} desc
             `,[date_1,date_2,dep_id,pat_label,pat_label,validate]))[0]
 
+            if(req.query.down){
+                let list_avance = await D.exec_params(`select * from enc_avance
+                left join encaissement on enc_id = encav_enc_id
+                left join patient on pat_id = enc_pat_id
+                left join entreprise on ent_id = enc_ent_id
+                left join tarif on tarif_id = enc_tarif_id
+                left join departement on dep_id = enc_dep_id
+                where date(${date_by=='insert'?'encav_date_enreg':'encav_date_validation'}) between date(?) and date(?) 
+                and enc_dep_id ${dep_id == -1?'<>':'='} ?
+                and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
+                and encav_validate ${(validate == -1)?'<>':'='} ?
+                order by ${date_by=='insert'?'encav_date_enreg':'encav_date_validation'} desc
+                `,[date_1,date_2,dep_id,pat_label,pat_label,validate])
 
-            let total_montant = 0,total_avance = 0
-            for (let i = 0; i < list_avance.length; i++) {
-                const e = list_avance[i];
-                total_montant += parseInt(e.encav_montant)
+
+                let dt = {
+                    result,
+                    list_avance,
+                    pdf_name:'caisse-main-avance',
+                    filters
+                }
+
+                if(req.query.type == 'pdf'){
+                    await createCaisseMainAvancePDF(dt)
+                    return res.send({status:true,pdf_name:dt.pdf_name})
+                }else if(req.query.type == 'excel'){
+                    let dd = await createCaisseMainAvanceExcel(dt)
+
+                    return res.send({status:true,data:dd})                }
+            }else{
+                let list_avance = await D.exec_params(`select * from enc_avance
+                left join encaissement on enc_id = encav_enc_id
+                left join patient on pat_id = enc_pat_id
+                left join entreprise on ent_id = enc_ent_id
+                left join tarif on tarif_id = enc_tarif_id
+                left join departement on dep_id = enc_dep_id
+                where date(${date_by=='insert'?'encav_date_enreg':'encav_date_validation'}) between date(?) and date(?) 
+                and enc_dep_id ${dep_id == -1?'<>':'='} ?
+                and (pat_nom_et_prenom like ? or enc_pat_externe like ?)
+                and encav_validate ${(validate == -1)?'<>':'='} ?
+                order by ${date_by=='insert'?'encav_date_enreg':'encav_date_validation'} desc limit ? offset ?
+                `,[date_1,date_2,dep_id,pat_label,pat_label,validate,limit,offset])
+
+                let total_montant = 0,total_avance = 0
+                for (let i = 0; i < list_avance.length; i++) {
+                    const e = list_avance[i];
+                    total_montant += parseInt(e.encav_montant)
+                }
+
+                return res.send({status:true,list_avance,total_montant,result})
             }
+            
 
-            return res.send({status:true,list_avance,total_montant,result})
+            
         }catch(e){
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -2196,6 +2301,22 @@ class Caisse{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+
+    //Création de endpoint pour le téléchargement des PDFs
+    static async downAllPDF(req,res){
+        try {
+            let {pdf} = req.params
+
+            let data = fs.readFileSync(`./files/${pdf}.pdf`)
+            res.contentType("application/pdf")
+            res.send(data);
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
 }
 
 
@@ -2205,6 +2326,755 @@ class Caisse{
 //------------ ICI LES FONCTION DE CREATION DE PDF ------
 //-------------------------------------------------------
 
+async function createCaisseMainSuiviPDF(dt){
+
+    let {filters,list_encserv,result} = dt
+    let {date_1,date_2} = filters
+
+    let {somme_encserv,somme_qt,nb_result} = result
+
+    //Les débuts du PDF
+    let year_cur = new Date().getFullYear()
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //Les options du PDF
+    //Création de pdf amzay e 🤣😂, 
+    let opt = {
+        margin: 15, size: 'A4' ,
+        layout:'landscape'
+    }   
+    let doc = new PDFDocument(opt)
+
+    //les fonts
+    doc.registerFont('fira', 'fonts/fira.ttf');
+    doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+    doc.font("fira")
+
+    //Ecriture du PDF
+    doc.pipe(fs.createWriteStream(`./files/${dt.pdf_name}.pdf`))
+
+    //les marges et le truc en bas
+    //______________________________________
+    let bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
+    doc.fontSize(8)
+
+    doc.text(
+        `Hôpital Andranomadio ${year_cur}`, 
+        0.5 * (doc.page.width - 300),
+        doc.page.height - 20,
+        {
+            width: 300,
+            align: 'center',
+            lineBreak: false,
+        })
+
+    // Reset text writer position
+    doc.text('', 15, 15);
+    doc.page.margins.bottom = bottom;
+    doc.on('pageAdded', () => {
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+    
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+    
+        // Reset text writer position
+        doc.text('', 50, 50);
+        doc.page.margins.bottom = bottom;
+    })
+    //-----------------___________________---------------
+    //------------- Ajout des titres en haut
+
+    //Textes d'en haut du PDF
+    let nom_hop = 'HOPITALY LOTERANA - ANDRANOMADIO'
+    let title_pdf = 'suivi médicaments et services - caisse principale'.toUpperCase()
+    let date_label = `Journée du : `
+    let date_value = `${new Date(date_1).toLocaleDateString()} au ${new Date(date_2).toLocaleDateString()}`
+    // ----- LES TITRES D'EN HAUT ------------
+    doc.font("fira_bold")
+    let y_ttl = doc.y
+    doc.text(nom_hop,{underline:true})
+
+    let ttl_w = doc.widthOfString(title_pdf)
+    
+    doc.text(title_pdf,doc.page.width/2 - ttl_w/2,y_ttl)
+    let ddl_w = doc.widthOfString(date_label)
+    let ddlv_w = doc.widthOfString(date_value)
+    doc.text(date_label,doc.page.width - (ddl_w + ddlv_w) - opt.margin,y_ttl)
+    
+    doc.text(date_value,doc.page.width - ddlv_w - opt.margin,y_ttl)
+
+    y_ttl += 15
+    //La ligne au dessous
+    doc.lineWidth(.5)
+    .moveTo(opt.margin, y_ttl)
+    .lineTo(doc.page.width - opt.margin, y_ttl)
+    .stroke();
+
+    // ------- FIN HEADER 
+
+    // DEBUT DES CALCULS
+    doc.moveDown(5)
+    doc.text('',opt.margin)
+
+    let _head = []
+    let _datas = []
+    let table = {}
+
+
+    //ICI création des tableaux des récapitulatifs
+    _head = [
+        { label:"Résultat Total", width:100, property: 'total',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Quantité Total",width:100, property: 'qt_total',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Montant Total",width:100, property: 'somme_total',renderer: null ,headerAlign:"center",align:"right"},
+    ]
+
+    _datas = [
+        {total:separateNumber(nb_result),qt_total:separateNumber(somme_qt),somme_total:separateNumber(somme_encserv)}
+    ]
+
+    table = opt_tab(_head,_datas,doc)
+    await doc.table(table, { /* options */ });
+
+    //Réinitialisation Data
+    _datas = []
+
+    let l_h = 9
+    let p_w = 150,d_w = 150
+
+    let w_a = ( doc.page.width - (p_w + d_w) - opt.margin * 2) / 7
+    _head = [
+        { label:"Date", width:w_a,  property: 'date',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"N°Mvmt", width:w_a,  property: 'num_mvmt',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Patient", width:p_w,  property: 'patient',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Code", width:w_a,  property: 'code',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Désignation", width:d_w,  property: 'desc',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Quantité", width:w_a,  property: 'qt',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Prix Unitaire",  width:w_a, property: 'prix_unit',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Montant",  width:w_a, property: 'montant',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Département", width:w_a,  property: 'dep',renderer: null ,headerAlign:"center",align:"left"},
+    ]
+
+
+    for (let i = 0; i < list_encserv.length; i++) {
+        const e = list_encserv[i];
+        _datas.push({
+            date:new Date(e.enc_date_validation).toLocaleString(),
+            num_mvmt:(e.enc_is_hosp)?e.enc_num_hosp:`${ (new Date(e.enc_date_enreg)).getFullYear().toString().substr(2)}/${e.enc_num_mvmt.toString().padStart(5,0)}`,
+            code:e.service_code,
+            patient:(e.pat_nom_et_prenom)?e.pat_nom_et_prenom:e.enc_pat_externe,
+            desc:e.service_label,
+            qt:e.encserv_qt,
+            prix_unit:separateNumber(e.encserv_prix_unit),
+            montant:separateNumber(e.encserv_montant),
+            dep:(e.dep_label)?e.dep_label:'-'
+        })
+    }
+
+    doc.moveDown(5)
+
+    table = opt_tab(_head,_datas,doc)
+    await doc.table(table, { /* options */ });
+
+    doc.end()
+}
+
+//Fonction d'exportation en excel de suivi
+async function createCaisseMainSuiviExcel(dt){
+    let {filters,list_encserv,result} = dt
+    let {date_1,date_2} = filters
+
+    let {somme_encserv,somme_qt,nb_result} = result
+
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //initialisation de l'Excel
+    const workbook = new ExcelJS.Workbook();
+
+    //----------------------------------------
+    workbook.creator = 'xd creator';
+    workbook.lastModifiedBy = 'xd creator';
+    workbook.lastPrinted = new Date(2016, 9, 27);
+    workbook.properties.date1904 = true;
+    workbook.calcProperties.fullCalcOnLoad = true;
+
+    //-----------------------------------------
+    workbook.views = [
+        {
+          x: 0, y: 0, width: 10000, height: 20000,
+          firstSheet: 0, activeTab: 1, visibility: 'visible'
+        }
+      ]
+    //________________________________________
+
+    //Ajout du sheet
+    const sheet = workbook.addWorksheet('Suivi Med_Services')
+
+    //INSERTION DU HEADER
+    let _head = []
+    let _datas = []
+    // --------
+
+    _head = [
+        { header:"Date".toUpperCase(), width:10, key: 'date'},
+        { header:"N° mouvement", width:10, key: 'num_mvmt'},
+        { header:"Patient", width:40, key: 'patient'},
+        { header:"Code", width:12, key: 'code'},
+        { header:"DESIGNATION", width:40, key: 'desc'},        
+        { header:"quantité".toUpperCase(), width:10, key: 'qt'},
+        { header:"montant".toUpperCase(), width:12, key: 'montant'},
+        { header:"Prix unitaire".toUpperCase(), width:12, key: 'prix_unit'},
+        { header:"département".toUpperCase(), width:12, key: 'dep'},
+    ]
+
+    sheet.columns = _head //😑😑
+
+    _datas = []
+    let tmp_d = {}
+
+    for (var i = 0; i < list_encserv.length; i++) {
+        const e = list_encserv[i]
+        _datas.push({
+            date:new Date(e.enc_date_validation).toLocaleString(),
+            num_mvmt:(e.enc_is_hosp)?e.enc_num_hosp:`${ (new Date(e.enc_date_enreg)).getFullYear().toString().substr(2)}/${e.enc_num_mvmt.toString().padStart(5,0)}`,
+            code:e.service_code,
+            desc:e.service_label,
+            patient:(e.pat_nom_et_prenom)?e.pat_nom_et_prenom:e.enc_pat_externe,
+            qt:e.encserv_qt,
+            prix_unit:separateNumber(e.encserv_prix_unit),
+            montant:separateNumber(e.encserv_montant),
+            dep:(e.dep_label)?e.dep_label:'-'
+        })
+
+    }
+
+
+    sheet.addRows(_datas);
+    let title_pdf = `suivi médicaments et services - caisse principale`.toUpperCase()
+    title_pdf += `    Journée du : `
+    title_pdf += `${new Date(date_1).toLocaleDateString()} au ${new Date(date_2).toLocaleDateString()}`
+
+
+    sheet.insertRow(1, [title_pdf]);
+    sheet.insertRow(2, ['']);
+
+    // sheet.getRow(6).font = {bold:true,}
+    sheet.getRow(3).font = {bold:true,size: 14,underline: true,}
+    sheet.getRow(1).font = {bold:true,size: 16,underline: true,}
+
+
+    const d = await workbook.xlsx.writeBuffer();
+    return d
+}
+
+
+//ICI POUR L'EXPORTATION DES AVANCES
+async function createCaisseMainAvancePDF(dt){
+
+    let {filters,list_avance,result} = dt
+    let {date_1,date_2} = filters
+
+    let {somme_result,nb_result} = result
+
+    //Les débuts du PDF
+    let year_cur = new Date().getFullYear()
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //Les options du PDF
+    //Création de pdf amzay e 🤣😂, 
+    let opt = {
+        margin: 15, size: 'A4' ,
+        layout:'landscape'
+    }   
+    let doc = new PDFDocument(opt)
+
+    //les fonts
+    doc.registerFont('fira', 'fonts/fira.ttf');
+    doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+    doc.font("fira")
+
+    //Ecriture du PDF
+    doc.pipe(fs.createWriteStream(`./files/${dt.pdf_name}.pdf`))
+
+    //les marges et le truc en bas
+    //______________________________________
+    let bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
+    doc.fontSize(8)
+
+    doc.text(
+        `Hôpital Andranomadio ${year_cur}`, 
+        0.5 * (doc.page.width - 300),
+        doc.page.height - 20,
+        {
+            width: 300,
+            align: 'center',
+            lineBreak: false,
+        })
+
+    // Reset text writer position
+    doc.text('', 15, 15);
+    doc.page.margins.bottom = bottom;
+    doc.on('pageAdded', () => {
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+    
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+    
+        // Reset text writer position
+        doc.text('', 50, 50);
+        doc.page.margins.bottom = bottom;
+    })
+    //-----------------___________________---------------
+    //------------- Ajout des titres en haut
+
+    //Textes d'en haut du PDF
+    let nom_hop = 'HOPITALY LOTERANA - ANDRANOMADIO'
+    let title_pdf = 'suivi avance - caisse principale'.toUpperCase()
+    let date_label = `Journée du : `
+    let date_value = `${new Date(date_1).toLocaleDateString()} au ${new Date(date_2).toLocaleDateString()}`
+    // ----- LES TITRES D'EN HAUT ------------
+    doc.font("fira_bold")
+    let y_ttl = doc.y
+    doc.text(nom_hop,{underline:true})
+
+    let ttl_w = doc.widthOfString(title_pdf)
+    
+    doc.text(title_pdf,doc.page.width/2 - ttl_w/2,y_ttl)
+    let ddl_w = doc.widthOfString(date_label)
+    let ddlv_w = doc.widthOfString(date_value)
+    doc.text(date_label,doc.page.width - (ddl_w + ddlv_w) - opt.margin,y_ttl)
+    
+    doc.text(date_value,doc.page.width - ddlv_w - opt.margin,y_ttl)
+
+    y_ttl += 15
+    //La ligne au dessous
+    doc.lineWidth(.5)
+    .moveTo(opt.margin, y_ttl)
+    .lineTo(doc.page.width - opt.margin, y_ttl)
+    .stroke();
+
+    // ------- FIN HEADER 
+
+    // DEBUT DES CALCULS
+    doc.moveDown(5)
+    doc.text('',opt.margin)
+
+    let _head = []
+    let _datas = []
+    let table = {}
+
+
+    //ICI création des tableaux des récapitulatifs
+    _head = [
+        { label:"Résultat Total", width:100, property: 'total',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Montant Total",width:100, property: 'somme_total',renderer: null ,headerAlign:"center",align:"right"},
+    ]
+
+    _datas = [
+        {total:separateNumber(nb_result),somme_total:separateNumber(somme_result)}
+    ]
+
+    table = opt_tab(_head,_datas,doc)
+    await doc.table(table, { /* options */ });
+
+    //Réinitialisation Data
+    _datas = []
+
+    let l_h = 9
+    let p_w = 200,d_w = 150
+
+    let w_a = ( doc.page.width - (p_w) - opt.margin * 2) / 4
+    _head = [
+        { label:"Date", width:w_a,  property: 'date',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"N°Mvmt", width:w_a,  property: 'num_mvmt',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Patient", width:p_w,  property: 'patient',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Montant Total", width:w_a,  property: 'montant',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Département", width:w_a,  property: 'dep',renderer: null ,headerAlign:"center",align:"left"},
+    ]
+
+
+    for (let i = 0; i < list_avance.length; i++) {
+        const e = list_avance[i];
+        _datas.push({
+            date:new Date(e.enc_date_validation).toLocaleString(),
+            num_mvmt:(e.enc_is_hosp)?e.enc_num_hosp:`${ (new Date(e.enc_date_enreg)).getFullYear().toString().substr(2)}/${e.enc_num_mvmt.toString().padStart(5,0)}`,
+            patient:(e.pat_nom_et_prenom)?e.pat_nom_et_prenom:e.enc_pat_externe,
+            montant:separateNumber(e.encav_montant),
+            dep:(e.dep_label)?e.dep_label:'-'
+        })
+    }
+
+    doc.moveDown(5)
+
+    table = opt_tab(_head,_datas,doc)
+    await doc.table(table, { /* options */ });
+
+    doc.end()
+}
+
+//Fonction d'exportation en excel de suivi
+async function createCaisseMainAvanceExcel(dt){
+    let {filters,list_avance,result} = dt
+    let {date_1,date_2} = filters
+
+    let {nb_result} = result
+
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //initialisation de l'Excel
+    const workbook = new ExcelJS.Workbook();
+
+    //----------------------------------------
+    workbook.creator = 'xd creator';
+    workbook.lastModifiedBy = 'xd creator';
+    workbook.lastPrinted = new Date(2016, 9, 27);
+    workbook.properties.date1904 = true;
+    workbook.calcProperties.fullCalcOnLoad = true;
+
+    //-----------------------------------------
+    workbook.views = [
+        {
+          x: 0, y: 0, width: 10000, height: 20000,
+          firstSheet: 0, activeTab: 1, visibility: 'visible'
+        }
+      ]
+    //________________________________________
+
+    //Ajout du sheet
+    const sheet = workbook.addWorksheet('Suivi Med_Services')
+
+    //INSERTION DU HEADER
+    let _head = []
+    let _datas = []
+    // --------
+
+    _head = [
+        { header:"Date".toUpperCase(), width:10, key: 'date'},
+        { header:"N° mouvement", width:10, key: 'num_mvmt'},
+        { header:"Patient", width:40, key: 'patient'},
+        { header:"Montant total", width:40, key: 'montant'},
+        { header:"département".toUpperCase(), width:12, key: 'dep'},
+    ]
+
+    sheet.columns = _head //😑😑
+
+    _datas = []
+    let tmp_d = {}
+
+    for (var i = 0; i < list_avance.length; i++) {
+        const e = list_avance[i]
+        _datas.push({
+            date:new Date(e.enc_date_validation).toLocaleString(),
+            num_mvmt:(e.enc_is_hosp)?e.enc_num_hosp:`${ (new Date(e.enc_date_enreg)).getFullYear().toString().substr(2)}/${e.enc_num_mvmt.toString().padStart(5,0)}`,
+            patient:(e.pat_nom_et_prenom)?e.pat_nom_et_prenom:e.enc_pat_externe,
+            montant:separateNumber(e.encav_montant),
+            dep:(e.dep_label)?e.dep_label:'-'
+        })
+
+    }
+
+
+    sheet.addRows(_datas);
+    let title_pdf = `suivi avance - caisse principale`.toUpperCase()
+    title_pdf += `    Journée du : `
+    title_pdf += `${new Date(date_1).toLocaleDateString()} au ${new Date(date_2).toLocaleDateString()}`
+
+
+    sheet.insertRow(1, [title_pdf]);
+    sheet.insertRow(2, ['']);
+
+    // sheet.getRow(6).font = {bold:true,}
+    sheet.getRow(3).font = {bold:true,size: 14,underline: true,}
+    sheet.getRow(1).font = {bold:true,size: 16,underline: true,}
+
+
+    const d = await workbook.xlsx.writeBuffer();
+    return d
+}
+
+
+//ICI POUR L'EXPORTATION DES AVANCES
+async function createCaisseMainHospPDF(dt){
+
+    let {filters,list_enc,result} = dt
+    let {date_1,date_2} = filters
+
+    let {somme_result,nb_result} = result
+
+    //Les débuts du PDF
+    let year_cur = new Date().getFullYear()
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //Les options du PDF
+    //Création de pdf amzay e 🤣😂, 
+    let opt = {
+        margin: 15, size: 'A4' ,
+        layout:'landscape'
+    }   
+    let doc = new PDFDocument(opt)
+
+    //les fonts
+    doc.registerFont('fira', 'fonts/fira.ttf');
+    doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+    doc.font("fira")
+
+    //Ecriture du PDF
+    doc.pipe(fs.createWriteStream(`./files/${dt.pdf_name}.pdf`))
+
+    //les marges et le truc en bas
+    //______________________________________
+    let bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
+    doc.fontSize(8)
+
+    doc.text(
+        `Hôpital Andranomadio ${year_cur}`, 
+        0.5 * (doc.page.width - 300),
+        doc.page.height - 20,
+        {
+            width: 300,
+            align: 'center',
+            lineBreak: false,
+        })
+
+    // Reset text writer position
+    doc.text('', 15, 15);
+    doc.page.margins.bottom = bottom;
+    doc.on('pageAdded', () => {
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+    
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+    
+        // Reset text writer position
+        doc.text('', 50, 50);
+        doc.page.margins.bottom = bottom;
+    })
+    //-----------------___________________---------------
+    //------------- Ajout des titres en haut
+
+    //Textes d'en haut du PDF
+    let nom_hop = 'HOPITALY LOTERANA - ANDRANOMADIO'
+    let title_pdf = 'suivi hospitalisation - caisse principale'.toUpperCase()
+    let date_label = `Journée du : `
+    let date_value = `${new Date(date_1).toLocaleDateString()} au ${new Date(date_2).toLocaleDateString()}`
+    // ----- LES TITRES D'EN HAUT ------------
+    doc.font("fira_bold")
+    let y_ttl = doc.y
+    doc.text(nom_hop,{underline:true})
+
+    let ttl_w = doc.widthOfString(title_pdf)
+    
+    doc.text(title_pdf,doc.page.width/2 - ttl_w/2,y_ttl)
+    let ddl_w = doc.widthOfString(date_label)
+    let ddlv_w = doc.widthOfString(date_value)
+    doc.text(date_label,doc.page.width - (ddl_w + ddlv_w) - opt.margin,y_ttl)
+    
+    doc.text(date_value,doc.page.width - ddlv_w - opt.margin,y_ttl)
+
+    y_ttl += 15
+    //La ligne au dessous
+    doc.lineWidth(.5)
+    .moveTo(opt.margin, y_ttl)
+    .lineTo(doc.page.width - opt.margin, y_ttl)
+    .stroke();
+
+    // ------- FIN HEADER 
+
+    // DEBUT DES CALCULS
+    doc.moveDown(5)
+    doc.text('',opt.margin)
+
+    let _head = []
+    let _datas = []
+    let table = {}
+
+
+    //ICI création des tableaux des récapitulatifs
+    _head = [
+        { label:"Résultat Total", width:100, property: 'total',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Montant Total",width:100, property: 'somme_total',renderer: null ,headerAlign:"center",align:"right"},
+    ]
+
+    _datas = [
+        {total:separateNumber(nb_result),somme_total:separateNumber(somme_result)}
+    ]
+
+    table = opt_tab(_head,_datas,doc)
+    await doc.table(table, { /* options */ });
+
+    //Réinitialisation Data
+    _datas = []
+
+    let l_h = 9
+    let p_w = 150,d_w = 150
+
+    let w_a = ( doc.page.width - (p_w) - opt.margin * 2) / 7
+    _head = [
+        { label:"Date", width:w_a,  property: 'date',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"N°Mvmt", width:w_a,  property: 'num_mvmt',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Patient", width:p_w,  property: 'patient',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Prise en charge", width:w_a,  property: 'pec',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Société", width:w_a,  property: 'soc',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Montant ", width:w_a,  property: 'montant',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Avance", width:w_a,  property: 'avance',renderer: null ,headerAlign:"center",align:"right"},
+        { label:"Département", width:w_a,  property: 'dep',renderer: null ,headerAlign:"center",align:"left"},
+    ]
+
+
+    for (let i = 0; i < list_enc.length; i++) {
+        const e = list_enc[i];
+        _datas.push({
+            date:new Date(e.enc_date_validation).toLocaleString(),
+            num_mvmt:(e.enc_is_hosp)?e.enc_num_hosp:`${ (new Date(e.enc_date_enreg)).getFullYear().toString().substr(2)}/${e.enc_num_mvmt.toString().padStart(5,0)}`,
+            patient:(e.pat_nom_et_prenom)?e.pat_nom_et_prenom:e.enc_pat_externe,
+            montant:separateNumber(e.enc_montant),
+            avance:(e.enc_total_avance)?separateNumber(e.enc_total_avance):'-',
+            soc:(e.ent_label)?e.ent_label:'-',
+            pec:(e.enc_is_pec)?'OUI':'NON',
+            dep:(e.dep_label)?e.dep_label:'-'
+        })
+    }
+
+    doc.moveDown(5)
+
+    table = opt_tab(_head,_datas,doc)
+    await doc.table(table, { /* options */ });
+
+    doc.end()
+}
+
+//Fonction d'exportation en excel de suivi
+async function createCaisseMainHospExcel(dt){
+    let {filters,list_enc,result} = dt
+    let {date_1,date_2} = filters
+
+    let {nb_result} = result
+
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //initialisation de l'Excel
+    const workbook = new ExcelJS.Workbook();
+
+    //----------------------------------------
+    workbook.creator = 'xd creator';
+    workbook.lastModifiedBy = 'xd creator';
+    workbook.lastPrinted = new Date(2016, 9, 27);
+    workbook.properties.date1904 = true;
+    workbook.calcProperties.fullCalcOnLoad = true;
+
+    //-----------------------------------------
+    workbook.views = [
+        {
+          x: 0, y: 0, width: 10000, height: 20000,
+          firstSheet: 0, activeTab: 1, visibility: 'visible'
+        }
+      ]
+    //________________________________________
+
+    //Ajout du sheet
+    const sheet = workbook.addWorksheet('Suivi Med_Services')
+
+    //INSERTION DU HEADER
+    let _head = []
+    let _datas = []
+    // --------
+
+    _head = [
+        { header:"Date".toUpperCase(), width:10, key: 'date'},
+        { header:"N° mouvement", width:10, key: 'num_mvmt'},
+        { header:"Patient", width:40, key: 'patient'},
+        { header:"Prise en charge", width:40, key: 'pec'},
+        { header:"Société", width:40, key: 'soc'},
+        { header:"Avance", width:40, key: 'avance'},
+        { header:"Montant total", width:40, key: 'montant'},
+        { header:"département".toUpperCase(), width:12, key: 'dep'},
+    ]
+
+    sheet.columns = _head //😑😑
+
+    _datas = []
+    let tmp_d = {}
+
+    for (var i = 0; i < list_enc.length; i++) {
+        const e = list_enc[i]
+        _datas.push({
+            date:new Date(e.enc_date_validation).toLocaleString(),
+            num_mvmt:(e.enc_is_hosp)?e.enc_num_hosp:`${ (new Date(e.enc_date_enreg)).getFullYear().toString().substr(2)}/${e.enc_num_mvmt.toString().padStart(5,0)}`,
+            patient:(e.pat_nom_et_prenom)?e.pat_nom_et_prenom:e.enc_pat_externe,
+            montant:separateNumber(e.enc_montant),
+            avance:(e.enc_total_avance)?separateNumber(e.enc_total_avance):'-',
+            soc:(e.ent_label)?e.ent_label:'-',
+            pec:(e.enc_is_pec)?'OUI':'NON',
+            dep:(e.dep_label)?e.dep_label:'-'
+        })
+
+    }
+
+
+    sheet.addRows(_datas);
+    let title_pdf = `suivi Hospitalisation - caisse principale`.toUpperCase()
+    title_pdf += `    Journée du : `
+    title_pdf += `${new Date(date_1).toLocaleDateString()} au ${new Date(date_2).toLocaleDateString()}`
+
+
+    sheet.insertRow(1, [title_pdf]);
+    sheet.insertRow(2, ['']);
+
+    // sheet.getRow(6).font = {bold:true,}
+    sheet.getRow(3).font = {bold:true,size: 14,underline: true,}
+    sheet.getRow(1).font = {bold:true,size: 16,underline: true,}
+
+
+    const d = await workbook.xlsx.writeBuffer();
+    return d
+}
 
 async function createRapportVt(dt){
     let {enc,serv_p,dep,vt} = dt
@@ -3016,101 +3886,8 @@ async function createFactPDF(fact,list_serv,mode,encav_last){
 
 
     // Table du truc
-    const table = {
-        // complex headers work with ROWS and DATAS  
-        headers: _head,
-        // complex content
-        datas:_datas,
-        options:{
-            padding:5,
-            align:'center',
-            divider: {
-                header: { disabled: false, width: 1, opacity: 0.5 },
-                horizontal: { disabled: false, width: 0.5, opacity: 0 },
-                vertical: { disabled: false, width: 0.5, opacity: 0.5 },
-            },
-            prepareHeader: () => {
-                doc.font("fira_bold").fontSize(8)
-                doc.fillAndStroke('#575a61')
-            },
-            prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
-                doc.font("fira").fontSize(8)
-                doc.fillAndStroke('#47494d')
-                //#47494d
-
-                const {x, y, width, height} = rectCell;
-                let head_h = 17
-
-                // first line 
-                if(indexColumn === 0){
-                    doc
-                    .lineWidth(.5)
-                    .moveTo(x, y)
-                    .lineTo(x, y + height+1)
-                    .stroke();
-                }
-
-                if(indexRow == 0 && indexColumn === 0){
-                    doc
-                    .lineWidth(.5)
-                    .moveTo(x, y)
-                    .lineTo(x, y - head_h)
-                    .stroke(); 
-
-                    doc
-                    .lineWidth(.5)
-                    .moveTo(x+width, y)
-                    .lineTo(x+width, y - head_h)
-                    .stroke(); 
-
-                    doc
-                    .lineWidth(.5)
-                    .moveTo(x, y-head_h)
-                    .lineTo(x+width, y - head_h)
-                    .stroke();
-
-
-                }else if(indexRow == 0){
-                    doc
-                    .lineWidth(.5)
-                    .moveTo(x+width, y)
-                    .lineTo(x+width, y - head_h)
-                    .stroke(); 
-
-                    doc
-                    .lineWidth(.5)
-                    .moveTo(x, y-head_h)
-                    .lineTo(x+width, y - head_h)
-                    .stroke();
-                }
-
-                doc
-                .lineWidth(.5)
-                .moveTo(x + width, y)
-                .lineTo(x + width, y + height+1)
-                .stroke();
-
-                if(indexRow == _datas.length-1){
-                    doc
-                    .lineWidth(.5)
-                    .moveTo(x, y)
-                    .lineTo(x + width, y)
-                    .stroke();
-
-                    doc
-                    .lineWidth(.5)
-                    .moveTo(x, y+height)
-                    .lineTo(x + width, y+height)
-                    .stroke();
-
-                    doc.font("fira_bold")
-                }
-                // doc.fontSize(10).fillColor('#292929');
-            },
-        },
-        // simple content (works fine!)
-    }
-
+    //xx5
+    table = opt_tab(_head,_datas,doc)
     await doc.table(table, { /* options */ });
 
     //Bas de page avec le montant en lettre

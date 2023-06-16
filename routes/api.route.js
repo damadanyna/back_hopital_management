@@ -321,4 +321,9 @@ router.post('/dt/rdv',require('../controller/dt-rdv.controller').addRdv)
 router.put('/dt/rdv',require('../controller/dt-rdv.controller').updateRdv)
 router.delete('/dt/rdv/:rdv_id',require('../controller/dt-rdv.controller').delRdv)
 //------
+
+
+
+//Téléchargement de PDF
+router.get('/media/pdf/:pdf',require('../controller/caisse.controller').downAllPDF)
 module.exports = router
