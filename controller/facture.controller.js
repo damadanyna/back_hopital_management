@@ -143,6 +143,10 @@ class Facture{
 
             //Mise à jour prise en charge
             pec.encharge_date_sortie = (pec.encharge_date_sortie)?new Date(pec.encharge_date_sortie):null
+
+            delete pec.ent_label
+            delete pec.ent_label_payeur
+
             await D.updateWhere('encharge',pec,{encharge_id:pec.encharge_id})
             // --------------------------
 
