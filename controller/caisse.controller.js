@@ -44,9 +44,9 @@ function opt_tab (head,datas,doc){
             padding:5,
             align:'center',
             divider: {
-                header: { disabled: false, width: 2, opacity: 0.5 },
-                horizontal: { disabled: false, width: 2, opacity: 0 },
-                vertical: { disabled: false, width: 2, opacity: 0.5 },
+                header: { disabled: false, width: 2, opacity: 1 },
+                horizontal: { disabled: false, width: 2, opacity: 1 },
+                vertical: { disabled: false, width: 2, opacity: 1 },
             },
             prepareHeader: () => {
                 doc.font("fira_bold").fontSize(6)
@@ -1139,6 +1139,138 @@ class Caisse{
             await createFactPDF(fact,list_serv,mode,encav_last)
 
             return res.send({status:true,message:"Encaissement effectuée"})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    static async getFactsCumulative(req,res){
+        try {
+            let { enc_ids } = req.query
+
+
+            //récupération de la facture
+            let fact = await D.exec_params(`select * from encaissement
+            left join patient on pat_id = enc_pat_id
+            left join departement on dep_id = enc_dep_id
+            left join utilisateur on enc_util_validate_id = util_id
+            where enc_id in (?) order by enc_date_validation`,[enc_ids])
+
+            let date_1 = new Date(fact[0].enc_date_validation)
+            let date_2 = new Date(fact[fact.length -1].enc_date_validation)
+            //regroupement du truc
+            let enc_f = {
+                enc_validate:1,
+                pat_nom_et_prenom:(fact[0].enc_is_externe)?fact[0].enc_pat_externe:fact[0].pat_nom_et_prenom,
+                pat_adresse:(fact[0].enc_is_externe)?null:fact[0].pat_adresse,
+                util_label:fact[0].util_label,
+                dep_label:fact[0].dep_label,
+                pat_numero:(fact[0].enc_is_externe)?null:fact[0].pat_numero,
+                enc_num_mvmt:fact[0].enc_num_mvmt,
+                enc_date_enreg:fact[0].enc_date_enreg,
+                enc_to_caisse:1
+            }
+
+            for (let i = 0; i < fact.length; i++) {
+                const f = fact[i];
+                enc_f['enc_montant'] = (enc_f['enc_montant'])?enc_f['enc_montant']+parseInt(f.enc_montant):parseInt(f.enc_montant)
+                enc_f['enc_reste_paie'] = (enc_f['enc_reste_paie'])?enc_f['enc_reste_paie']+parseInt(f.enc_reste_paie?f.enc_reste_paie:0):parseInt(f.enc_reste_paie?f.enc_reste_paie:0)
+                enc_f['enc_is_hosp'] = (f.enc_is_hosp)?1:(enc_f['enc_is_hosp'])?enc_f['enc_is_hosp']:0
+                enc_f['enc_total_avance'] = (enc_f['enc_total_avance'])?enc_f['enc_total_avance']+parseInt((f.enc_total_avance)?f.enc_total_avance:0):parseInt((f.enc_total_avance)?f.enc_total_avance:0)
+            }
+
+            //Récupération des listes des services parents
+            let list_serv = await D.exec(`select * from service where service_parent_id is null order by service_rang asc`)
+
+            //Ici on va séparer les rang null et les autres
+            // 🤣😂 Vraiment ridicule ce bout de code
+            let lnull = [], nnull = []
+            for (let i = 0; i < list_serv.length; i++) {
+                const e = list_serv[i];
+                if(!e.service_rang){
+                    lnull.push(e)
+                }else{
+                    nnull.push(e)
+                }
+            }
+            list_serv = [...nnull,...lnull]
+            // ----------------------
+
+            // console.log(list_serv);
+
+            //Récupération de la liste des produits liés à la facture
+            let fact_serv = await D.exec_params(`select * from enc_serv
+            left join service on service_id = encserv_serv_id
+            where encserv_enc_id in (?) and encserv_is_product = 0`,[enc_ids])
+
+            let fact_med = await D.exec_params(`select * from enc_serv
+            left join article on art_id = encserv_serv_id
+            where encserv_enc_id in (?) and encserv_is_product = 1`,[enc_ids])
+
+            //Récupération de la liste des produits liés à la facture //côté prescription
+            let factp_serv = await D.exec_params(`select * from enc_prescri
+            left join service on service_id = encp_serv_id
+            where encp_enc_id in (?) and encp_is_product = 0`,[enc_ids])
+
+            let factp_med = await D.exec_params(`select * from enc_prescri
+            left join article on art_id = encp_serv_id
+            where encp_enc_id in (?) and encp_is_product = 1`,[enc_ids])
+
+            //Manipulations des données
+            let index_med = -1
+            // let indexp_med = -1
+            for (let i = 0; i < list_serv.length; i++) {
+                const e = list_serv[i];
+                index_med = (e.service_code == 'MED')?i:index_med
+
+                list_serv[i].montant_total = 0
+                for (let j = 0; j < fact_serv.length; j++) {
+                    const es = fact_serv[j];
+                    if(e.service_id == es.service_parent_id){
+                        list_serv[i].montant_total += (es.encserv_montant)?parseInt(es.encserv_montant):0
+                    }
+                }
+
+                //Pour la prescription
+                for (let j = 0; j < factp_serv.length; j++) {
+                    const es = factp_serv[j];
+                    if(e.service_id == es.service_parent_id){
+                        list_serv[i].montant_total += (es.encp_montant)?parseInt(es.encp_montant):0
+                    }
+                }
+            }
+
+            if(index_med == -1){
+                list_serv.splice(2,0,{service_code:'MED',service_label:'MEDICAMENTS'})
+                index_med = 2
+            }
+
+            list_serv[index_med].montant_total = 0
+            //et juste pour les médicaments -- Insertion des montants total dans médicaments
+            for (let i = 0; i < fact_med.length; i++) {
+                const e = fact_med[i]
+                list_serv[index_med].montant_total += (e.encserv_montant)?parseInt(e.encserv_montant):0
+            }
+            //Pour la prescription
+            for (let i = 0; i < factp_med.length; i++) {
+                const e = factp_med[i]
+                list_serv[index_med].montant_total += (e.encp_montant)?parseInt(e.encp_montant):0
+            }
+
+            //conception anle PDF amzay eto an,
+            // await createFactPDF(fact,list_serv,fact_serv)
+            let mode = {
+                label:(fact[0].enc_mode_paiement == 'esp')?'Espèce':'Chèque',
+                code:fact[0].enc_mode_paiement
+            }
+
+            await createFactPDF(enc_f,list_serv,mode,null,{
+                date_1,
+                date_2
+            })
+
+            return res.send({status:true,pdf_name:'fact-caisse',message:"Encaissement effectuée"})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -2358,6 +2490,7 @@ class Caisse{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
 
 
     //Création de endpoint pour le téléchargement des PDFs
@@ -3982,7 +4115,7 @@ async function createDetFactPDF(list_serv,pdf_name,enc){
 
 
 //Fonction pour la génération de PDF
-async function createFactPDF(fact,list_serv,mode,encav_last){
+async function createFactPDF(fact,list_serv,mode,encav_last,ext){
 
     let year_cur = new Date().getFullYear()
     let year_enc = new Date(fact.enc_date_enreg).getFullYear()
@@ -3991,8 +4124,8 @@ async function createFactPDF(fact,list_serv,mode,encav_last){
     }
 
     let date_fact = (encav_last)?new Date(encav_last.encav_date_validation):(fact.enc_date_validation)?new Date(fact.enc_date_validation):new Date()
-    let f_date = date_fact.toLocaleDateString()
-    let f_time = date_fact.toLocaleTimeString().substr(0,5)
+    let f_date = (ext)?ext.date_1.toLocaleDateString():date_fact.toLocaleDateString()
+    let f_time = (ext)?ext.date_2.toLocaleDateString():date_fact.toLocaleTimeString().substr(0,5)
 
     //Les options du PDF
     //Création de pdf amzay e, 
@@ -4080,7 +4213,8 @@ async function createFactPDF(fact,list_serv,mode,encav_last){
 
     //Toutes les textes
     let nom_hop = 'HOPITALY LOTERANA ANDRANOMADIO'
-    let t_caisse = (fact.enc_is_hosp)?`FACTURE ${(fact.enc_validate)?'DEFINITIVE':'AVANCE'} - N° ${fact.enc_num_hosp}`:`FACTURE CAISSE - N° ${year_enc.toString().substr(2)}/${fact.enc_num_mvmt.toString().padStart(5,0)}`
+    let t_caisse =(ext)?'FACTURE CUMULATIVE':(fact.enc_is_hosp)?`FACTURE ${(fact.enc_validate)?'DEFINITIVE':'AVANCE'} - N° ${fact.enc_num_hosp}`:`FACTURE CAISSE - N° ${year_enc.toString().substr(2)}/${fact.enc_num_mvmt.toString().padStart(5,0)}`
+        t_caisse = t_caisse.trim()
     let t_date = `${f_date} -- ${f_time}`
     let t_caissier = `CAISSIER : ${ (fact.util_label)?fact.util_label:'-' }`
     let t_pat_code = `Patient: ${(fact.pat_numero)?fact.pat_numero:(fact.enc_is_externe)?'EXTERNE':'-'}`
@@ -4091,7 +4225,7 @@ async function createFactPDF(fact,list_serv,mode,encav_last){
     let t_avance = 'Avance:'
     let t_paiement_final = (fact.enc_to_caisse)?'Paiement final:':'Reste à payer:'
     
-    let t_somme_m = NumberToLetter(parseInt((fact.enc_is_hosp)?(fact.enc_validate?fact.enc_reste_paie:(encav_last != undefined)?encav_last.encav_montant:fact.enc_reste_paie):fact.enc_montant ).toString()) 
+    let t_somme_m = NumberToLetter(parseInt((fact.enc_is_hosp)?(fact.enc_validate?fact.enc_reste_paie:(!encav_last)?encav_last.encav_montant:fact.enc_reste_paie):fact.enc_montant ).toString()) 
     let t_avance_s = (fact.enc_total_avance)?parseInt(fact.enc_total_avance).toLocaleString('fr-CA'):''
 
 
@@ -4132,9 +4266,14 @@ async function createFactPDF(fact,list_serv,mode,encav_last){
     doc.font('fira_bold')
     doc.fontSize(10)
     h_cadre = doc.heightOfString(t_caisse)+(margin_text_in_cadre * 2)
+
+    // console.log(`Taille Caisse 1 : ${doc.heightOfString(t_caisse)}`)
+
+    let taille_caisse = doc.heightOfString(t_caisse)
     doc.lineJoin('miter')
         .rect(x_begin,y_cur , w_cadre,h_cadre)
         .stroke();
+    
     doc.text(t_caisse,(w_cadre/2 - doc.widthOfString(t_caisse)/2) + x_begin,y_cur+margin_text_in_cadre)
     y_cur = y_cur+h_cadre
     //------------------
@@ -4226,7 +4365,7 @@ async function createFactPDF(fact,list_serv,mode,encav_last){
         y_cur = doc.y
 
         let t_avance_ac = 'Avance'
-        let t_avance_ac_s = separateNumber(encav_last.encav_montant)
+        let t_avance_ac_s = separateNumber(encav_last?encav_last.encav_montant:0)
 
         hxx = 0
 
@@ -4291,7 +4430,9 @@ async function createFactPDF(fact,list_serv,mode,encav_last){
     //text écriture sur la caisse
     doc.font('fira_bold')
     doc.fontSize(10)
-    h_cadre = doc.heightOfString(t_caisse)+(margin_text_in_cadre * 2) -13
+    h_cadre = taille_caisse+(margin_text_in_cadre * 2) 
+
+    // console.log(`Taille Caisse 2 : ${doc.heightOfString(t_caisse)}`)
     doc.lineJoin('miter')
         .rect(x_begin,y_cur , w_cadre,h_cadre)
         .stroke();
@@ -4353,7 +4494,7 @@ async function createFactPDF(fact,list_serv,mode,encav_last){
         y_cur = doc.y
 
         let t_avance_ac = 'Avance'
-        let t_avance_ac_s = separateNumber(encav_last.encav_montant)
+        let t_avance_ac_s = separateNumber(encav_last?encav_last.encav_montant:0)
 
         hxx = 0
 

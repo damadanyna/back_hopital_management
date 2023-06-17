@@ -2,6 +2,104 @@ let D = require('../models/data')
 
 let utils = require('../utils/utils')
 
+let PDFDocument = require("pdfkit-table");
+let fs = require('fs')
+const { NumberToLetter } = require("convertir-nombre-lettre");
+const ExcelJS = require('exceljs');
+
+//Foncion options des tabs dans le truc
+function opt_tab (head,datas,doc){
+    return {
+        // complex headers work with ROWS and DATAS  
+        headers: head,
+        // complex content
+        datas:datas,
+        options:{
+            padding:5,
+            align:'center',
+            divider: {
+                header: { disabled: false, width: 2, opacity: 1 },
+                horizontal: { disabled: false, width: 2, opacity: 1 },
+                vertical: { disabled: false, width: 2, opacity: 1 },
+            },
+            prepareHeader: () => {
+                doc.font("fira_bold").fontSize(6)
+                doc.fillAndStroke('black')
+            },
+            prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
+                doc.font("fira_bold").fontSize(7)
+                doc.fillAndStroke('#47494d')
+                //#47494d
+
+                const {x, y, width, height} = rectCell;
+                let head_h = 17
+                let line_h = 2
+
+                doc.lineWidth(line_h)
+
+                // first line 
+                if(indexColumn === 0){
+                    doc
+                    .moveTo(x, y)
+                    .lineTo(x, y + height+1)
+                    .stroke();
+                }
+
+                if(indexRow == 0 && indexColumn === 0){
+                    doc
+                    .lineWidth(line_h)
+                    .moveTo(x, y)
+                    .lineTo(x, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .moveTo(x+width, y)
+                    .lineTo(x+width, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .moveTo(x, y-head_h)
+                    .lineTo(x+width, y - head_h)
+                    .stroke();
+
+
+                }else if(indexRow == 0){
+                    doc
+                    .moveTo(x+width, y)
+                    .lineTo(x+width, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .moveTo(x, y-head_h)
+                    .lineTo(x+width, y - head_h)
+                    .stroke();
+                }
+
+                doc
+                .moveTo(x + width, y)
+                .lineTo(x + width, y + height+1)
+                .stroke();
+
+                if(indexRow == datas.length-1){
+                    doc
+                    .moveTo(x, y)
+                    .lineTo(x + width, y)
+                    .stroke();
+
+                    doc
+                    .moveTo(x, y+height)
+                    .lineTo(x + width, y+height)
+                    .stroke();
+
+                    //doc.font("fira_bold")
+                }
+                // doc.fontSize(10).fillColor('#292929');
+            },
+        },
+        // simple content (works fine!)
+    } //Fin table options
+} // --- fonction sur l'option des tables dans PDF kit
+
 class Service{
     static async register(req,res){ 
         
@@ -158,16 +256,9 @@ class Service{
         filters.sort_by = (!filters.sort_by)?_obj_pat[default_sort_by]:_obj_pat[filters.sort_by]
 
         try { 
-            //A reserver recherche par nom_prenom
-            // let reponse = await D.exec_params(`select * from service order by ${filters.sort_by} limit ? offset ?`,[
-            //     filters.limit,
-            //     (filters.page-1)*filters.limit
-            // ])
-
             filters.search = (filters.search === undefined)?'%%':`%${filters.search}%`
-
-
             let srvs = await D.exec_params(`select * from service where service_label like ? order by service_code asc`,[filters.search])
+
 
             //Récupération des tarifs de chaque service
             for (let i = 0; i < srvs.length; i++) {
@@ -185,7 +276,22 @@ class Service{
             //Liste des tarfis
             const list_tarif = await D.exec('select * from tarif')
 
-            return res.send({status:true,srvs,list_tarif,nb_total_service})
+
+            if(req.query.down){
+                let dt = {
+                    services:srvs,
+                    list_tarif,
+                    pdf_name:'service-tarification'
+                }
+
+                await createTarifServicesPDF(dt)
+                return res.send({status:true,pdf_name:dt.pdf_name})
+
+            }else{
+                return res.send({status:true,srvs,list_tarif,nb_total_service})
+            }
+
+            
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -212,8 +318,12 @@ class Service{
 
             filters.search = (filters.search === undefined)?'%%':`%${filters.search}%`
 
-
-            let srvs = await D.exec_params(`select * from article where art_label like ? order by art_code asc limit ?`,[filters.search,filters.limit])
+            let srvs = []
+            if(req.query.down){
+                srvs = await D.exec_params(`select * from article order by art_code asc`)
+            }else{
+                srvs = await D.exec_params(`select * from article where art_label like ? order by art_code asc limit ?`,[filters.search,filters.limit])
+            }
 
             //Récupération des tarifs de chaque produits
             for (let i = 0; i < srvs.length; i++) {
@@ -226,7 +336,20 @@ class Service{
             //Liste des tarfis
             const list_tarif = await D.exec('select * from tarif')
             
-            return res.send({status:true,srvs,list_tarif})
+
+            if(req.query.down){
+                let dt = {
+                    services:srvs,
+                    list_tarif,
+                    pdf_name:'med-tarification'
+                }
+
+                await createTarifMedPDF(dt)
+
+                return res.send({status:true,pdf_name:dt.pdf_name})
+            }else{
+                return res.send({status:true,srvs,list_tarif})
+            }
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -379,6 +502,309 @@ class Service{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+}
+
+
+//fonction de création de pdf pour l'impression des services
+//ICI POUR L'EXPORTATION DES AVANCES
+async function createTarifServicesPDF(dt){
+
+    let {services,list_tarif} = dt
+
+    //Les débuts du PDF
+    let year_cur = new Date().getFullYear()
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //Les options du PDF
+    //Création de pdf amzay e 🤣😂, 
+    let opt = {
+        margin: 15, size: 'A4' ,
+        layout:'landscape'
+    }   
+    let doc = new PDFDocument(opt)
+
+    //les fonts
+    doc.registerFont('fira', 'fonts/fira.ttf');
+    doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+    doc.font("fira")
+
+    //Ecriture du PDF
+    doc.pipe(fs.createWriteStream(`./files/${dt.pdf_name}.pdf`))
+
+    //les marges et le truc en bas
+    //______________________________________
+    let bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
+    doc.fontSize(8)
+
+    doc.text(
+        `Hôpital Andranomadio ${year_cur}`, 
+        0.5 * (doc.page.width - 300),
+        doc.page.height - 20,
+        {
+            width: 300,
+            align: 'center',
+            lineBreak: false,
+        })
+
+    // Reset text writer position
+    doc.text('', 15, 15);
+    doc.page.margins.bottom = bottom;
+    doc.on('pageAdded', () => {
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+    
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+    
+        // Reset text writer position
+        doc.text('', 50, 50);
+        doc.page.margins.bottom = bottom;
+    })
+    //-----------------___________________---------------
+    //------------- Ajout des titres en haut
+
+    //Textes d'en haut du PDF
+    let nom_hop = 'HOPITALY LOTERANA - ANDRANOMADIO'
+    let title_pdf = 'Liste Tarification - services'.toUpperCase()
+    let date_label = `Journée du : `
+    let date_value = `${new Date().toLocaleDateString()}`
+    // ----- LES TITRES D'EN HAUT ------------
+    doc.font("fira_bold")
+    let y_ttl = doc.y
+    doc.text(nom_hop,{underline:true})
+
+    let ttl_w = doc.widthOfString(title_pdf)
+    
+    doc.text(title_pdf,doc.page.width/2 - ttl_w/2,y_ttl)
+    let ddl_w = doc.widthOfString(date_label)
+    let ddlv_w = doc.widthOfString(date_value)
+    doc.text(date_label,doc.page.width - (ddl_w + ddlv_w) - opt.margin,y_ttl)
+    
+    doc.text(date_value,doc.page.width - ddlv_w - opt.margin,y_ttl)
+
+    y_ttl += 15
+    //La ligne au dessous
+    doc.lineWidth(.5)
+    .moveTo(opt.margin, y_ttl)
+    .lineTo(doc.page.width - opt.margin, y_ttl)
+    .stroke();
+
+    // ------- FIN HEADER 
+
+    // DEBUT DES CALCULS
+    doc.moveDown(2)
+    doc.text('',opt.margin)
+
+    let _head = []
+    let _datas = []
+    let table = {}
+
+    let l_h = 9
+    let p_w = 150
+
+    let w_a = ( doc.page.width - (p_w) - opt.margin * 2) / 7
+    _head = [
+        { label:"Code".toUpperCase(), width:50,  property: 'code',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Désignation".toUpperCase(), width:150,  property: 'service_label',renderer: null ,headerAlign:"center",align:"left"},
+        
+    ]
+
+
+    let w_t = ( doc.page.width - (200) - opt.margin * 2) / list_tarif.length
+    for (let i = 0; i < list_tarif.length; i++) {
+        const t = list_tarif[i];
+        
+        _head.push({ label:t.tarif_label.toUpperCase(), width:w_t,  property:`tr:${t.tarif_id}`,renderer: null ,headerAlign:"center",align:"right"},)
+    }
+
+    let tmp = {}
+    for (let i = 0; i < services.length; i++) {
+        const e = services[i];
+        tmp = {
+            code:e.service_code,
+            service_label:e.service_label
+        }
+
+        if(e.tarifs){
+            for (let j = 0; j < e.tarifs.length; j++) {
+                const t = e.tarifs[j];
+                tmp[`tr:${t.tarif_id}`] = (t.tserv_prix)?separateNumber(t.tserv_prix):'0'   
+            }
+        }
+        
+        _datas.push(tmp)
+    }
+
+    
+
+    doc.moveDown(5)
+
+    table = opt_tab(_head,_datas,doc)
+    await doc.table(table, { /* options */ });
+
+    doc.end()
+}
+
+async function createTarifMedPDF(dt){
+
+    let {services,list_tarif} = dt
+
+    //Les débuts du PDF
+    let year_cur = new Date().getFullYear()
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //Les options du PDF
+    //Création de pdf amzay e 🤣😂, 
+    let opt = {
+        margin: 15, size: 'A4' ,
+        layout:'landscape'
+    }   
+    let doc = new PDFDocument(opt)
+
+    //les fonts
+    doc.registerFont('fira', 'fonts/fira.ttf');
+    doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+    doc.font("fira")
+
+    //Ecriture du PDF
+    doc.pipe(fs.createWriteStream(`./files/${dt.pdf_name}.pdf`))
+
+    //les marges et le truc en bas
+    //______________________________________
+    let bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
+    doc.fontSize(8)
+
+    doc.text(
+        `Hôpital Andranomadio ${year_cur}`, 
+        0.5 * (doc.page.width - 300),
+        doc.page.height - 20,
+        {
+            width: 300,
+            align: 'center',
+            lineBreak: false,
+        })
+
+    // Reset text writer position
+    doc.text('', 15, 15);
+    doc.page.margins.bottom = bottom;
+    doc.on('pageAdded', () => {
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+    
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+    
+        // Reset text writer position
+        doc.text('', 50, 50);
+        doc.page.margins.bottom = bottom;
+    })
+    //-----------------___________________---------------
+    //------------- Ajout des titres en haut
+
+    //Textes d'en haut du PDF
+    let nom_hop = 'HOPITALY LOTERANA - ANDRANOMADIO'
+    let title_pdf = 'Liste Tarification - médicaments'.toUpperCase()
+    let date_label = `Journée du : `
+    let date_value = `${new Date().toLocaleDateString()}`
+    // ----- LES TITRES D'EN HAUT ------------
+    doc.font("fira_bold")
+    let y_ttl = doc.y
+    doc.text(nom_hop,{underline:true})
+
+    let ttl_w = doc.widthOfString(title_pdf)
+    
+    doc.text(title_pdf,doc.page.width/2 - ttl_w/2,y_ttl)
+    let ddl_w = doc.widthOfString(date_label)
+    let ddlv_w = doc.widthOfString(date_value)
+    doc.text(date_label,doc.page.width - (ddl_w + ddlv_w) - opt.margin,y_ttl)
+    
+    doc.text(date_value,doc.page.width - ddlv_w - opt.margin,y_ttl)
+
+    y_ttl += 15
+    //La ligne au dessous
+    doc.lineWidth(.5)
+    .moveTo(opt.margin, y_ttl)
+    .lineTo(doc.page.width - opt.margin, y_ttl)
+    .stroke();
+
+    // ------- FIN HEADER 
+
+    // DEBUT DES CALCULS
+    doc.moveDown(2)
+    doc.text('',opt.margin)
+
+    let _head = []
+    let _datas = []
+    let table = {}
+
+    let l_h = 9
+    let p_w = 150
+
+    let w_a = ( doc.page.width - (p_w) - opt.margin * 2) / 7
+    _head = [
+        { label:"Code".toUpperCase(), width:50,  property: 'code',renderer: null ,headerAlign:"center",align:"left"},
+        { label:"Désignation".toUpperCase(), width:150,  property: 'service_label',renderer: null ,headerAlign:"center",align:"left"},
+        
+    ]
+
+
+    let w_t = ( doc.page.width - (200) - opt.margin * 2) / list_tarif.length
+    for (let i = 0; i < list_tarif.length; i++) {
+        const t = list_tarif[i];
+        
+        _head.push({ label:t.tarif_label.toUpperCase(), width:w_t,  property:`tr:${t.tarif_id}`,renderer: null ,headerAlign:"center",align:"right"},)
+    }
+
+    let tmp = {}
+    for (let i = 0; i < services.length; i++) {
+        const e = services[i];
+        tmp = {
+            code:e.art_code,
+            service_label:e.art_label
+        }
+
+        if(e.tarifs){
+            for (let j = 0; j < e.tarifs.length; j++) {
+                const t = e.tarifs[j];
+                tmp[`tr:${t.tarif_id}`] = (t.tserv_prix)?separateNumber(t.tserv_prix):'0'   
+            }
+        }
+        
+        _datas.push(tmp)
+    }
+
+    
+
+    doc.moveDown(5)
+
+    table = opt_tab(_head,_datas,doc)
+    await doc.table(table, { /* options */ });
+
+    doc.end()
 }
 
 module.exports = Service;

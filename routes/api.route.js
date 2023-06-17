@@ -287,6 +287,8 @@ router.get('/caisse/main/hosp',require('../controller/caisse.controller').getEnc
 router.get('/caisse/main/avance',require('../controller/caisse.controller').getEncMainAvance)
 router.get('/caisse/main/encserv',require('../controller/caisse.controller').getEncservMain)
 
+router.get('/caisse/disp/facts-cumulative',require('../controller/caisse.controller').getFactsCumulative)
+
 router.get('/caisse/main/dash',require('../controller/caisse.controller').dashData)
 router.get('/caisse/main/versement/pdf',require('../controller/caisse.controller').setMainRapportVt)
 router.get('/caisse/main/versement/nb',require('../controller/caisse.controller').getNbVersementMain)
