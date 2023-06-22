@@ -4225,7 +4225,7 @@ async function createFactPDF(fact,list_serv,mode,encav_last,ext){
     let t_avance = 'Avance:'
     let t_paiement_final = (fact.enc_to_caisse)?'Paiement final:':'Reste à payer:'
     
-    let t_somme_m = NumberToLetter(parseInt((fact.enc_is_hosp)?(fact.enc_validate?fact.enc_reste_paie:(!encav_last)?encav_last.encav_montant:fact.enc_reste_paie):fact.enc_montant ).toString()) 
+    let t_somme_m = NumberToLetter(parseInt((fact.enc_is_hosp)?(fact.enc_validate?fact.enc_reste_paie:(encav_last)?encav_last.encav_montant:fact.enc_reste_paie):fact.enc_montant).toString()) 
     let t_avance_s = (fact.enc_total_avance)?parseInt(fact.enc_total_avance).toLocaleString('fr-CA'):''
 
 
