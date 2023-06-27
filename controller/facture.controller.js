@@ -132,7 +132,6 @@ class Facture{
 
     static async update(req,res){  
         try {  
-            
             let {f,fact_serv,user_id,pec} = req.body
 
             //console.log(del,add)
@@ -146,6 +145,9 @@ class Facture{
 
             delete pec.ent_label
             delete pec.ent_label_payeur
+
+
+            // console.log(f)
 
             await D.updateWhere('encharge',pec,{encharge_id:pec.encharge_id})
             // --------------------------

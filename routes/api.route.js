@@ -187,6 +187,9 @@ router.get('/encharge/:encharge_id',require('../controller/encharge.controller')
 router.put('/encharge',require('../controller/encharge.controller').update);
 router.put('/encharge/fact/state',require('../controller/encharge.controller').setStateFact);
 
+//Gestion encharge dans états mensuels
+router.get('/encharge/etats-mensuel/list',require('../controller/encharge.controller').getListPerEnt)
+
 //Gestion des conslutation
 router.post('/consultation',require('../controller/cons.controller').register);
 router.delete('/consultation/:cons_id',require('../controller/cons.controller').delete);

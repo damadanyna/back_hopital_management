@@ -118,3 +118,8 @@ create table if not exists enc_prescri(
 -- Et encore une autre
 -- Modification facture 13/06/2023
 alter table facture add fact_code_patient varchar(255) null;
+
+
+-- Modif 26/06/2023
+alter table facture add fact_montant_soc int null;
+alter table facture add fact_montant_pat int null;

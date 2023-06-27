@@ -133,7 +133,7 @@ class Encharge{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
  
-    }  6
+    }
     
     static async getList(req,res){ 
         let filters = req.query
@@ -571,9 +571,6 @@ class Encharge{
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
-
-
-
     static async downFacture(req,res){
         try {
             let data = fs.readFileSync(`./files/facture.pdf`)
@@ -663,6 +660,66 @@ class Encharge{
 
             await D.updateWhere('encharge',up,{encharge_id})
             return res.send({status:true})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+
+    //gestion etats mensuels
+    
+
+    //Récupération des listes des patients regroupés par société payeur / employeur
+    static async getListPerEnt(req,res){
+        try {
+            
+            let { ent_type,month} = req.query.filters
+
+            //ent_type ==> SE (société employeur) || SP (société payeur)
+            
+            //on va selectionner la listes des sociétés payeurs ou employeurs
+            let ids_se = (await D.exec_params(`select distinct encharge_ent_id from encharge`)).map(x => parseInt(x.encharge_ent_id))
+            let ids_sp = (await D.exec_params(`select distinct encharge_ent_payeur from encharge`)).map(x => parseInt(x.encharge_ent_payeur))
+
+            let dt = []
+
+            if(ent_type == 'se'){
+                for (let i = 0; i < ids_se.length; i++) {
+                    const id = ids_se[i];                    
+                    const tmp = await D.exec_params(`select *,
+                    sp.ent_id as sp_id,sp.ent_label as sp_label,sp.ent_code as sp_code, sp.ent_num_compte as sp_num_compte, sp.ent_pat_percent as sp_pat_percent,
+                    sp.ent_soc_percent as sp_soc_percent,
+                    se.ent_id as se_id,se.ent_label as se_label,se.ent_code as se_code
+                    from encharge 
+                    left join patient on encharge_pat_id = pat_id
+                    left join tarif on tarif_id = encharge_tarif_id
+                    left join facture on fact_encharge_id = encharge_id  
+                    left join entreprise sp on encharge_ent_payeur = sp.ent_id
+                    left join entreprise se on encharge_ent_id = se.ent_id
+                    where encharge_ent_id = ? and month(encharge_date_entre) = ?`,[id,month])
+                    dt.push({id,list:tmp})
+
+                }
+            }else if(ent_type == 'sp'){
+                for (let i = 0; i < ids_sp.length; i++) {
+                    const id = ids_sp[i];                    
+                    const tmp = await D.exec_params(`select *,
+                    sp.ent_id as sp_id,sp.ent_label as sp_label,sp.ent_code as sp_code, sp.ent_num_compte as sp_num_compte, sp.ent_pat_percent as sp_pat_percent,
+                    sp.ent_soc_percent as sp_soc_percent,
+                    se.ent_id as se_id,se.ent_label as se_label,se.ent_code as se_code
+                    from encharge 
+                    left join patient on encharge_pat_id = pat_id
+                    left join tarif on tarif_id = encharge_tarif_id
+                    left join facture on fact_encharge_id = encharge_id 
+                    left join entreprise sp on encharge_ent_payeur = sp.ent_id
+                    left join entreprise se on encharge_ent_id = se.ent_id
+                    where encharge_ent_payeur = ? and month(encharge_date_entre) = ?`,[id,month])
+                    dt.push({id,list:tmp})
+                }
+            }
+
+            return res.send({status:true,datas:dt})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
