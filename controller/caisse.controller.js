@@ -3925,7 +3925,7 @@ async function createDetFactPDF(list_serv,pdf_name,enc){
     doc.font('fira_bold')
     doc.text('Patient :',{underline:true})
     doc.font('fira')
-    doc.text(enc.pat_nom_et_prenom.toUpperCase())
+    doc.text(((enc.enc_is_externe)?enc.enc_pat_externe:enc.pat_nom_et_prenom).toUpperCase())
 
     //Insertion du care u titre à droite
     let title_1 = 'ORDONNANCE ET FACTURE'
