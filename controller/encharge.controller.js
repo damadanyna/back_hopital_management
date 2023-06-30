@@ -674,7 +674,7 @@ class Encharge{
     static async getListPerEnt(req,res){
         try {
             
-            let { ent_type,month} = req.query.filters
+            let { ent_type,month,year} = req.query.filters
 
             //ent_type ==> SE (société employeur) || SP (société payeur)
             
@@ -684,42 +684,83 @@ class Encharge{
 
             let dt = []
 
-            if(ent_type == 'se'){
-                for (let i = 0; i < ids_se.length; i++) {
-                    const id = ids_se[i];                    
-                    const tmp = await D.exec_params(`select *,
-                    sp.ent_id as sp_id,sp.ent_label as sp_label,sp.ent_code as sp_code, sp.ent_num_compte as sp_num_compte, sp.ent_pat_percent as sp_pat_percent,
-                    sp.ent_soc_percent as sp_soc_percent,
-                    se.ent_id as se_id,se.ent_label as se_label,se.ent_code as se_code
-                    from encharge 
-                    left join patient on encharge_pat_id = pat_id
-                    left join tarif on tarif_id = encharge_tarif_id
-                    left join facture on fact_encharge_id = encharge_id  
-                    left join entreprise sp on encharge_ent_payeur = sp.ent_id
-                    left join entreprise se on encharge_ent_id = se.ent_id
-                    where encharge_ent_id = ? and month(encharge_date_entre) = ?`,[id,month])
-                    dt.push({id,list:tmp})
-
-                }
-            }else if(ent_type == 'sp'){
-                for (let i = 0; i < ids_sp.length; i++) {
-                    const id = ids_sp[i];                    
-                    const tmp = await D.exec_params(`select *,
-                    sp.ent_id as sp_id,sp.ent_label as sp_label,sp.ent_code as sp_code, sp.ent_num_compte as sp_num_compte, sp.ent_pat_percent as sp_pat_percent,
-                    sp.ent_soc_percent as sp_soc_percent,
-                    se.ent_id as se_id,se.ent_label as se_label,se.ent_code as se_code
-                    from encharge 
-                    left join patient on encharge_pat_id = pat_id
-                    left join tarif on tarif_id = encharge_tarif_id
-                    left join facture on fact_encharge_id = encharge_id 
-                    left join entreprise sp on encharge_ent_payeur = sp.ent_id
-                    left join entreprise se on encharge_ent_id = se.ent_id
-                    where encharge_ent_payeur = ? and month(encharge_date_entre) = ?`,[id,month])
-                    dt.push({id,list:tmp})
-                }
+            for (let i = 0; i < ids_sp.length; i++) {
+                const id = ids_sp[i];                    
+                const tmp = await D.exec_params(`select *,
+                sp.ent_id as sp_id,sp.ent_label as sp_label,sp.ent_code as sp_code, sp.ent_num_compte as sp_num_compte, sp.ent_pat_percent as sp_pat_percent,
+                sp.ent_soc_percent as sp_soc_percent,
+                se.ent_id as se_id,se.ent_label as se_label,se.ent_code as se_code
+                from encharge 
+                left join patient on encharge_pat_id = pat_id
+                left join tarif on tarif_id = encharge_tarif_id
+                left join facture on fact_encharge_id = encharge_id 
+                left join entreprise sp on encharge_ent_payeur = sp.ent_id
+                left join entreprise se on encharge_ent_id = se.ent_id
+                where encharge_ent_payeur = ? and month(encharge_date_entre) = ? and year(encharge_date_entre) order by se.ent_id`,[id,month,year])
+                dt.push({id,list:tmp})
             }
 
             return res.send({status:true,datas:dt})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    //Récupération des données sur l'édition de facture dans etats mensuel
+    static async getDatasEditFact(req,res){
+        try {
+            let {filters,st} = req.query
+            let {month,year} = filters
+
+            //Eto alo récupéraion de la liste des patients avec l'id du PEC
+            let list_pec = await D.exec_params(`select $* from encharge
+            left join patient on pat_id = encharge_pat_id
+            where year(encharge_date_entre) = ? and month(encharge_date_entre) = ? and encharge_ent_id = ? and encharge_ent_payeur = ?`,
+            [year,month,st.se_id,st.sp_id])
+
+
+            //list p_serv
+            let pserv = await D.exec_params(`select * from service where service_parent_id is null`)
+
+
+            //récupération des factserv
+            let fact_ids = await D.exec_params(`select fact_id where fact_encharge_id in (?)`,[list_pec.map(x => x.encharge_id)])
+            fact_ids = fact_ids.map(x => x.fact_id)
+
+            let fact_serv = await D.exec_params(`select * from fact_service
+            left join service on service_id = fserv_serv_id
+            where fserv_is_product = 0 and fserv_fact_id in (?)`,[fact_ids])
+
+            let fact_med = await D.exec_params(`select * from fact_service
+            left join article on article_id = fserv_serv_id
+            where fserv_is_product = 1 and fserv_fact_id in (?)`,[fact_ids])
+
+
+            //regroipement des valeurs
+            for (let i = 0; i < pserv.length; i++) {
+                const e = pserv[i];    
+                for (let j = 0; j < fact_serv.length; j++) {
+                    const fs = fact_serv[j];
+                    if(fs.service_parent_id = e.service_id){
+                        pserv[i]['montant'] = (pserv[i]['montant'])?pserv[i]['montant'] + parseInt(fs.fserv_prix_societe):parseInt(fs.fserv_prix_societe)
+                    }
+                }
+                
+            }
+            let med_serv = {service_code:'MED',service_label:'MEDICAMENTS',service_id:2342354} 
+            for (let i = 0; i < fact_med.length; i++) {
+                const fs = fact_med[i];
+                med_serv['montant'] = (med_serv[i]['montant'])?med_serv[i]['montant'] + parseInt(fs.fserv_prix_societe):parseInt(fs.fserv_prix_societe)
+            }
+
+            //Récupération de la facture
+            
+
+
+            //ajout du médicament dans la liste
+            pserv.push(med_serv)
+            return res.send({status:true,pserv,list_pec})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})

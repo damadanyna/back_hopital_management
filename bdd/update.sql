@@ -123,3 +123,19 @@ alter table facture add fact_code_patient varchar(255) null;
 -- Modif 26/06/2023
 alter table facture add fact_montant_soc int null;
 alter table facture add fact_montant_pat int null;
+
+-- Modif 29/06/2023
+create table if not exists factpec(
+    fpc_id int auto_increment not null,
+    fpc_date_enreg datetime null default NOW(),
+    fpc_num varchar(100) null,
+    fpc_date datetime null,
+    fpc_sp_id int null,
+    fpc_se_id int null,
+    fpc_month int null,
+    fpc_year int null,
+    fpc_printed int null default 0,
+    fpc_montant int null,
+    fpc_validate int null default 0, -- validé par le médecin chef
+    primary key (fpc_id)
+)Engine=InnoDB; 
