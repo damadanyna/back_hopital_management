@@ -136,6 +136,8 @@ create table if not exists factpec(
     fpc_year int null,
     fpc_printed int null default 0,
     fpc_montant int null,
+    fpc_soins_generaux int null default 0,
+    fpc_soins_montant int null,
     fpc_validate int null default 0, -- validé par le médecin chef
     primary key (fpc_id)
 )Engine=InnoDB; 

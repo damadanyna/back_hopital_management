@@ -714,7 +714,7 @@ class Encharge{
             let {month,year} = filters
 
             //Eto alo récupéraion de la liste des patients avec l'id du PEC
-            let list_pec = await D.exec_params(`select $* from encharge
+            let list_pec = await D.exec_params(`select * from encharge
             left join patient on pat_id = encharge_pat_id
             where year(encharge_date_entre) = ? and month(encharge_date_entre) = ? and encharge_ent_id = ? and encharge_ent_payeur = ?`,
             [year,month,st.se_id,st.sp_id])
@@ -725,7 +725,7 @@ class Encharge{
 
 
             //récupération des factserv
-            let fact_ids = await D.exec_params(`select fact_id where fact_encharge_id in (?)`,[list_pec.map(x => x.encharge_id)])
+            let fact_ids = await D.exec_params(`select fact_id from facture where fact_encharge_id in (?)`,[list_pec.map(x => x.encharge_id)])
             fact_ids = fact_ids.map(x => x.fact_id)
 
             let fact_serv = await D.exec_params(`select * from fact_service
@@ -733,7 +733,7 @@ class Encharge{
             where fserv_is_product = 0 and fserv_fact_id in (?)`,[fact_ids])
 
             let fact_med = await D.exec_params(`select * from fact_service
-            left join article on article_id = fserv_serv_id
+            left join article on art_id = fserv_serv_id
             where fserv_is_product = 1 and fserv_fact_id in (?)`,[fact_ids])
 
 
@@ -742,7 +742,7 @@ class Encharge{
                 const e = pserv[i];    
                 for (let j = 0; j < fact_serv.length; j++) {
                     const fs = fact_serv[j];
-                    if(fs.service_parent_id = e.service_id){
+                    if(fs.service_parent_id == e.service_id){
                         pserv[i]['montant'] = (pserv[i]['montant'])?pserv[i]['montant'] + parseInt(fs.fserv_prix_societe):parseInt(fs.fserv_prix_societe)
                     }
                 }
@@ -751,7 +751,7 @@ class Encharge{
             let med_serv = {service_code:'MED',service_label:'MEDICAMENTS',service_id:2342354} 
             for (let i = 0; i < fact_med.length; i++) {
                 const fs = fact_med[i];
-                med_serv['montant'] = (med_serv[i]['montant'])?med_serv[i]['montant'] + parseInt(fs.fserv_prix_societe):parseInt(fs.fserv_prix_societe)
+                med_serv['montant'] = (med_serv['montant'])?med_serv['montant'] + parseInt(fs.fserv_prix_societe):parseInt(fs.fserv_prix_societe)
             }
 
             //Récupération de la facture
