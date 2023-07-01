@@ -105,15 +105,6 @@ app.use('/api',require('./routes/api.route'))
 http.listen(4044)
 
 
-/*
---- Leture d'un fichier xls
-XLSX = require('xlsx');
-
-const workBook = XLSX.readFile(inputFilename);
-XLSX.writeFile(workBook, outputFilename, { bookType: "csv" });
-*/
-
-
 
 
 

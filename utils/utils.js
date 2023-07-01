@@ -86,6 +86,20 @@ class Utils{
         return {begin,end}
     }
 
+    static dateToText(d){
+        let t = new Date(d)
+
+        let list_jour = ['Dimanche','Lundi','Mardi','Mecredi','Jeudi','Vendredi','Samedi']
+        let list_mois = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+
+        let date = t.getDate()
+        let j = list_jour[t.getDay()]
+        let m = list_mois[t.getMonth()]
+        let y = t.getFullYear()
+
+        return j+" "+date+" "+m+" "+y
+    }
+
 
     //chatgpt
     static getDateBeginEndMonth(d){
@@ -101,6 +115,15 @@ class Utils{
 
         return {begin,end}
 
+    }
+
+    //Récupération de mois à partir d'un numéro
+    static getMonth(n){
+        let m = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+        
+        if(n<1 || n > m.length) return m[0]
+
+        return m[n-1] 
     }
 }
 

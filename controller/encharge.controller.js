@@ -1,6 +1,8 @@
 let D = require('../models/data')
+let U = require('../utils/utils')
 let PDFDocument = require("pdfkit-table");
 let fs = require('fs')
+const { NumberToLetter } = require("convertir-nombre-lettre");
 
 class Encharge{
     static async register(req,res){ 
@@ -696,6 +698,8 @@ class Encharge{
                 left join facture on fact_encharge_id = encharge_id 
                 left join entreprise sp on encharge_ent_payeur = sp.ent_id
                 left join entreprise se on encharge_ent_id = se.ent_id
+                left join departement on fact_dep_id = dep_id
+                left join factpec on encharge_fpc_id = fpc_id 
                 where encharge_ent_payeur = ? and month(encharge_date_entre) = ? and year(encharge_date_entre) order by se.ent_id`,[id,month,year])
                 dt.push({id,list:tmp})
             }
@@ -754,18 +758,487 @@ class Encharge{
                 med_serv['montant'] = (med_serv['montant'])?med_serv['montant'] + parseInt(fs.fserv_prix_societe):parseInt(fs.fserv_prix_societe)
             }
 
-            //Récupération de la facture
-            
-
-
             //ajout du médicament dans la liste
             pserv.push(med_serv)
-            return res.send({status:true,pserv,list_pec})
+
+            //Récupération de la facture
+            //ici on va chercher surtout la facture par
+            //mois, année, sp_id,se_id
+
+            let fpc = await D.exec_params(`select * from factpec
+            where fpc_sp_id = ? and fpc_se_id = ? and fpc_month = ? and fpc_year = ?`,[
+                st.sp_id,st.se_id,month,year
+            ])
+            fpc = (fpc.length > 0)?fpc[0]:{}
+
+
+            //ICI on va récupérer le dernier numéro de facture
+            let fpc_last = await D.exec_params('select fpc_num from factpec order by fpc_id desc limit 1')
+            fpc_last = (fpc_last.length>0)?fpc_last[0].fpc_num:false
+            
+            return res.send({status:true,pserv,list_pec,fpc,fpc_last})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
     }
+
+    //Validation d'un facture FPC
+    static async validateFPC(req,res){
+        try {
+            
+            let {filters,st,encharge_ids,fact} = req.body
+            //Modif de validateion
+            fact.fpc_validate = 1
+            fact.fpc_date = new Date(fact.fpc_date)
+
+
+            // console.log(fact)
+
+            if(fact.fpc_id){
+                //ici suppression de quelques datas pas utiles dans la modif
+                delete fact.fpc_date_enreg
+                delete fact.fpc_num
+                delete fact.fpc_date
+                //on est dans modif
+                await D.updateWhere('factpec',fact,{fpc_id:fact.fpc_id})
+                //On modifie aussi les encharges
+                await D.exec_params(`update encharge set encharge_fpc_id = ? where encharge_id in (?)`,[
+                    fact.fpc_id,
+                    encharge_ids
+                ])
+            }else{
+                let fpc_last = await D.exec_params('select fpc_num from factpec order by fpc_id desc limit 1')
+                fpc_last = (fpc_last.length>0)?fpc_last[0].fpc_num:false
+                fact.fpc_num = (fpc_last)?(parseInt(fpc_last.split('/')[2])+1).toString().padStart(3,0):'1'.padStart(3,0)
+                fact.fpc_num = `HLA/FPC/${fact.fpc_num}`
+
+                let fpc_insert = await D.set('factpec',fact)
+                
+
+                //Modifica des encharges
+                await D.exec_params(`update encharge set encharge_fpc_id = ? where encharge_id in (?)`,[
+                    fpc_insert.insertId,
+                    encharge_ids
+                ])
+
+            }
+
+            return res.send({status:true})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+    //Impression de la facture
+    static async printFPC(req,res){
+        try {
+            
+            let {pserv_list,fact,st} = req.query
+
+            let dt = {
+                pserv_list,fact,st,pdf_name:`fpc_${st.sp_id}_${st.se_id}_${fact.fpc_month}_${fact.fpc_year}`
+            }
+            await createFPCPdf(dt)
+
+            res.send({status:true,pdf_name:dt.pdf_name})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"}) 
+        }
+    }
+}
+
+//Options pour les tableaux
+function opt_tab (head,datas,doc,w){
+    w = (w)?w:{}
+    w.col = w.col || 7
+    w.head = w.head || 6
+
+    return {
+        // complex headers work with ROWS and DATAS  
+        headers: head,
+        // complex content
+        datas:datas,
+        options:{
+            padding:5,
+            align:'center',
+            divider: {
+                header: { disabled: false, width: 2, opacity: 1 },
+                horizontal: { disabled: false, width: 2, opacity: 1 },
+                vertical: { disabled: false, width: 2, opacity: 1 },
+            },
+            prepareHeader: () => {
+                doc.font("fira_bold").fontSize(w.head)
+                doc.fillAndStroke('black')
+            },
+            prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
+                doc.font("fira_bold").fontSize(w.col)
+                doc.fillAndStroke('#47494d')
+                //#47494d
+
+                const {x, y, width, height} = rectCell;
+                let head_h = 17
+                let line_h = 2
+
+                doc.lineWidth(line_h)
+
+                // first line 
+                if(indexColumn === 0){
+                    doc
+                    .moveTo(x, y)
+                    .lineTo(x, y + height+1)
+                    .stroke();
+                }
+
+                if(indexRow == 0 && indexColumn === 0){
+                    doc
+                    .lineWidth(line_h)
+                    .moveTo(x, y)
+                    .lineTo(x, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .moveTo(x+width, y)
+                    .lineTo(x+width, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .moveTo(x, y-head_h)
+                    .lineTo(x+width, y - head_h)
+                    .stroke();
+
+
+                }else if(indexRow == 0){
+                    doc
+                    .moveTo(x+width, y)
+                    .lineTo(x+width, y - head_h)
+                    .stroke(); 
+
+                    doc
+                    .moveTo(x, y-head_h)
+                    .lineTo(x+width, y - head_h)
+                    .stroke();
+                }
+
+                doc
+                .moveTo(x + width, y)
+                .lineTo(x + width, y + height+1)
+                .stroke();
+
+                if(indexRow == datas.length-1){
+                    doc
+                    .moveTo(x, y)
+                    .lineTo(x + width, y)
+                    .stroke();
+
+                    doc
+                    .moveTo(x, y+height)
+                    .lineTo(x + width, y+height)
+                    .stroke();
+
+                    //doc.font("fira_bold")
+                }
+                // doc.fontSize(10).fillColor('#292929');
+            },
+        },
+        // simple content (works fine!)
+    } //Fin table options
+} // --- fonction sur l'option des tables dans PDF kit
+//fonction qui écrit du texte dans un cadre
+function drawTextCadre(text,x,y,w,or,doc){
+    let m = 5
+    w = (!w)?50:w 
+    // x +=m
+
+    or = (!or)?'center':or
+
+    doc.font('fira_bold')
+    if(or == 'center'){
+        doc.text(text,x+(w/2 - doc.widthOfString(text))/2 - m,y)
+    }else if(or == 'left'){
+        doc.text(text,x + m,y)
+    }else if(or == 'right'){
+        doc.text(text,x+(w - doc.widthOfString(text)) - m,y)
+    }
+
+    y -= m/2
+
+    doc.lineWidth(1)
+    doc.lineJoin('miter')
+        .rect(x, y,
+        w , doc.heightOfString(text) + m)
+        .stroke();
+
+    doc.font('fira')
+}
+
+//CREATION DE FONCTION DE CREATION DE PDF POUR LA PRISE EN CHARGE
+async function createFPCPdf(dt){
+    let {pserv_list,st,fact} = dt
+
+    fact.fpc_soins_generaux = (fact.fpc_soins_generaux == 'true')?true:false
+
+    //Les débuts du PDF
+    let year_cur = new Date().getFullYear()
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //Les options du PDF
+    //Création de pdf amzay e 🤣😂, 
+    let opt = {
+        margin: 15, size: 'A4' ,
+        layout:'landscape'
+    }   
+    let doc = new PDFDocument(opt)
+
+    //les fonts
+    doc.registerFont('fira', 'fonts/fira.ttf');
+    doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+    doc.font("fira")
+
+    //Ecriture du PDF
+    doc.pipe(fs.createWriteStream(`./files/${dt.pdf_name}.pdf`))
+
+    //les marges et le truc en bas
+    //______________________________________
+    let bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+    let font_size = 8
+    doc.fontSize(font_size)
+
+    doc.text(
+        `Hôpital Andranomadio ${year_cur}`, 
+        0.5 * (doc.page.width - 300),
+        doc.page.height - 20,
+        {
+            width: 300,
+            align: 'center',
+            lineBreak: false,
+        })
+
+    // Reset text writer position
+    doc.text('', 15, 15);
+    doc.page.margins.bottom = bottom;
+    doc.on('pageAdded', () => {
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+    
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+    
+        // Reset text writer position
+        doc.text('', 50, 50);
+        doc.page.margins.bottom = bottom;
+    })
+    //-----------------___________________---------------
+    //------------- Ajout des titres en haut
+
+    let nom_hop = 'HOPITALY LOTERANA - ANDRANOMADIO'
+    let lot_hop = `B.P. 249 - Tél: 020 44 481 08 - 110 ANTSIRABE`
+    let nif = `N° Stat: 86100 12 2006 0 00614`
+    let stat = `N° NIF: 2000038126 - CF 0103298`
+    let bni_num = `BNI Antsirabe 00005 00015 323365 7 020 079`
+    let fact_label = 'FACTURE N°'
+    let fact_num = fact.fpc_num
+    let sp_label = `Doit : ${st.sp_label}`
+    let se_label = (st.sp_id == st.se_id)?'':`Affilié à ${st.se_label}`
+    let sp_adresse = 'Antsirabe'
+    let arrt_texte = 'Arretée à la somme de : '
+    let somme_text = `${NumberToLetter(parseInt(fact.fpc_montant))} Ariary`.toUpperCase()
+    let total_cadre = parseInt(fact.fpc_montant).toLocaleString('fr-CA')
+    let soins_gen_cadre = parseInt(fact.fpc_soins_montant || 0).toLocaleString('fr-CA')
+
+    let date_fact = `Antsirabe le, ${U.dateToText(fact.fpc_date)}`
+    let gest_titre = `Le Gestionnaire`
+    let gest_nom = `Mme RASOLOARISOA Jeannine`
+
+    let acte_tab_label = `Les actes médicaux de ${U.getMonth(parseInt(fact.fpc_month))} ${fact.fpc_year} désignés ci-après : `
+
+    //Les dimensions
+    let x_begin = parseInt(opt.margin)
+    let w_table = (doc.page.width - (opt.margin * 4))/2
+
+
+    //Ecriture
+    //1ère colonne
+    doc.font('fira_bold')
+    doc.text(nom_hop,{underline:true})
+    doc.moveDown()
+    doc.font('fira')
+    doc.text(lot_hop)
+    doc.text(nif)
+    doc.text(stat)
+    doc.text(bni_num)
+
+    let y_after_cadre = doc.y
+
+    //ici on va créer le cadre
+    let cadre_begin = doc.widthOfString(lot_hop) + opt.margin + 30
+    let w_cadre = (w_table +opt.margin) - cadre_begin
+    let marg_cadre = 5
+    let y_tmp = 0
+    doc.font('fira_bold')
+    doc.text(fact_label,cadre_begin+marg_cadre,opt.margin + marg_cadre)
+    doc.font('fira')
+    doc.text(fact_num)
+    doc.moveDown()
+    doc.font('fira_bold')
+    doc.text(sp_label,{width:w_cadre - 5})
+    if(st.sp_id != st.se_id){
+        doc.text(se_label,{width:w_cadre - 5})
+    }
+    doc.font('fira')
+    y_tmp = doc.y
+    doc.text(sp_adresse)
+    doc.rect(cadre_begin,opt.margin,w_cadre,y_tmp+5).stroke()
+
+
+    doc.text('',opt.margin,y_after_cadre)
+    doc.moveDown(4)
+    doc.text(acte_tab_label)
+    doc.moveDown(2)
+
+    let _head = []
+    let _datas = []
+
+    //tableau amzay
+    let s_desc = w_table * 0.7
+    _head = [
+        { label:"Désignation".toUpperCase(), width:s_desc, property: 'desc',renderer: null ,headerAlign:"center"},
+        { label:"Montant".toUpperCase(),width:w_table-s_desc, property: 'mnt',renderer: null ,headerAlign:"center",align:"right"},
+    ]
+
+    for (let i = 0; i < pserv_list.length; i++) {
+        const e = pserv_list[i];
+        _datas.push({
+            desc:e.service_label,
+            mnt:(e.montant)?parseInt(e.montant).toLocaleString('fr-CA'):''
+        })
+    }
+
+    await doc.table(opt_tab(_head,_datas,doc,{col:10,head:10}), { /* options */ });
+
+    
+    let t_cadre = w_table - s_desc
+    let t_begin = opt.margin + w_table - (t_cadre * 2)
+    
+    y_tmp = doc.y
+    if(fact.fpc_soins_generaux){
+        drawTextCadre('Soins generaux'.toUpperCase(),t_begin,y_tmp,t_cadre,'left',doc)
+        drawTextCadre(soins_gen_cadre,t_begin+t_cadre,y_tmp,t_cadre,'right',doc)
+        doc.moveDown()
+    }else{
+        doc.moveDown()
+    }
+    y_tmp = doc.y
+    drawTextCadre('TOTAL',t_begin,y_tmp,t_cadre,'left',doc)
+    drawTextCadre(total_cadre,t_begin+t_cadre,y_tmp,t_cadre,'right',doc)
+    doc.moveDown(2)
+
+    doc.text('',opt.margin,doc.y)
+    y_tmp = doc.y
+    doc.text(arrt_texte)
+    let somme_text_begin = doc.widthOfString(arrt_texte) + opt.margin + 5
+    doc.text(somme_text,somme_text_begin,y_tmp,{underline:true,width:(w_table + opt.margin) - somme_text_begin})
+    doc.moveDown(2)
+    //Signature
+    doc.fontSize(9)
+    let sign_size = (t_cadre * 2)
+    doc.text(date_fact, (x_begin + w_table) - (doc.widthOfString(date_fact) + (sign_size - doc.widthOfString(date_fact))/2 ),doc.y )
+    doc.moveDown()
+    doc.text(gest_titre, (x_begin + w_table) - (doc.widthOfString(gest_titre) + (sign_size - doc.widthOfString(gest_titre))/2 ),doc.y )
+    doc.moveDown(2)
+    doc.text(gest_nom, (x_begin + w_table) - (doc.widthOfString(gest_nom) + (sign_size - doc.widthOfString(gest_nom))/2 ),doc.y )
+
+
+    //2ème COLONNE ------- ://///// ::: 
+    x_begin = w_table + (opt.margin * 3)
+    doc.fontSize(font_size)
+
+    doc.lineWidth(1)
+
+    doc.font('fira_bold')
+    doc.text(nom_hop,x_begin,opt.margin,{underline:true})
+    doc.moveDown()
+    doc.font('fira')
+    doc.text(lot_hop)
+    doc.text(nif)
+    doc.text(stat)
+    doc.text(bni_num)
+
+    //ici on va créer le cadre
+    cadre_begin =  (w_table ) + doc.widthOfString(lot_hop) + (opt.margin*3) + 30
+    doc.font('fira_bold')
+    doc.text(fact_label,cadre_begin+marg_cadre,opt.margin + marg_cadre)
+    doc.font('fira')
+    doc.text(fact_num)
+    doc.moveDown()
+    doc.font('fira_bold')
+    doc.text(sp_label,{width:w_cadre - 5})
+    if(st.sp_id != st.se_id){
+        doc.text(se_label,{width:w_cadre - 5})
+    }
+    doc.font('fira')
+    y_tmp = doc.y
+    doc.text(sp_adresse)
+    doc.rect(cadre_begin,opt.margin,w_cadre,y_tmp+5).stroke()
+
+    
+    doc.text('',x_begin,y_after_cadre)
+    doc.moveDown(4)
+
+    doc.text(acte_tab_label)
+
+    doc.moveDown(2)
+
+    //tableau amzay
+    await doc.table(opt_tab(_head,_datas,doc,{col:10,head:10}), { /* options */ });
+
+    // doc.moveDown()
+
+    t_begin = (opt.margin*3) + (w_table*2) - (t_cadre * 2)
+    
+    y_tmp = doc.y
+    if(fact.fpc_soins_generaux){
+        drawTextCadre('Soins generaux'.toUpperCase(),t_begin,y_tmp,t_cadre,'left',doc)
+        drawTextCadre(soins_gen_cadre,t_begin+t_cadre,y_tmp,t_cadre,'right',doc)
+        doc.moveDown()
+    }else{
+        doc.moveDown()
+    }
+    y_tmp = doc.y
+    drawTextCadre('TOTAL',t_begin,y_tmp,t_cadre,'center',doc)
+    drawTextCadre(total_cadre,t_begin+t_cadre,y_tmp,t_cadre,'right',doc)
+    doc.moveDown(2)
+
+    doc.text('',x_begin,doc.y)
+    y_tmp = doc.y
+    doc.text(arrt_texte)
+    somme_text_begin = doc.widthOfString(arrt_texte) + x_begin + 5
+
+    doc.text(somme_text,somme_text_begin,y_tmp,{underline:true,width:(w_table + x_begin) - somme_text_begin})
+    doc.moveDown(2)
+    //Signature
+    doc.fontSize(9)
+    doc.text(date_fact, (x_begin + w_table) - (doc.widthOfString(date_fact) + (sign_size - doc.widthOfString(date_fact))/2 ),doc.y )
+    doc.moveDown()
+    doc.text(gest_titre, (x_begin + w_table) - (doc.widthOfString(gest_titre) + (sign_size - doc.widthOfString(gest_titre))/2 ),doc.y )
+    doc.moveDown(2)
+    doc.text(gest_nom, (x_begin + w_table) - (doc.widthOfString(gest_nom) + (sign_size - doc.widthOfString(gest_nom))/2 ),doc.y )
+
+    //Fin
+    doc.end()
 }
 
 module.exports = Encharge;

@@ -65,6 +65,8 @@ router.get('/entreprises',require('../controller/entreprise.controller').getList
 router.get('/entreprises/out/search',require('../controller/entreprise.controller').outSearch);
 router.put('/entreprise',require('../controller/entreprise.controller').update);
 
+router.get('/entreprises/select/search',require('../controller/entreprise.controller').search);
+
 //Gestion des payement
 router.post('/payements',require('../controller/payement.controller').register);
 router.delete('/payement',require('../controller/payement.controller').delete);
@@ -190,6 +192,9 @@ router.put('/encharge/fact/state',require('../controller/encharge.controller').s
 //Gestion encharge dans états mensuels
 router.get('/encharge/etats-mensuel/list',require('../controller/encharge.controller').getListPerEnt)
 router.get('/encharge/etats-mensuel/editFacture/datas',require('../controller/encharge.controller').getDatasEditFact)
+router.post('/encharge/etats-mensuel/fpc',require('../controller/encharge.controller').validateFPC)
+
+router.get('/encharge/etats-mensuel/fpc/print',require('../controller/encharge.controller').printFPC)
 
 //Gestion des conslutation
 router.post('/consultation',require('../controller/cons.controller').register);

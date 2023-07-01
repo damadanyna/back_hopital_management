@@ -176,6 +176,7 @@ class Entreprise{
             let  {by,search} = req.query
 
             search = `%${search}%`
+            
             let ents = await D.exec_params(`select * from entreprise where ${by} like ? or ent_label like ?`,[search,search])
 
             return res.send({status:true,ents})
@@ -183,7 +184,20 @@ class Entreprise{
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
         }
-    }       
+    }
+
+    static async search(req,res){
+        try {
+            let {search,limit} = req.query
+            search = `%${search}%`
+            limit = parseInt(limit)
+            let ents = await D.exec_params(`select * from entreprise where ent_label like ? or ent_code like ? limit ?`,[search,search,limit])
+            return res.send({status:true,ents})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
 }
 
 module.exports = Entreprise;

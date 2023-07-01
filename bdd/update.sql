@@ -141,3 +141,6 @@ create table if not exists factpec(
     fpc_validate int null default 0, -- validé par le médecin chef
     primary key (fpc_id)
 )Engine=InnoDB; 
+
+-- modif 30/06/2023
+alter table encharge add encharge_fpc_id int null;
