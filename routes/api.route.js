@@ -198,6 +198,7 @@ router.get('/encharge/etats-mensuel/fpc/print',require('../controller/encharge.c
 
 
 router.get('/encharge/etats-mensuel/detail',require('../controller/encharge.controller').getDetailPec)
+router.post('/encharge/etats-mensuel/detail/print',require('../controller/encharge.controller').printDetailFpc)
 
 //Gestion des conslutation
 router.post('/consultation',require('../controller/cons.controller').register);

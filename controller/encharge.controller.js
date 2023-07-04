@@ -928,6 +928,27 @@ class Encharge{
             return res.send({status:false,message:"Erreur dans la base de donnée"}) 
         }
     }
+
+
+    //Génération d'inmpression de détail dans pec etats-mensuel
+    static async printDetailFpc(req,res){
+        try {
+            
+            let {st,pserv_list,list_detail,total_list_detail,fact} = req.body
+
+            let dt = {
+                st,pserv_list,list_detail,total_list_detail,fact,pdf_name:'detail-fpc'
+            }
+
+            await createFPCDetailPdf(dt)
+
+            return res.send({status:true,pdf_name:dt.pdf_name})
+
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"}) 
+        }
+    }
 }
 
 //Options pour les tableaux
@@ -1034,9 +1055,11 @@ function drawTextCadre(text,x,y,w,or,doc){
 
     or = (!or)?'center':or
 
+    let w_text = doc.widthOfString(text)
+
     doc.font('fira_bold')
     if(or == 'center'){
-        doc.text(text,x+(w/2 - doc.widthOfString(text))/2 - m,y)
+        doc.text(text,x + (w - w_text)/2,y)
     }else if(or == 'left'){
         doc.text(text,x + m,y)
     }else if(or == 'right'){
@@ -1052,6 +1075,199 @@ function drawTextCadre(text,x,y,w,or,doc){
         .stroke();
 
     doc.font('fira')
+}
+
+//CREATION D'UNE FONCTION QUI VA FAIRE L'EXPORTATION EN PDF DU DETAIL
+async function createFPCDetailPdf(dt){
+    let {pserv_list,st,list_detail,total_list_detail,fact} = dt
+
+    //Les débuts du PDF
+    let year_cur = new Date().getFullYear()
+    const separateNumber = (n)=>{
+        return (n)?n.toLocaleString('fr-CA'):''
+    }
+
+
+    //Les options du PDF
+    //Création de pdf amzay e 🤣😂, 
+    let opt = {
+        margin: 15, size: 'A4' ,
+        layout:'landscape'
+    }   
+    let doc = new PDFDocument(opt)
+
+    //les fonts
+    doc.registerFont('fira', 'fonts/fira.ttf');
+    doc.registerFont('fira_bold', 'fonts/fira-bold.ttf');
+    doc.font("fira")
+
+    //Ecriture du PDF
+    doc.pipe(fs.createWriteStream(`./files/${dt.pdf_name}.pdf`))
+
+    //les marges et le truc en bas
+    //______________________________________
+    let bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+    let font_size = 8
+    doc.fontSize(font_size)
+
+    doc.text(
+        `Hôpital Andranomadio ${year_cur}`, 
+        0.5 * (doc.page.width - 300),
+        doc.page.height - 20,
+        {
+            width: 300,
+            align: 'center',
+            lineBreak: false,
+        })
+
+    // Reset text writer position
+    doc.text('', 15, 15);
+    doc.page.margins.bottom = bottom;
+    doc.on('pageAdded', () => {
+        let bottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+    
+        doc.text(
+            `Hôpital Andranomadio ${year_cur}`, 
+            0.5 * (doc.page.width - 300),
+            doc.page.height - 20,
+            {
+                width: 300,
+                align: 'center',
+                lineBreak: false,
+            })
+    
+        // Reset text writer position
+        doc.text('', 50, 50);
+        doc.page.margins.bottom = bottom;
+    })
+    //-----------------___________________---------------
+    //------------- Ajout des titres en haut
+    let fact_ttl_label = `FACTURE N° ${fact.fpc_num}`
+    let sp_ttl_label = st.sp_label.toUpperCase()
+    let date_ttl = `${U.getMonth(parseInt(fact.fpc_month))} ${fact.fpc_year}`
+
+    let ttl_bas = 'TABLEAU ANNEXE - DETAIL PAR PATIENT'
+
+    let w_ttl_cadre = 250
+    let w_date_cadre = doc.page.width - (w_ttl_cadre * 2) - (opt.margin * 2)
+    let w_full_cadre = doc.page.width - (opt.margin * 2)
+
+    doc.fontSize(12)
+    let x_cadre = opt.margin
+    let y_cadre = opt.margin
+    
+    drawTextCadre(fact_ttl_label,x_cadre,opt.margin,w_ttl_cadre,'center',doc)
+    x_cadre += w_ttl_cadre
+    drawTextCadre(sp_ttl_label,x_cadre,opt.margin,w_ttl_cadre,'center',doc)
+    x_cadre += w_ttl_cadre
+    drawTextCadre(date_ttl,x_cadre,opt.margin,w_date_cadre,'right',doc)
+
+    y_cadre += doc.heightOfString(date_ttl) + 10
+    x_cadre = opt.margin
+    doc.fontSize(14)
+    drawTextCadre(ttl_bas,x_cadre,y_cadre,w_full_cadre,'center',doc)
+
+    doc.moveDown(2)
+
+    let head = []
+    let datas = []
+
+    doc.text('',opt.margin,doc.y)
+
+    //Création des datas
+    //On va créer un tableau par département
+    let taille_min = 48
+
+    let taille_pat = 120
+    let taille_dossier = 60 
+
+    taille_min = (doc.page.width - ((opt.margin *2) + taille_dossier + taille_pat) ) / (pserv_list.length + 2)
+
+
+    //head
+    head = [
+        { label:"Code P".toUpperCase(), width:taille_min, property: 'pat_numero',renderer: null ,headerAlign:"center"},
+        { label:"Nom Patient".toUpperCase(), width:taille_pat, property: 'pat_name',renderer: null ,headerAlign:"center"},
+        { label:"N° Dossier".toUpperCase(), width:taille_dossier, property: 'encharge_seq',renderer: null ,headerAlign:"center"},
+    ]
+
+    for (let i = 0; i < pserv_list.length; i++) {
+        const e = pserv_list[i];
+        head.push(
+            { label:`${e.service_label.substr(0,5)}`.toUpperCase(), width:taille_min, property: `${e.service_code}`,renderer: null ,headerAlign:"center",align:"right"},
+        )
+    }
+    head.push({ label:"total".toUpperCase(), width:taille_min, property: 'total',renderer: null ,headerAlign:"center",align:"right"},)
+
+    //Ajout des données pour chaque département
+    let dep = {}
+
+    for (let i = 0; i < list_detail.length; i++) {
+        const ld = list_detail[i];
+        if(!ld.dep_id) continue
+
+        if(!dep[ld.dep_code]) dep[ld.dep_code] = {list:[],label:ld.dep_label}
+        dep[ld.dep_code].list.push(ld)
+    }
+
+    doc.fontSize(font_size)
+    doc.font('fira_bold')
+
+    //boucle d'impression ???
+    for(const dp in dep){
+        const tt = dep[dp]
+        datas = []
+        doc.text(`Département ${tt.label}`)
+        doc.moveDown()
+
+        //création datas
+        for (let i = 0; i < tt.list.length; i++) {
+            const l = tt.list[i];
+            let tmp = {}
+            let total = 0
+            tmp['pat_numero'] = l.pat_numero
+            tmp['pat_name'] = l.pat_nom_et_prenom
+            tmp['encharge_seq'] = l.encharge_seq
+
+            for (let j = 0; j < pserv_list.length; j++) {
+                const pl = pserv_list[j];
+                tmp[pl.service_code] = (l[pl.service_code])?separateNumber(l[pl.service_code]):''
+                total += (l[pl.service_code])?parseInt(l[pl.service_code]):0
+
+                pserv_list[j]['total'] = pserv_list[j]['total']?pl['total'] + parseInt(l[pl.service_code] || 0) :parseInt(l[pl.service_code] || 0)
+                
+            }
+
+            tmp['total'] = separateNumber(total)
+            datas.push(tmp)
+        }
+
+        tmp = {
+            pat_numero:'',
+            pat_name:`S/T (${tt.label})`,
+            encharge_seq:''
+        }
+        total = 0
+
+        for (let j = 0; j < pserv_list.length; j++) {
+            const pl = pserv_list[j];
+            tmp[pl.service_code] = (pl['total'])?separateNumber(pl['total']):''
+            total += pl['total']
+            pserv_list[j]['total'] = 0
+        }
+        tmp['total'] = separateNumber(total)
+        datas.push(tmp)
+
+
+        await doc.table(opt_tab(head,datas,doc,{col:8,head:7}), { /* options */ });
+
+        doc.moveDown()
+    }
+
+    //Fin
+    doc.end()
 }
 
 //CREATION DE FONCTION DE CREATION DE PDF POUR LA PRISE EN CHARGE
