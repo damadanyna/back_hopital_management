@@ -196,6 +196,9 @@ router.post('/encharge/etats-mensuel/fpc',require('../controller/encharge.contro
 
 router.get('/encharge/etats-mensuel/fpc/print',require('../controller/encharge.controller').printFPC)
 
+
+router.get('/encharge/etats-mensuel/detail',require('../controller/encharge.controller').getDetailPec)
+
 //Gestion des conslutation
 router.post('/consultation',require('../controller/cons.controller').register);
 router.delete('/consultation/:cons_id',require('../controller/cons.controller').delete);

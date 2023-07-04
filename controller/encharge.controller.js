@@ -720,6 +720,8 @@ class Encharge{
             //Eto alo récupéraion de la liste des patients avec l'id du PEC
             let list_pec = await D.exec_params(`select * from encharge
             left join patient on pat_id = encharge_pat_id
+            left join facture on fact_encharge_id = encharge_id
+            left join departement on dep_id = fact_dep_id
             where year(encharge_date_entre) = ? and month(encharge_date_entre) = ? and encharge_ent_id = ? and encharge_ent_payeur = ?`,
             [year,month,st.se_id,st.sp_id])
 
@@ -748,18 +750,45 @@ class Encharge{
                     const fs = fact_serv[j];
                     if(fs.service_parent_id == e.service_id){
                         pserv[i]['montant'] = (pserv[i]['montant'])?pserv[i]['montant'] + parseInt(fs.fserv_prix_societe):parseInt(fs.fserv_prix_societe)
+                        pserv[i]['fact_id'] = fs.fserv_fact_id
                     }
                 }
                 
             }
+
             let med_serv = {service_code:'MED',service_label:'MEDICAMENTS',service_id:2342354} 
             for (let i = 0; i < fact_med.length; i++) {
                 const fs = fact_med[i];
                 med_serv['montant'] = (med_serv['montant'])?med_serv['montant'] + parseInt(fs.fserv_prix_societe):parseInt(fs.fserv_prix_societe)
+                med_serv['fact_id'] = fs.fserv_fact_id
             }
-
             //ajout du médicament dans la liste
             pserv.push(med_serv)
+
+
+            //ici on va gérér le tableau détaillé
+            for (let i = 0; i < list_pec.length; i++) {
+                const lp = list_pec[i];
+                for (let j = 0; j < pserv.length; j++) {
+                    const p = pserv[j];
+                    for (let k = 0; k < fact_serv.length; k++) {
+                        const fs = fact_serv[k];
+                        if(fs.service_parent_id == p.service_id && lp.fact_id == fs.fserv_fact_id){
+                            list_pec[i][p.service_code] = (lp[p.service_code])?lp[p.service_code] + parseInt(fs.fserv_prix_societe):parseInt(fs.fserv_prix_societe)
+                        }
+                    }
+                }
+
+                for (let j = 0; j < fact_med.length; j++) {
+                    const fm = fact_med[j];
+                    if(lp.fact_id == fm.fserv_fact_id){
+                        list_pec[i]['MED'] = (lp['MED'])?lp['MED'] + parseInt(fm.fserv_prix_societe):parseInt(fm.fserv_prix_societe)
+                    }
+                }
+            }
+
+
+
 
             //Récupération de la facture
             //ici on va chercher surtout la facture par
@@ -777,6 +806,57 @@ class Encharge{
             fpc_last = (fpc_last.length>0)?fpc_last[0].fpc_num:false
             
             return res.send({status:true,pserv,list_pec,fpc,fpc_last})
+        } catch (e) {
+            console.error(e)
+            return res.send({status:false,message:"Erreur dans la base de donnée"})
+        }
+    }
+
+
+    //Récupération des détails d'un encharge
+    static async getDetailPec(req,res){
+        try {
+            let {st} = req.query
+
+            //list p_serv
+            let pserv = await D.exec_params(`select * from service where service_parent_id is null`)
+
+
+            let fact_serv = await D.exec_params(`select * from fact_service
+            left join service on service_id = fserv_serv_id
+            where fserv_is_product = 0 and fserv_fact_id = ?`,[st.fact_id])
+
+            let fact_med = await D.exec_params(`select * from fact_service
+            left join article on art_id = fserv_serv_id
+            where fserv_is_product = 1 and fserv_fact_id = ?`,[st.fact_id])
+
+
+            //regroipement des valeurs
+            for (let i = 0; i < pserv.length; i++) {
+                const e = pserv[i];    
+                for (let j = 0; j < fact_serv.length; j++) {
+                    const fs = fact_serv[j];
+                    if(fs.service_parent_id == e.service_id){
+                        pserv[i]['montant'] = (pserv[i]['montant'])?pserv[i]['montant'] + parseInt(fs.fserv_montant):parseInt(fs.fserv_montant)
+                        pserv[i]['montant_soc'] = (pserv[i]['montant_soc'])?pserv[i]['montant_soc'] + parseInt(fs.fserv_prix_societe):parseInt(fs.fserv_prix_societe)
+                        pserv[i]['montant_pat'] = (pserv[i]['montant_pat'])?pserv[i]['montant_pat'] + parseInt(fs.fserv_prix_patient):parseInt(fs.fserv_prix_patient)
+                    }
+                }
+                
+            }
+            let med_serv = {service_code:'MED',service_label:'MEDICAMENTS',service_id:2342354} 
+            for (let i = 0; i < fact_med.length; i++) {
+                const fs = fact_med[i];
+                med_serv['montant'] = (med_serv['montant'])?med_serv['montant'] + parseInt(fs.fserv_prix_societe):parseInt(fs.fserv_prix_societe)
+
+                med_serv['montant'] = (med_serv['montant'])?med_serv['montant'] + parseInt(fs.fserv_montant):parseInt(fs.fserv_montant)
+                med_serv['montant_soc'] = (med_serv['montant_soc'])?med_serv['montant_soc'] + parseInt(fs.fserv_prix_societe):parseInt(fs.fserv_prix_societe)
+                med_serv['montant_pat'] = (med_serv['montant_pat'])?med_serv['montant_pat'] + parseInt(fs.fserv_prix_patient):parseInt(fs.fserv_prix_patient)
+            }
+            //ajout du médicament dans la liste
+            pserv.push(med_serv)
+
+            return res.send({status:true,pserv})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
