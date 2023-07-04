@@ -787,9 +787,6 @@ class Encharge{
                 }
             }
 
-
-
-
             //Récupération de la facture
             //ici on va chercher surtout la facture par
             //mois, année, sp_id,se_id
@@ -1150,6 +1147,10 @@ async function createFPCDetailPdf(dt){
 
     let ttl_bas = 'TABLEAU ANNEXE - DETAIL PAR PATIENT'
 
+    let date_fact = `Antsirabe le, ${U.dateToText(fact.fpc_date)}`
+    let gest_titre = `Le Gestionnaire`
+    let gest_nom = `Mme RASOLOARISOA Jeannine`
+
     let w_ttl_cadre = 250
     let w_date_cadre = doc.page.width - (w_ttl_cadre * 2) - (opt.margin * 2)
     let w_full_cadre = doc.page.width - (opt.margin * 2)
@@ -1178,12 +1179,12 @@ async function createFPCDetailPdf(dt){
 
     //Création des datas
     //On va créer un tableau par département
-    let taille_min = 48
+    // let taille_min = 48
 
     let taille_pat = 120
     let taille_dossier = 60 
 
-    taille_min = (doc.page.width - ((opt.margin *2) + taille_dossier + taille_pat) ) / (pserv_list.length + 2)
+    let taille_min = (doc.page.width - ((opt.margin *2) + taille_dossier + taille_pat) ) / (pserv_list.length + 2)
 
 
     //head
@@ -1259,12 +1260,41 @@ async function createFPCDetailPdf(dt){
         }
         tmp['total'] = separateNumber(total)
         datas.push(tmp)
-
-
         await doc.table(opt_tab(head,datas,doc,{col:8,head:7}), { /* options */ });
-
-        doc.moveDown()
+        // doc.moveDown()
     }
+
+    //Pour le Totak général
+    let y_tmp = doc.y
+    let nb_ligne_ttl = `Nombre de lignes : ${list_detail.length}`
+    doc.text(nb_ligne_ttl)
+
+    //cadre total général
+    x_cadre = opt.margin + doc.widthOfString(nb_ligne_ttl) + 10
+    let w_cadre = (taille_dossier + taille_min + taille_pat + opt.margin) - x_cadre
+    drawTextCadre('TOTAL GENERAL',x_cadre,y_tmp,w_cadre,'center',doc)
+
+    for (let i = 0; i < pserv_list.length; i++) {
+        x_cadre += w_cadre
+        w_cadre = taille_min
+        const pl = pserv_list[i];
+        drawTextCadre((pl.montant)?separateNumber(pl.montant):' ',x_cadre,y_tmp,w_cadre,'right',doc)
+    }
+
+    x_cadre += w_cadre
+    let somme_total = separateNumber(pserv_list.reduce((acc,val) => acc + parseInt(val.montant || 0),0))
+    drawTextCadre(somme_total,x_cadre,y_tmp,w_cadre,'right',doc)
+
+
+    //les signatures
+    doc.font('fira_bold')
+    doc.moveDown(2)
+    doc.text(date_fact,doc.page.width/2 - doc.widthOfString(date_fact)/2,doc.y)
+    doc.moveDown()
+    doc.text(gest_titre,doc.page.width/2 - doc.widthOfString(gest_titre)/2,doc.y)
+    doc.moveDown(2)
+    doc.text(gest_nom,doc.page.width/2 - doc.widthOfString(gest_nom)/2,doc.y)
+
 
     //Fin
     doc.end()
