@@ -142,6 +142,7 @@ class Facture{
 
             //Mise à jour prise en charge
             pec.encharge_date_sortie = (pec.encharge_date_sortie)?new Date(pec.encharge_date_sortie):null
+            pec.encharge_date_entre = (pec.encharge_date_entre)?new Date(pec.encharge_date_entre):null
 
             delete pec.ent_label
             delete pec.ent_label_payeur

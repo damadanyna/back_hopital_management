@@ -700,7 +700,7 @@ class Encharge{
                 left join entreprise se on encharge_ent_id = se.ent_id
                 left join departement on fact_dep_id = dep_id
                 left join factpec on encharge_fpc_id = fpc_id 
-                where encharge_ent_payeur = ? and month(encharge_date_entre) = ? and year(encharge_date_entre) order by se.ent_id`,[id,month,year])
+                where encharge_ent_payeur = ? and month(encharge_date_sortie) = ? and year(encharge_date_sortie) order by se.ent_id`,[id,month,year])
                 dt.push({id,list:tmp})
             }
 
@@ -722,7 +722,7 @@ class Encharge{
             left join patient on pat_id = encharge_pat_id
             left join facture on fact_encharge_id = encharge_id
             left join departement on dep_id = fact_dep_id
-            where year(encharge_date_entre) = ? and month(encharge_date_entre) = ? and encharge_ent_id = ? and encharge_ent_payeur = ?`,
+            where year(encharge_date_sortie) = ? and month(encharge_date_sortie) = ? and encharge_ent_id = ? and encharge_ent_payeur = ?`,
             [year,month,st.se_id,st.sp_id])
 
 
