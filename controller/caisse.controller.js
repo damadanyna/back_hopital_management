@@ -1466,14 +1466,17 @@ class Caisse{
 
             let vr = {}
 
-            
-
             if(vt.vt_id){
                 delete vt.vt_date_enreg
 
                 let old = (D.exec_params('select * from versement where vt_id = ?',[vt.vt_id]))[0]
 
                 await D.updateWhere('versement',vt,{vt_id:vt.vt_id})
+
+                await D.exec_params(`update encaissement set enc_versement = ? where enc_id in (?)`,[vt.vt_id,ids_enc])
+                if( ids_encav.length > 0 ){
+                    await D.exec_params(`update enc_avance set encav_versement = ? where encav_id in (?)`,[vt.vt_id,ids_encav])
+                }
 
                 //historique de l'utilisateur
                 let hist = {
@@ -1497,7 +1500,6 @@ class Caisse{
 
             }else{
                 vr = await D.set('versement',vt)
-
                 let hist = {
                     uh_user_id:user_id,
                     uh_code:req.uh.validate_vers.k,
@@ -1517,9 +1519,7 @@ class Caisse{
                     await D.exec_params(`update enc_avance set encav_versement = ? where encav_id in (?)`,[vr.insertId,ids_encav])
                 }
             }
-
             return res.send({status:true})
-
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -1536,7 +1536,6 @@ class Caisse{
             //Récupération des encaissements dans le versememnt
             let enc = await D.exec_params(`select * from encaissement
                 where enc_versement = ?`,[vt_id])
-
 
 
             //Récupération des avances dans le versement
