@@ -169,7 +169,7 @@ class Facture{
 
                 datas = []
                 sql = `insert into fact_service 
-                (fserv_serv_id,fserv_fact_id,fserv_is_product,fserv_qt,fserv_montant,fserv_prix_unitaire,fserv_prix_patient,fserv_prix_societe) values ?;`
+                (fserv_serv_id,fserv_fact_id,fserv_is_product,fserv_qt,fserv_montant,fserv_prix_unitaire,fserv_prix_patient,fserv_prix_societe,fserv_alt_serv) values ?;`
 
 
                 for (let i = 0; i < add.length; i++) {
@@ -178,10 +178,10 @@ class Facture{
 
                     if(!e.fserv_fact_id){
                         datas.push([e.fserv_serv_id,f.fact_id,e.fserv_is_product,e.fserv_qt,e.fserv_montant,e.fserv_prix_unitaire,
-                            e.fserv_prix_patient,e.fserv_prix_societe])
+                            e.fserv_prix_patient,e.fserv_prix_societe,e.fserv_alt_serv || null])
                     }else{
                         sql_modif +=`update fact_service set fserv_qt = ${e.fserv_qt}, fserv_montant = ${e.fserv_montant}, 
-                        fserv_prix_patient = ${e.fserv_prix_patient}, fserv_prix_societe = ${e.fserv_prix_societe} 
+                        fserv_prix_patient = ${e.fserv_prix_patient}, fserv_prix_societe = ${e.fserv_prix_societe}, fserv_alt_serv = ${ (e.fserv_alt_serv)?`"${e.fserv_alt_serv}"`:null }
                         where fserv_fact_id = ${f.fact_id} and fserv_serv_id = ${e.fserv_serv_id} and fserv_is_product = ${e.fserv_is_product};`
                     }
                 }

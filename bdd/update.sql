@@ -144,3 +144,7 @@ create table if not exists factpec(
 
 -- modif 30/06/2023
 alter table encharge add encharge_fpc_id int null;
+
+-- modif 05/07/2023
+alter table facture add fact_ajust_montant int null default 0;
+alter table fact_service add fserv_alt_serv varchar(255) null;

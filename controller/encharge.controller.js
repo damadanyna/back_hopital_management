@@ -262,6 +262,9 @@ class Encharge{
             
             fact_serv = [...fact_serv,...r]
 
+            fact_serv.push({service_code:'AJUS',service_label:'AJUSTEMENTS',
+            fserv_prix_patient:fact.fact_ajust_montant,fserv_prix_societe:-fact.fact_ajust_montant})
+
             //On modifie la ligne encharge_printed
             if(!pec.encharge_printed){
                 await D.updateWhere('encharge',{encharge_printed:1},{encharge_id:pec.encharge_id})
@@ -426,11 +429,11 @@ class Encharge{
             for (let i = 0; i < fact_serv.length; i++) {
                 const e = fact_serv[i];
                 _datas.push({
-                    desc:e.service_label,
+                    desc:(e.fserv_alt_serv)?e.fserv_alt_serv:e.service_label,
                     qt:e.fserv_qt,
                     unit:(e.art_unite_stk)?e.art_unite_stk :'',
-                    pu:separateNumber(e.fserv_prix_unitaire),
-                    montant:separateNumber(e.fserv_montant),
+                    pu:(e.fserv_prix_unitaire)?separateNumber(e.fserv_prix_unitaire):'',
+                    montant:(e.fserv_montant)?separateNumber(e.fserv_montant):'',
                     part_pat:separateNumber(e.fserv_prix_patient),
                     part_soc:separateNumber(e.fserv_prix_societe)
                 })
@@ -643,6 +646,12 @@ class Encharge{
             montant_total_pat += serv[index_med].montant_pat
             montant_total_soc += serv[index_med].montant_soc
 
+            let ajust_code = 'AJUS'
+            serv.push({service_code:ajust_code,service_label:'AJUSTEMENTS',montant_pat:fact.fact_ajust_montant,montant_soc:-fact.fact_ajust_montant})
+
+            montant_total_pat += parseInt(fact.fact_ajust_montant)
+            montant_total_soc -= parseInt(fact.fact_ajust_montant)
+
 
 
             res.send({status:true,list_serv:serv,montant_total_pat,montant_total_soc})
@@ -765,6 +774,11 @@ class Encharge{
             //ajout du médicament dans la liste
             pserv.push(med_serv)
 
+            //Ajout de ajustement dans la liste
+            let ajust_code = 'AJUS'
+            let total_ajust = list_pec.reduce( (acc,val)=> acc + parseInt(val.fact_ajust_montant || 0),0)
+            pserv.push ({service_code:ajust_code,service_label:"AJUSTEMENT",service_id:-4,montant:-total_ajust})
+
 
             //ici on va gérér le tableau détaillé
             for (let i = 0; i < list_pec.length; i++) {
@@ -785,6 +799,10 @@ class Encharge{
                         list_pec[i]['MED'] = (lp['MED'])?lp['MED'] + parseInt(fm.fserv_prix_societe):parseInt(fm.fserv_prix_societe)
                     }
                 }
+                list_pec[i][ajust_code] = 0
+                list_pec[i][ajust_code] -= parseInt(lp.fact_ajust_montant)
+
+                list_pec[i].fact_montant_soc = parseInt(lp.fact_montant_soc) - parseInt(lp.fact_ajust_montant)
             }
 
             //Récupération de la facture
