@@ -197,6 +197,7 @@ router.post('/encharge/etats-mensuel/fpc',require('../controller/encharge.contro
 router.get('/encharge/etats-mensuel/fpc/print',require('../controller/encharge.controller').printFPC)
 
 
+
 router.get('/encharge/etats-mensuel/detail',require('../controller/encharge.controller').getDetailPec)
 router.post('/encharge/etats-mensuel/detail/print',require('../controller/encharge.controller').printDetailFpc)
 

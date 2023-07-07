@@ -691,7 +691,7 @@ class Caisse{
             }
 
             //ETO NDRAY NY MANIPULATION NY DATAS AN'ILA PRESCRIPTION
-            if(encprescri.del && encprescri.del.length > 0){
+            if(encprescri && encprescri.del && encprescri.del.length > 0){
                 await D.exec_params('delete from enc_prescri where encp_enc_id = ? and encp_id in (?)',[enc.enc_id,encprescri.del])
             }
 
