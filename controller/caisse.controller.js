@@ -701,7 +701,7 @@ class Caisse{
             sql_modif = ''
 
             //Ajout ndray zao, ajout an'ireny service vaovao reny
-            if(encprescri.add && encprescri.add.length > 0){
+            if(encprescri && encprescri.add && encprescri.add.length > 0){
                 //Eto mbola misy ny insertion an'ireny encaissement service reny
                 datas = []
                 sql = `insert into enc_prescri (encp_serv_id,encp_enc_id,encp_is_product,encp_qt,encp_montant,encp_prix_unit) values ?;` //sql pour le truc
