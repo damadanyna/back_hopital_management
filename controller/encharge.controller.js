@@ -45,7 +45,6 @@ class Encharge{
                 _tmp = encharge_data[v]
     
                 _d[_tmp.front_name] = (_tmp.format)?_tmp.format(_d[_tmp.front_name]):_d[_tmp.front_name]
-                 
                 _data[v] = _d[_tmp.front_name]
             })
             
@@ -59,9 +58,17 @@ class Encharge{
 
             let _pec = await D.set('encharge',_data)
 
+            //Ici récupération de fact_code_patient si y en a pour le patient
+            let last_pec = await D.exec_params(`select * from encharge 
+            left join facture on encharge_id = fact_encharge_id
+            where encharge_id <> ? order by encharge_id desc limit 1`,[_pec.insertId])
+            last_pec = (last_pec.length > 0)?last_pec[0]:null
+            let fact_code_patient = (last_pec)?last_pec.fact_code_patient:null
+
             //Création de la facture après la création de la prise en charge
             await D.set('facture',{
-                fact_encharge_id:_pec.insertId
+                fact_encharge_id:_pec.insertId,
+                fact_code_patient
             })
 
             //Insertion historique utilisateur
@@ -469,7 +476,7 @@ class Encharge{
                         doc.fillAndStroke('#575a61')
                     },
                     prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
-                        doc.font("fira").fontSize(8)
+                        doc.font("fira").fontSize(10)
                         doc.fillAndStroke('#47494d')
                         //#47494d
 
