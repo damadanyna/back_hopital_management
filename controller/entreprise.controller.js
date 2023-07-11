@@ -40,12 +40,12 @@ class Entreprise{
                 _tmp = entreprise_data[v]
     
                 _d[_tmp.front_name] = (_tmp.format)?_tmp.format(_d[_tmp.front_name]):_d[_tmp.front_name]
-                 
                 _data[v] = _d[_tmp.front_name]
             })
             
             //l'objet entreprise est rempli maintenant
             // on l'insert dans la base de donnée
+            _data.ent_group_label = _data.ent_label
 
             let ee = await D.set('entreprise',_data)
 
@@ -139,8 +139,12 @@ class Entreprise{
         
         let {user_id} = e
 
+
+        if(!e.ent_label) return res.send({status:false,message:`Le nom ne peut pas être vide`})
         delete e.user_id
         delete e.ent_date_enreg
+
+        if(!e.ent_group_label) e.ent_group_label = e.ent_label
 
         let old = (await D.exec_params('select * from entreprise where ent_id = ?',[e.ent_id]))[0]
 

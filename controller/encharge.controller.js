@@ -242,7 +242,8 @@ class Encharge{
         try {
             //on va récupérer d'abord les données du prise en charge
             let pec = (await D.exec_params(`select encharge.*,tarif.*,patient.*,
-            e2.ent_label as ent_label_payeur,e2.ent_num_compte as ent_num_compte_payeur,e1.ent_label,e2.ent_pat_percent,e2.ent_soc_percent
+            e2.ent_label as ent_label_payeur,e2.ent_num_compte as ent_num_compte_payeur,e1.ent_label,e2.ent_pat_percent,e2.ent_soc_percent,
+            e2.ent_group_label as sp_group_label
             from encharge 
             left join tarif on tarif_id = encharge_tarif_id
             left join patient on pat_id = encharge_pat_id
@@ -397,7 +398,7 @@ class Encharge{
             doc.text('Société :',300,y_line_pat,{underline:true})
             doc.font('fira')
             let y_num_compte = doc.y
-            doc.text(`${pec.ent_label_payeur.toUpperCase()} `)
+            doc.text(`${pec.sp_group_label.toUpperCase()} `)
             doc.text(`${pec.ent_num_compte_payeur}`,doc.page.width - doc.widthOfString(pec.ent_num_compte_payeur)-15,y_num_compte)
 
             doc.moveDown()
@@ -699,25 +700,44 @@ class Encharge{
 
             let dt = []
 
-            for (let i = 0; i < ids_sp.length; i++) {
-                const id = ids_sp[i];                    
-                const tmp = await D.exec_params(`select *,
-                sp.ent_id as sp_id,sp.ent_label as sp_label,sp.ent_code as sp_code, sp.ent_num_compte as sp_num_compte, sp.ent_pat_percent as sp_pat_percent,
-                sp.ent_soc_percent as sp_soc_percent,
-                se.ent_id as se_id,se.ent_label as se_label,se.ent_code as se_code
-                from encharge 
-                left join patient on encharge_pat_id = pat_id
-                left join tarif on tarif_id = encharge_tarif_id
-                left join facture on fact_encharge_id = encharge_id 
-                left join entreprise sp on encharge_ent_payeur = sp.ent_id
-                left join entreprise se on encharge_ent_id = se.ent_id
-                left join departement on fact_dep_id = dep_id
-                left join factpec on encharge_fpc_id = fpc_id 
-                where encharge_ent_payeur = ? and month(encharge_date_sortie) = ? and year(encharge_date_sortie) order by se.ent_id`,[id,month,year])
-                dt.push({id,list:tmp})
-            }
+            //On va devoir récupérer la liste les infos sur ces entreprises
+            let list_ent = await D.exec_params('select * from entreprise where ent_id in (?)',[ids_sp])
+            let sp_grp = {}
 
-            
+            for (let i = 0; i < list_ent.length; i++) {
+                const e = list_ent[i];
+                if(sp_grp[e.ent_group_label]){
+                    sp_grp[e.ent_group_label].push(e.ent_id)
+                }else{
+                    sp_grp[e.ent_group_label] = [e.ent_id]
+                }
+            }
+            // console.log(sp_grp)
+            // for (let i = 0; i < ids_sp.length; i++) {
+            //     const id = ids_sp[i];                    
+                
+            // }
+
+            for (const k in sp_grp) {
+                if (Object.hasOwnProperty.call(sp_grp, k)) {
+                    const e = sp_grp[k];
+                    const tmp = await D.exec_params(`select *,
+                    sp.ent_id as sp_id,sp.ent_label as sp_label,sp.ent_code as sp_code, sp.ent_num_compte as sp_num_compte, sp.ent_pat_percent as sp_pat_percent,
+                    sp.ent_soc_percent as sp_soc_percent,sp.ent_group_label as sp_group_label,
+                    se.ent_id as se_id,se.ent_label as se_label,se.ent_code as se_code
+                    from encharge 
+                    left join patient on encharge_pat_id = pat_id
+                    left join tarif on tarif_id = encharge_tarif_id
+                    left join facture on fact_encharge_id = encharge_id
+                    left join entreprise sp on encharge_ent_payeur = sp.ent_id
+                    left join entreprise se on encharge_ent_id = se.ent_id
+                    left join departement on fact_dep_id = dep_id
+                    left join factpec on encharge_fpc_id = fpc_id 
+                    where encharge_ent_payeur in (?) and month(encharge_date_sortie) = ? and year(encharge_date_sortie) order by se.ent_id`,[e,month,year])
+                    dt.push({grp_name:k,list:tmp})
+
+                }
+            }
             return res.send({status:true,datas:dt})
         } catch (e) {
             console.error(e)
@@ -731,13 +751,17 @@ class Encharge{
             let {filters,st} = req.query
             let {month,year} = filters
 
+            let sp_ids = (await D.exec_params(`select ent_id from entreprise where ent_group_label = ?`,[st.sp_group_label])).map(x => parseInt(x.ent_id))
+
+            console.log(st)
+
             //Eto alo récupéraion de la liste des patients avec l'id du PEC
             let list_pec = await D.exec_params(`select * from encharge
             left join patient on pat_id = encharge_pat_id
             left join facture on fact_encharge_id = encharge_id
             left join departement on dep_id = fact_dep_id
-            where year(encharge_date_sortie) = ? and month(encharge_date_sortie) = ? and encharge_ent_id = ? and encharge_ent_payeur = ?`,
-            [year,month,st.se_id,st.sp_id])
+            where year(encharge_date_sortie) = ? and month(encharge_date_sortie) = ? and encharge_ent_id = ? and encharge_ent_payeur in (?)`,
+            [year,month,st.se_id,sp_ids])
 
 
             //list p_serv
@@ -815,8 +839,8 @@ class Encharge{
             //mois, année, sp_id,se_id
 
             let fpc = await D.exec_params(`select * from factpec
-            where fpc_sp_id = ? and fpc_se_id = ? and fpc_month = ? and fpc_year = ?`,[
-                st.sp_id,st.se_id,month,year
+            where fpc_sp_group = ? and fpc_se_id = ? and fpc_month = ? and fpc_year = ?`,[
+                st.sp_group_label,st.se_id,month,year
             ])
             fpc = (fpc.length > 0)?fpc[0]:{}
 
@@ -883,7 +907,7 @@ class Encharge{
         }
     }
 
-    //Validation d'un facture FPC
+    //Validation d'une facture FPC
     static async validateFPC(req,res){
         try {
             
@@ -1165,7 +1189,7 @@ async function createFPCDetailPdf(dt){
     //-----------------___________________---------------
     //------------- Ajout des titres en haut
     let fact_ttl_label = `FACTURE N° ${fact.fpc_num}`
-    let sp_ttl_label = st.sp_label.toUpperCase()
+    let sp_ttl_label = st.sp_group_label.toUpperCase()
     let date_ttl = `${U.getMonth(parseInt(fact.fpc_month))} ${fact.fpc_year}`
 
     let ttl_bas = 'TABLEAU ANNEXE - DETAIL PAR PATIENT'
@@ -1204,8 +1228,8 @@ async function createFPCDetailPdf(dt){
     //On va créer un tableau par département
     // let taille_min = 48
 
-    let taille_pat = 120
-    let taille_dossier = 60 
+    let taille_pat = 125
+    let taille_dossier = 55 
 
     let taille_min = (doc.page.width - ((opt.margin *2) + taille_dossier + taille_pat) ) / (pserv_list.length + 2)
 
@@ -1400,7 +1424,7 @@ async function createFPCPdf(dt){
     let bni_num = `BNI Antsirabe 00005 00015 323365 7 020 079`
     let fact_label = 'FACTURE N°'
     let fact_num = fact.fpc_num
-    let sp_label = `Doit : ${st.sp_label}`
+    let sp_label = `Doit : ${st.sp_group_label}`
     let se_label = (st.sp_id == st.se_id)?'':`Affilié à ${st.se_label}`
     let sp_adresse = 'Antsirabe'
     let arrt_texte = 'Arretée à la somme de : '

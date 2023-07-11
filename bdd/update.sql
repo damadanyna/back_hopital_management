@@ -148,3 +148,7 @@ alter table encharge add encharge_fpc_id int null;
 -- modif 05/07/2023
 alter table facture add fact_ajust_montant int null default 0;
 alter table fact_service add fserv_alt_serv varchar(255) null;
+
+-- modif 11/07/2023
+alter table entreprise add ent_group_label varchar(100) null;
+alter table factpec add fpc_sp_group varchar(100) null;
