@@ -18,6 +18,10 @@ class Encharge{
             encharge_ent_id:{front_name:'encharge_ent_id',fac:true }, 
             encharge_util_id:{front_name:'encharge_util_id',fac:true },
             encharge_ent_payeur:{front_name:'encharge_ent_payeur',fac:true },  
+            encharge_is_stomato:{front_name:'encharge_is_stomato',fac:true },  
+            encharge_stomato_pat:{front_name:'encharge_stomato_pat',fac:true },  
+            //encharge_stomato_pat_num
+            encharge_stomato_pat_num:{front_name:'encharge_stomato_pat_num',fac:true },  
         };
 
         //Vérification du encharge
@@ -29,7 +33,6 @@ class Encharge{
             _pd_keys.forEach((v,i)=>{
                 _tmp = encharge_data[v]
                 if(!_tmp.fac && !_d[_tmp.front_name]){
-    
                     _list_error.push({code:_tmp.front_name})
                 }
             })
@@ -61,7 +64,7 @@ class Encharge{
             //Ici récupération de fact_code_patient si y en a pour le patient
             let last_pec = await D.exec_params(`select * from encharge 
             left join facture on encharge_id = fact_encharge_id
-            where encharge_id <> ? order by encharge_id desc limit 1`,[_pec.insertId])
+            where encharge_pat_id = ? and encharge_id <> ? order by encharge_id desc limit 1`,[_data.encharge_pat_id,_pec.insertId])
             last_pec = (last_pec.length > 0)?last_pec[0]:null
             let fact_code_patient = (last_pec)?last_pec.fact_code_patient:null
 
@@ -158,6 +161,11 @@ class Encharge{
         filters.limit = (!filters.limit)?100:parseInt(filters.limit)
         filters.sort_by = (!filters.sort_by)?_obj_pat[default_sort_by]:_obj_pat[filters.sort_by]
 
+        let search = `%${filters.search}%`
+
+        let search_pat_tab = [search]
+        if(filters.search_by == 'pat_nom_et_prenom') search_pat_tab.push(search)
+
         try { 
             //A reserver recherche par nom_prenom
             let reponse = await D.exec_params(`select encharge.*,tarif.*,patient.*,
@@ -168,9 +176,10 @@ class Encharge{
             left join patient on pat_id = encharge_pat_id
             left join entreprise e1 on e1.ent_id = encharge_ent_id
             left join entreprise e2 on e2.ent_id = encharge_ent_payeur
-            where year(encharge_date_enreg) = ? and ${filters.search_by} like ?
+            where year(encharge_date_enreg) = ? 
+            and ${ (filters.search_by == 'pat_nom_et_prenom')?`(${filters.search_by} like ? or encharge_stomato_pat like ?)`:`${filters.search_by} like ?` }
             ${(parseInt(filters.month))?'and month(encharge_date_enreg) = ?':''}
-            order by ${filters.sort_by} desc`,[filters.year,`%${filters.search}%`,filters.month])
+            order by ${filters.sort_by} desc`,[filters.year,...search_pat_tab,filters.month])
 
             //Liste total des encharge
             let nb_total_encharge = (await D.exec('select count(*) as nb from encharge'))[0].nb
@@ -270,15 +279,17 @@ class Encharge{
             
             fact_serv = [...fact_serv,...r]
 
-            fact_serv.push({service_code:'AJUS',service_label:'AJUSTEMENTS',
-            fserv_prix_patient:fact.fact_ajust_montant,fserv_prix_societe:-fact.fact_ajust_montant})
+            if(fact.fact_ajust_montant){
+                fact_serv.push({service_code:'AJUS',service_label:'AJUSTEMENTS',
+                fserv_prix_patient:fact.fact_ajust_montant,fserv_prix_societe:-fact.fact_ajust_montant})
+            }
 
             //On modifie la ligne encharge_printed
             if(!pec.encharge_printed){
                 await D.updateWhere('encharge',{encharge_printed:1},{encharge_id:pec.encharge_id})
             }
 
-            if(fact_serv.length == 0 || !fact.fact_resume_intervention || !fact.fact_dep_id){
+            if(fact_serv.length == 0 || !fact.fact_resume_intervention || (!fact.fact_dep_id && !pec.encharge_is_stomato)){
                 return res.send({status:false,message:"Facture pas complète"})
             }
 
@@ -368,7 +379,7 @@ class Encharge{
             doc.font('fira_bold')
             doc.text('Patient :',{underline:true})
             doc.font('fira')
-            doc.text(pec.pat_nom_et_prenom.toUpperCase())
+            doc.text((pec.pat_nom_et_prenom?pec.pat_nom_et_prenom:pec.encharge_stomato_pat).toUpperCase())
 
             //Insertion du care u titre à droite
             let title_1 = 'ORDONNANCE ET FACTURE', title_2 = '-- PRISE EN CHARGE --'
@@ -416,11 +427,11 @@ class Encharge{
             // doc.text('',15,y_table)
 
             let _head = [
-                { label:"Description des interventions", width:255, property: 'desc',renderer: null },
+                { label:"Description des interventions", width:235, property: 'desc',renderer: null },
                 { label:"Qté", property: 'qt',width:30, renderer: null },
                 { label:"Unité", property: 'unit',width:40,renderer: null },
                 { label:"P-U", property: 'pu',width:50,renderer: null,align: "right",headerAlign:"center" },
-                { label:"Montant", property: 'montant',width:50,renderer: null,align: "right",headerAlign:"center" },
+                { label:"Montant", property: 'montant',width:70,renderer: null,align: "right",headerAlign:"center" },
                 { label:"Part Employé", property: 'part_pat',width:70,renderer: null,align: "right",headerAlign:"center" },
                 { label:"Part Société", property: 'part_soc',width:70,renderer: null,align: "right" ,headerAlign:"center"},
             ]
@@ -733,7 +744,7 @@ class Encharge{
                     left join entreprise se on encharge_ent_id = se.ent_id
                     left join departement on fact_dep_id = dep_id
                     left join factpec on encharge_fpc_id = fpc_id 
-                    where encharge_ent_payeur in (?) and month(encharge_date_sortie) = ? and year(encharge_date_sortie) order by se.ent_id`,[e,month,year])
+                    where encharge_ent_payeur in (?) and month(encharge_date_sortie) = ? and year(encharge_date_sortie) = ? order by se.ent_id`,[e,month,year])
                     dt.push({grp_name:k,list:tmp})
 
                 }
@@ -806,7 +817,9 @@ class Encharge{
             //Ajout de ajustement dans la liste
             let ajust_code = 'AJUS'
             let total_ajust = list_pec.reduce( (acc,val)=> acc + parseInt(val.fact_ajust_montant || 0),0)
-            pserv.push ({service_code:ajust_code,service_label:"AJUSTEMENT",service_id:-4,montant:-total_ajust})
+            if(total_ajust){
+                pserv.push ({service_code:ajust_code,service_label:"AJUSTEMENT",service_id:-4,montant:-total_ajust})
+            }
 
 
             //ici on va gérér le tableau détaillé
@@ -1251,13 +1264,19 @@ async function createFPCDetailPdf(dt){
 
     //Ajout des données pour chaque département
     let dep = {}
+    let stomato_code = 'STO'
 
     for (let i = 0; i < list_detail.length; i++) {
         const ld = list_detail[i];
-        if(!ld.dep_id) continue
+        if(!ld.dep_id && !ld.encharge_is_stomato) continue
 
-        if(!dep[ld.dep_code]) dep[ld.dep_code] = {list:[],label:ld.dep_label}
-        dep[ld.dep_code].list.push(ld)
+        if(ld.encharge_is_stomato){
+            if(!dep[stomato_code]) dep[stomato_code] = {list:[],label:'STOMATOLOGIE'}
+            dep[stomato_code].list.push(ld)
+        }else{
+            if(!dep[ld.dep_code]) dep[ld.dep_code] = {list:[],label:ld.dep_label}
+            dep[ld.dep_code].list.push(ld)
+        }
     }
 
     doc.fontSize(font_size)
@@ -1275,8 +1294,8 @@ async function createFPCDetailPdf(dt){
             const l = tt.list[i];
             let tmp = {}
             let total = 0
-            tmp['pat_numero'] = l.pat_numero
-            tmp['pat_name'] = l.pat_nom_et_prenom
+            tmp['pat_numero'] = l.pat_numero || l.encharge_stomato_pat_num
+            tmp['pat_name'] = l.pat_nom_et_prenom || l.encharge_stomato_pat
             tmp['encharge_seq'] = l.encharge_seq
 
             for (let j = 0; j < pserv_list.length; j++) {

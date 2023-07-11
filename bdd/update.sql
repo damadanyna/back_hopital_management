@@ -152,3 +152,6 @@ alter table fact_service add fserv_alt_serv varchar(255) null;
 -- modif 11/07/2023
 alter table entreprise add ent_group_label varchar(100) null;
 alter table factpec add fpc_sp_group varchar(100) null;
+alter table encharge add encharge_is_stomato int null default 0;
+alter table encharge add encharge_stomato_pat varchar(200) null;
+alter table encharge add encharge_stomato_pat_num varchar(200) null;
