@@ -410,9 +410,6 @@ class Encharge{
             doc.font('fira')
             let cpat = (fact.fact_code_patient)?fact.fact_code_patient:'-'
             doc.text(cpat.toUpperCase())
-
-
-
             doc.moveDown(2)
             
             // doc.text('',15,y_table)
@@ -720,6 +717,7 @@ class Encharge{
                 dt.push({id,list:tmp})
             }
 
+            
             return res.send({status:true,datas:dt})
         } catch (e) {
             console.error(e)
