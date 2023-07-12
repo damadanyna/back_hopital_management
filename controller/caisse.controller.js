@@ -404,7 +404,7 @@ class Caisse{
             let d = (new Date(filters.date)).toLocaleDateString('fr-CA')
             let d2 = (new Date(filters.date2)).toLocaleDateString('fr-CA')
 
-            let list_dep = await D.exec('select * from departement')
+            let list_dep = await D.exec('select * from departement where dep_show_caisse = 1')
             
 
             filters.dep_id = (filters.dep_id)?filters.dep_id:list_dep[0].dep_id
@@ -1576,7 +1576,7 @@ class Caisse{
 
             //Liste des département
             //Qlques Gestions
-            let dep = await D.exec('select * from departement')
+            let dep = await D.exec('select * from departement where dep_show_caisse = 1')
             //dep_code d'un département dispensaire est : C017
             let dep_code_autre = "C017"
             let dep_autre_in = false
@@ -1744,7 +1744,7 @@ class Caisse{
     static async recupDataMainForFilters(req,res){
         try {
 
-            let dep_list = await D.exec_params('select * from departement')
+            let dep_list = await D.exec_params('select * from departement where dep_show_caisse = 1')
             let sp_list = await D.exec_params('select * from service where service_parent_id is null')
 
             return res.send({
@@ -2329,7 +2329,7 @@ class Caisse{
 
             //Liste des département
             //Qlques Gestions
-            let dep = await D.exec('select * from departement')
+            let dep = await D.exec('select * from departement where dep_show_caisse = 1')
             //dep_code d'un département dispensaire est : C017
             let dep_code_autre = "C017"
             let dep_autre_in = false

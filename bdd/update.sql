@@ -155,3 +155,4 @@ alter table factpec add fpc_sp_group varchar(100) null;
 alter table encharge add encharge_is_stomato int null default 0;
 alter table encharge add encharge_stomato_pat varchar(200) null;
 alter table encharge add encharge_stomato_pat_num varchar(200) null;
+alter table departement add dep_show_caisse int null default 1;

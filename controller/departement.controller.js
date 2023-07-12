@@ -40,6 +40,9 @@ class Departement{
                  
                 _data[v] = _d[_tmp.front_name]
             })
+
+
+            _data['dep_code'] = _data.dep_code.toUpperCase()
             
             //l'objet departement est rempli maintenant
             // on l'insert dans la base de donnée
