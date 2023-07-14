@@ -1567,7 +1567,7 @@ class Caisse{
 
             vt.recette_esp += vt.recette_avance 
 
-            vt.vt_remise = Math.abs(parseInt(vt.vt_total) - (vt.recette_chq + vt.recette_esp))
+            vt.vt_remise = Math.abs(parseInt(vt.vt_total) - (vt.recette_esp))
 
             // console.log(`vt_remise : ${vt.vt_remise}`);
             // console.log(`recette_avance : ${vt.recette_avance}`);
