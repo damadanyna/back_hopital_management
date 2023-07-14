@@ -410,19 +410,23 @@ class Encharge{
             doc.font('fira')
             let y_num_compte = doc.y
             doc.text(`${pec.sp_group_label.toUpperCase()} `)
-            doc.text(`${pec.ent_num_compte_payeur}`,doc.page.width - doc.widthOfString(pec.ent_num_compte_payeur)-15,y_num_compte)
+            //doc.text(`${pec.ent_num_compte_payeur}`,doc.page.width - doc.widthOfString(pec.ent_num_compte_payeur)-15,y_num_compte)
 
-            doc.moveDown()
+
+            //Resaka code patient io
+            let cpat = (fact.fact_code_patient)?fact.fact_code_patient:'-'
+            let w_code_pat = (doc.widthOfString('Code Patient :') > doc.widthOfString(cpat))?doc.widthOfString('Code Patient :'):doc.widthOfString(cpat)
+            let x_code_pat = doc.page.width - (opt.margin*2) - w_code_pat
+
+            doc.font('fira_bold')
+            doc.text('Code Patient :',x_code_pat,y_line_pat,{underline:true})
+            doc.font('fira')
+            doc.text(cpat.toUpperCase(),x_code_pat,y_num_compte)
+
+            doc.moveDown(2)
 
             let y_table = doc.y
             doc.text('',15,y_table)
-
-            doc.font('fira_bold')
-            doc.text('Code Patient :',{underline:true})
-            doc.font('fira')
-            let cpat = (fact.fact_code_patient)?fact.fact_code_patient:'-'
-            doc.text(cpat.toUpperCase())
-            doc.moveDown(2)
             
             // doc.text('',15,y_table)
 
@@ -1208,7 +1212,7 @@ async function createFPCDetailPdf(dt){
     let ttl_bas = 'TABLEAU ANNEXE - DETAIL PAR PATIENT'
 
     let date_fact = `Antsirabe le, ${U.dateToText(fact.fpc_date)}`
-    let gest_titre = `Le Gestionnaire`
+    let gest_titre = `Le Gestionnaire,`
     let gest_nom = `Mme RASOLOARISOA Jeannine`
 
     let w_ttl_cadre = 250
@@ -1354,12 +1358,17 @@ async function createFPCDetailPdf(dt){
 
     //les signatures
     doc.font('fira_bold')
+    doc.fontSize(10)
     doc.moveDown(2)
-    doc.text(date_fact,doc.page.width/2 - doc.widthOfString(date_fact)/2,doc.y)
+    y_tmp = doc.y
+    let x_date = doc.page.width/2 - doc.widthOfString(date_fact)/2
+    doc.text(date_fact,x_date,y_tmp)
+
     doc.moveDown()
-    doc.text(gest_titre,doc.page.width/2 - doc.widthOfString(gest_titre)/2,doc.y)
-    doc.moveDown(2)
-    doc.text(gest_nom,doc.page.width/2 - doc.widthOfString(gest_nom)/2,doc.y)
+    y_tmp = doc.y
+    doc.text('Médecin',x_date - (doc.widthOfString('Médecin')/2),y_tmp)
+    let w_g = doc.widthOfString(gest_titre)
+    doc.text(gest_titre, (x_date + doc.widthOfString(date_fact) - (w_g /2)) ,y_tmp)
 
 
     //Fin
@@ -1452,7 +1461,7 @@ async function createFPCPdf(dt){
     let soins_gen_cadre = parseInt(fact.fpc_soins_montant || 0).toLocaleString('fr-CA')
 
     let date_fact = `Antsirabe le, ${U.dateToText(fact.fpc_date)}`
-    let gest_titre = `Le Gestionnaire`
+    let gest_titre = `Le Gestionnaire,`
     let gest_nom = `Mme RASOLOARISOA Jeannine`
 
     let acte_tab_label = `Les actes médicaux de ${U.getMonth(parseInt(fact.fpc_month))} ${fact.fpc_year} désignés ci-après : `
@@ -1524,17 +1533,21 @@ async function createFPCPdf(dt){
     
     let t_cadre = w_table - s_desc
     let t_begin = opt.margin + w_table - (t_cadre * 2)
+
+    doc.font('fira_bold')
     
     y_tmp = doc.y
     if(fact.fpc_soins_generaux){
-        drawTextCadre('Soins generaux'.toUpperCase(),t_begin,y_tmp,t_cadre,'left',doc)
+        drawTextCadre('Soins generaux'.toUpperCase(),t_begin,y_tmp,t_cadre,'center',doc)
         drawTextCadre(soins_gen_cadre,t_begin+t_cadre,y_tmp,t_cadre,'right',doc)
         doc.moveDown()
     }else{
         doc.moveDown()
     }
+
+    doc.fillAndStroke('black')
     y_tmp = doc.y
-    drawTextCadre('TOTAL',t_begin,y_tmp,t_cadre,'left',doc)
+    drawTextCadre('TOTAL',t_begin,y_tmp,t_cadre,'center',doc)
     drawTextCadre(total_cadre,t_begin+t_cadre,y_tmp,t_cadre,'right',doc)
     doc.moveDown(2)
 
@@ -1547,11 +1560,15 @@ async function createFPCPdf(dt){
     //Signature
     doc.fontSize(9)
     let sign_size = (t_cadre * 2)
+
+    
     doc.text(date_fact, (x_begin + w_table) - (doc.widthOfString(date_fact) + (sign_size - doc.widthOfString(date_fact))/2 ),doc.y )
     doc.moveDown()
-    doc.text(gest_titre, (x_begin + w_table) - (doc.widthOfString(gest_titre) + (sign_size - doc.widthOfString(gest_titre))/2 ),doc.y )
-    doc.moveDown(2)
-    doc.text(gest_nom, (x_begin + w_table) - (doc.widthOfString(gest_nom) + (sign_size - doc.widthOfString(gest_nom))/2 ),doc.y )
+    y_tmp = doc.y
+    doc.text('Médecin',x_begin + 15,doc.y)
+    doc.text(gest_titre, (x_begin + w_table) - (doc.widthOfString(gest_titre) + (sign_size - doc.widthOfString(gest_titre))/2 ),y_tmp )
+    // doc.moveDown(2)
+    // doc.text(gest_nom, (x_begin + w_table) - (doc.widthOfString(gest_nom) + (sign_size - doc.widthOfString(gest_nom))/2 ),doc.y )
 
 
     //2ème COLONNE ------- ://///// ::: 
@@ -1581,7 +1598,7 @@ async function createFPCPdf(dt){
     if(st.sp_id != st.se_id){
         doc.text(se_label,{width:w_cadre - 5})
     }
-    doc.font('fira')
+    doc.font('fira_bold')
     y_tmp = doc.y
     doc.text(sp_adresse)
     doc.rect(cadre_begin,opt.margin,w_cadre,y_tmp+5).stroke()
@@ -1600,10 +1617,12 @@ async function createFPCPdf(dt){
     // doc.moveDown()
 
     t_begin = (opt.margin*3) + (w_table*2) - (t_cadre * 2)
+
+    doc.fillAndStroke('black')
     
     y_tmp = doc.y
     if(fact.fpc_soins_generaux){
-        drawTextCadre('Soins generaux'.toUpperCase(),t_begin,y_tmp,t_cadre,'left',doc)
+        drawTextCadre('Soins generaux'.toUpperCase(),t_begin,y_tmp,t_cadre,'center',doc)
         drawTextCadre(soins_gen_cadre,t_begin+t_cadre,y_tmp,t_cadre,'right',doc)
         doc.moveDown()
     }else{
@@ -1623,11 +1642,14 @@ async function createFPCPdf(dt){
     doc.moveDown(2)
     //Signature
     doc.fontSize(9)
+    
     doc.text(date_fact, (x_begin + w_table) - (doc.widthOfString(date_fact) + (sign_size - doc.widthOfString(date_fact))/2 ),doc.y )
     doc.moveDown()
-    doc.text(gest_titre, (x_begin + w_table) - (doc.widthOfString(gest_titre) + (sign_size - doc.widthOfString(gest_titre))/2 ),doc.y )
-    doc.moveDown(2)
-    doc.text(gest_nom, (x_begin + w_table) - (doc.widthOfString(gest_nom) + (sign_size - doc.widthOfString(gest_nom))/2 ),doc.y )
+    y_tmp = doc.y
+    doc.text('Médecin',x_begin + 15,doc.y)
+    doc.text(gest_titre, (x_begin + w_table) - (doc.widthOfString(gest_titre) + (sign_size - doc.widthOfString(gest_titre))/2 ),y_tmp )
+    // doc.moveDown(2)
+    // doc.text(gest_nom, (x_begin + w_table) - (doc.widthOfString(gest_nom) + (sign_size - doc.widthOfString(gest_nom))/2 ),doc.y )
 
     //Fin
     doc.end()
