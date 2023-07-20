@@ -73,9 +73,6 @@ class Status{
                 _u = await D.exec_params('select * from utilisateur where util_login = ?',_d.id)
             }
 
-
-
-
             if(_u.length>0){
                 _u = _u[0]
 
@@ -113,6 +110,8 @@ class Status{
                     }
 
                     ua = ua.map(x => x.module_code)
+
+                    console.log(ua,_u)
 
                     res.cookie('x-access-token',token, options)
                     return res.send({status:true,message:"Connexion réussie.",u:_u,ua})

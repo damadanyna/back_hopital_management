@@ -4,7 +4,7 @@ let D = require('../models/data');
 
 
 //Pour la gestion d'authentification 
-let auth = require('./../middleware/auth');
+let auth = require('../middleware/auth');
 router.use(auth);
 
 //les requires utils
