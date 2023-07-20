@@ -111,7 +111,7 @@ class Status{
 
                     ua = ua.map(x => x.module_code)
 
-                    console.log(ua,_u)
+                    // console.log()
 
                     res.cookie('x-access-token',token, options)
                     return res.send({status:true,message:"Connexion réussie.",u:_u,ua})

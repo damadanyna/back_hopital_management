@@ -9,9 +9,10 @@ const verifyToken = async (req, res, next) => {
         if(token){
             const decoded = jwt.verify(token, config.TOKEN_KEY)
             req.user = decoded
+            //console.log(req.user)
         }
-        // return next()
-        return res.send({status:false,message:"Erreur dans la base de donnée,"})
+        return next()
+        //return res.send({status:false,message:"Erreur dans la base de donnée,"})
     } catch (err) {
         return res.send({status:false,message:"token_decode_error"})
     }
