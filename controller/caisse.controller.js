@@ -982,7 +982,7 @@ class Caisse{
             }
 
             //ici on va récupérer le dernier avance que le patient à payer
-            let encav_last = (await D.exec_params('select * from enc_avance where encav_enc_id = ? order by encav_id desc limit 1',[enc_id]))[0]
+            let encav_last = (await D.exec_params('select * from enc_avance where encav_enc_id = ? and encav_validate = 1 order by encav_date_validation desc limit 1',[enc_id]))[0]
 
             //Récupération des listes des services parents
             let list_serv = await D.exec(`select * from service where service_parent_id is null order by service_rang asc`)
@@ -4122,7 +4122,11 @@ async function createFactPDF(fact,list_serv,mode,encav_last,ext){
         return (n)?n.toLocaleString('fr-CA'):''
     }
 
-    let date_fact = (encav_last)?new Date(encav_last.encav_date_validation):(fact.enc_date_validation)?new Date(fact.enc_date_validation):new Date()
+    let is_validate = (parseInt(fact.enc_validate))?true:false
+
+    let date_fact = (encav_last)?new Date(encav_last.encav_date_validation):new Date()
+    date_fact = (is_validate)?new Date(fact.enc_date_validation):date_fact
+
     let f_date = (ext)?ext.date_1.toLocaleDateString():date_fact.toLocaleDateString()
     let f_time = (ext)?ext.date_2.toLocaleDateString():date_fact.toLocaleTimeString().substr(0,5)
 
