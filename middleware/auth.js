@@ -11,8 +11,8 @@ const verifyToken = async (req, res, next) => {
             req.user = decoded
             //console.log(req.user)
         }
-        //return next()
-        return res.send({status:false,message:"Erreur dans la base de donnée,"})
+        return next()
+        //return res.send({status:false,message:"Erreur dans la base de donnée,"})
     } catch (err) {
         return res.send({status:false,message:"token_decode_error"})
     }
