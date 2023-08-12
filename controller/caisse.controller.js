@@ -1293,24 +1293,26 @@ class Caisse{
     static async getDetEncaissement(req,res){
         try {
             let enc_id = req.params.enc_id
+            if(enc_id == 'cumul') enc_id = req.query.enc_ids
+
             //Récupération de la liste des produits liés à la facture
             let fact_serv = await D.exec_params(`select * from enc_serv
             left join service on service_id = encserv_serv_id
-            where encserv_enc_id = ? and encserv_is_product = 0`,[enc_id])
+            where encserv_enc_id ${Array.isArray(enc_id)?'in (?)':' = ?'} and encserv_is_product = 0`,[enc_id])
 
             let fact_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_serv
             left join article on art_id = encserv_serv_id
-            where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
+            where encserv_enc_id ${Array.isArray(enc_id)?'in (?)':' = ?'} and encserv_is_product = 1`,[enc_id])
 
 
             //resaka prescription
             let factp_serv = await D.exec_params(`select * from enc_prescri
             left join service on service_id = encp_serv_id
-            where encp_enc_id = ? and encp_is_product = 0`,[enc_id])
+            where encp_enc_id ${Array.isArray(enc_id)?'in (?)':' = ?'} and encp_is_product = 0`,[enc_id])
 
             let factp_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_prescri
             left join article on art_id = encp_serv_id
-            where encp_enc_id = ? and encp_is_product = 1`,[enc_id])
+            where encp_enc_id ${Array.isArray(enc_id)?'in (?)':' = ?'} and encp_is_product = 1`,[enc_id])
 
             let list_serv = [...fact_serv,...fact_med,...factp_serv,...factp_med]
 
@@ -1329,6 +1331,7 @@ class Caisse{
             */
 
             let {enc_id} = req.params
+            if(enc_id == 'cumul') enc_id = req.query.enc_ids
 
             //On va d'abord récupérer la liste des services parents
             let serv_p = await D.exec_params(`select * from service where service_parent_id is null`)
@@ -1336,23 +1339,23 @@ class Caisse{
             //ensuite la liste des services dans enc_service
             let enc_serv = await D.exec_params(`select * from enc_serv
             left join service on service_id = encserv_serv_id
-            where encserv_enc_id = ? and encserv_is_product = 0`,[enc_id])
+            where encserv_enc_id ${Array.isArray(enc_id)?'in (?)':' = ?'} and encserv_is_product = 0`,[enc_id])
 
             //puis la liste des produits dans encser
             let enc_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_serv
             left join article on art_id = encserv_serv_id
-            where encserv_enc_id = ? and encserv_is_product = 1`,[enc_id])
+            where encserv_enc_id ${Array.isArray(enc_id)?'in (?)':' = ?'} and encserv_is_product = 1`,[enc_id])
 
 
             //resaka prescription
             let encp_serv = await D.exec_params(`select *,encp_montant as encserv_montant,encp_qt as encserv_qt from enc_prescri
             left join service on service_id = encp_serv_id
-            where encp_enc_id = ? and encp_is_product = 0`,[enc_id])
+            where encp_enc_id ${Array.isArray(enc_id)?'in (?)':' = ?'} and encp_is_product = 0`,[enc_id])
 
             let encp_med = await D.exec_params(`select *,encp_montant as encserv_montant,encp_qt as encserv_qt,
             art_code as service_code,art_label as service_label from enc_prescri
             left join article on art_id = encp_serv_id
-            where encp_enc_id = ? and encp_is_product = 1`,[enc_id])
+            where encp_enc_id ${Array.isArray(enc_id)?'in (?)':' = ?'} and encp_is_product = 1`,[enc_id])
 
             enc_serv = [...enc_serv,...encp_serv]
             enc_med = [...enc_med,...encp_med]
@@ -1382,9 +1385,9 @@ class Caisse{
 
 
             //Récupération an'ilay encaissement
-            let enc = (await D.exec_params(`select * from encaissement
+            let enc = await D.exec_params(`select * from encaissement
             left join patient on pat_id = enc_pat_id
-            where enc_id = ?`,[enc_id]))[0]
+            where enc_id ${Array.isArray(enc_id)?'in (?)':' = ?'}`,[enc_id])
             //Eto amzay ny création an'ilay PDF            
 
             await createDetFactPDF(serv_p,'det-fact-caisse',enc)
@@ -3832,12 +3835,19 @@ async function createRapportVt(dt){
     doc.end()
 }
 
-async function createDetFactPDF(list_serv,pdf_name,enc){
+async function createDetFactPDF(list_serv,pdf_name,ee){
+
+
+    let enc = ee[0]
+    enc.enc_montant = ee.reduce((o,c)=> o + parseInt(c.enc_montant),0)
+
     let year_cur = new Date().getFullYear()
     let year_enc = new Date(enc.enc_date_enreg).getFullYear()
     const separateNumber = (n)=>{
         return (n)?n.toLocaleString('fr-CA'):''
     }
+
+
 
 
     //Les options du PDF
