@@ -1,15 +1,19 @@
 let mysql      = require('mysql');
-let connection = mysql.createConnection({
-  host     : 'localhost',
-  user     : (process.env.NODE_ENV == 'production')?'root':'root',
-  password : (process.env.NODE_ENV == 'production')?'hp_back22!!':'hp_back22!!',
+require('dotenv').config()
+
+console.log("process.env.DB_PASSWORD",process.env.DB_PASSWORD)
+
+let connection = mysql.createPool({
+  host     : process.env.DB_HOST || 'localhost',
+  user     : process.env.DB_USER || 'root',
+  password : process.env.DB_PASSWORD,
   // password : (process.env.NODE_ENV == 'production')?'':'',
-  database : (process.env.NODE_ENV == 'production')?'hopital_base':'hopital_base',
-  multipleStatements: true
+  database : process.env.DB_NAME || 'hopital_base',
+  multipleStatements: true,
+  connectionLimit: 10,
+  waitForConnections: true,
+  queueLimit: 0
 });
-
-connection.connect()
-
 
 //type Utilisateur
 module.exports = connection

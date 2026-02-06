@@ -5,6 +5,22 @@ let fs = require('fs')
 const { NumberToLetter } = require("convertir-nombre-lettre");
 const ExcelJS = require('exceljs');
 
+function buildInsertEncaissementWithMvmt(enc){
+    let enc_insert = Object.assign({}, enc)
+    delete enc_insert.enc_num_mvmt
+    delete enc_insert.enc_to_caisse
+
+    let cols = Object.keys(enc_insert)
+    let values = cols.map(k => enc_insert[k])
+
+    // Attribution du num mouvement dans la même requête (évite les doublons)
+    let sql = `insert into encaissement (${cols.join(',')}, enc_to_caisse, enc_num_mvmt)
+    select ${cols.map(()=>'?').join(',')}, 1, ifnull(max(enc_num_mvmt),0)+1
+    from encaissement where enc_num_mvmt is not null`
+
+    return { sql, values }
+}
+
 let _prep_enc_data = {
     enc_pat_id:{front_name:'enc_pat_id',fac:true,},
     enc_num_mvmt:{front_name:'enc_num_mvmt',fac:true,},
@@ -196,13 +212,9 @@ class Caisse{
         }
         //----------------------------
 
-        if(!enc.enc_is_hosp){
-            enc.enc_to_caisse = 1
-            //Juste quelques modifications sur le numéros de l''encaissement
-            let last_mvmt = await D.exec('select enc_num_mvmt from encaissement where enc_num_mvmt is not null order by enc_id desc limit 1')
-            last_mvmt = (last_mvmt.length <= 0)?0:parseInt(last_mvmt[0].enc_num_mvmt)
-
-            enc.enc_num_mvmt = last_mvmt + 1
+        if(enc.enc_is_hosp){
+            enc.enc_to_caisse = 0
+            enc.enc_num_mvmt = null
         }
 
         /**
@@ -213,7 +225,13 @@ class Caisse{
 
         //ajout de prep_encaissemnet dans la base
         try {
-            let _e = await D.set('encaissement',enc)
+            let _e = null
+            if(!enc.enc_is_hosp){
+                let q = buildInsertEncaissementWithMvmt(enc)
+                _e = await D.exec_params(q.sql, q.values)
+            }else{
+                _e = await D.set('encaissement',enc)
+            }
 
             //Eto mbola misy ny insertion an'ireny encaissement service reny
             let datas = []
@@ -487,36 +505,70 @@ class Caisse{
 
     static async getListHosp(req,res){
         let filters = req.query
-        // console.log(filters)
+
+        console.log(filters)
 
         filters.page = (!filters.page )?1:parseInt(filters.page)
-        filters.limit = (!filters.limit)?100:parseInt(filters.limit)
+        filters.limit = (!filters.limit)?50:parseInt(filters.limit)
+
+        // Whitelist pour éviter l'injection SQL sur date_by
+        let _allowed_date_cols = ['enc_date_entre','enc_date_sortie']
+        let date_by = (_allowed_date_cols.indexOf(filters.date_by) !== -1) ? filters.date_by : null
 
         try {
+            let t0 = Date.now()
             let d = new Date(filters.date)
             let d2 = new Date(filters.date2)
             
-            let sc = `%${filters.search}%`
-            let pr = [sc,sc,sc]
+            let search = (filters.search || '').trim()
+            let sc = `%${search}%`
+            let pr = []
+
+            // Construire les conditions WHERE dynamiquement
+            let conditions = ['enc_is_hosp = 1']
+
+            if(search){
+                conditions.push('(pat_nom_et_prenom like ? or pat_numero like ? or enc_pat_externe like ?)')
+                pr.push(sc, sc, sc)
+            }
             if(filters.state != -1){
+                conditions.push('enc_validate = ?')
                 pr.push(filters.state)
             }
-            if(filters.date_by != '-1'){
-                pr.push(d)
-                pr.push(d2)
+            if(date_by){
+                conditions.push(`${date_by} >= ? and ${date_by} <= ?`)
+                pr.push(filters.date + ' 00:00:00', filters.date2 + ' 23:59:59')
             }
-            
-            let list_enc = await D.exec_params(`select *, (select sum(encav_montant) from enc_avance where encav_enc_id = enc_id) as enc_avance from encaissement
-            left join patient on pat_id = enc_pat_id
-            left join entreprise on ent_id = enc_ent_id
-            left join tarif on tarif_id = enc_tarif_id
-            left join departement on dep_id = enc_dep_id
-            where  (pat_nom_et_prenom like ? or pat_numero like ? or enc_pat_externe like ?) and ${(filters.state != -1)?'enc_validate = ? and ':''} enc_is_hosp = 1 
-            ${(filters.date_by == '-1')?'':` and date(${filters.date_by}) between date(?) and date(?) `}
-            order by ${(filters.date_by == '-1')?'enc_date_enreg':filters.date_by} desc
-            `,pr)
 
-            let nb_not_validate = (await D.exec_params(`select count(*) as nb from encaissement where enc_validate = 0`))[0].nb
+            let orderBy = date_by ? date_by : 'enc_date_enreg'
+            pr.push(filters.limit)
+            
+            let mainQuery = `select e.*, p.pat_nom_et_prenom, p.pat_numero, p.pat_sexe, p.pat_adresse, p.pat_profession, p.pat_date_naiss,
+            ent.ent_label, ent.ent_code, ent.ent_pat_percent, ent.ent_soc_percent,
+            t.tarif_label, t.tarif_percent,
+            dep.dep_label,
+            av.enc_avance
+            from encaissement e
+            left join patient p on p.pat_id = e.enc_pat_id
+            left join entreprise ent on ent.ent_id = e.enc_ent_id
+            left join tarif t on t.tarif_id = e.enc_tarif_id
+            left join departement dep on dep.dep_id = e.enc_dep_id
+            left join (select encav_enc_id, sum(encav_montant) as enc_avance from enc_avance group by encav_enc_id) av on av.encav_enc_id = e.enc_id
+            where ${conditions.join(' and ')}
+            order by ${orderBy} desc
+            limit ?`
+
+            // Exécuter les deux requêtes en parallèle
+            let [list_enc, countResult] = await Promise.all([
+                D.exec_params(mainQuery, pr),
+                D.exec('select count(*) as nb from encaissement where enc_validate = 0 and enc_is_hosp = 1')
+            ])
+
+            let nb_not_validate = countResult[0].nb
+
+            let t1 = Date.now()
+            if(t1 - t0 > 500) console.log(`[PERF] getListHosp: ${t1-t0}ms (search="${search}")`)
+
             return res.send({status:true,list_enc,nb_not_validate})
         } catch (e) {
             console.error(e)
@@ -531,12 +583,8 @@ class Caisse{
             let soc = await D.exec('select * from entreprise')
             let tarif = await D.exec('select * from tarif')
 
-            let last_mvmt = await D.exec('select enc_num_mvmt from encaissement where enc_num_mvmt is not null order by enc_id desc limit 1')
-            if(last_mvmt.length <= 0){
-                last_mvmt = 0
-            }else{
-                last_mvmt = parseInt(last_mvmt[0].enc_num_mvmt)
-            }
+            let last_mvmt = (await D.exec('select ifnull(max(enc_num_mvmt),0) as max_mvmt from encaissement where enc_num_mvmt is not null'))[0].max_mvmt
+            last_mvmt = parseInt(last_mvmt)
 
             let dep = await D.exec('select * from departement')
 
@@ -615,14 +663,13 @@ class Caisse{
             // console.log(req.body)
             let enc_date = new Date()
 
-            //Juste quelques modifications sur le numéros de l''encaissement
-            let last_mvmt = await D.exec('select enc_num_mvmt from encaissement where enc_num_mvmt is not null order by enc_id desc limit 1')
-            last_mvmt = (last_mvmt.length <= 0)?0:parseInt(last_mvmt[0].enc_num_mvmt)
-
-            enc_num_mvmt = last_mvmt + 1
-
-            //Modification simple anle izy
-            await D.updateWhere('encaissement',{enc_to_caisse:1,enc_num_mvmt,enc_date,enc_validate:0},{enc_id})
+            // Idempotent: si déjà en caisse avec num => aucune action
+            await D.exec_params(`update encaissement
+            set enc_to_caisse = 1,
+                enc_num_mvmt = ifnull(enc_num_mvmt, (select ifnull(max(enc_num_mvmt),0)+1 from encaissement where enc_num_mvmt is not null)),
+                enc_date = ?,
+                enc_validate = 0
+            where enc_id = ? and (enc_to_caisse <> 1 or enc_to_caisse is null)`,[enc_date,enc_id])
 
             return res.send({status:true})
         } catch (e) {
@@ -1136,9 +1183,10 @@ class Caisse{
                 }
             }
 
-            await createFactPDF(fact,list_serv,mode,encav_last)
+            let pdf_name = `fact-caisse-${enc_id}`
+            await createFactPDF(fact,list_serv,mode,encav_last,undefined,pdf_name)
 
-            return res.send({status:true,message:"Encaissement effectuée"})
+            return res.send({status:true,message:"Encaissement effectuée",pdf_name})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -1265,12 +1313,13 @@ class Caisse{
                 code:fact[0].enc_mode_paiement
             }
 
+            let pdf_name = `fact-caisse-cumul-${Date.now()}`
             await createFactPDF(enc_f,list_serv,mode,null,{
                 date_1,
                 date_2
-            })
+            },pdf_name)
 
-            return res.send({status:true,pdf_name:'fact-caisse',message:"Encaissement effectuée"})
+            return res.send({status:true,pdf_name,message:"Encaissement effectuée"})
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -1279,10 +1328,14 @@ class Caisse{
 
     static async downloadFact(req,res){
         try {
-            let data = fs.readFileSync(`./files/fact-caisse.pdf`)
+            let pdf_name = req.query.pdf_name || 'fact-caisse'
+            let filepath = `./files/${pdf_name}.pdf`
+            let data = fs.readFileSync(filepath)
             res.contentType("application/pdf")
             // res.download(`./facture.pdf`)
             res.send(data);
+            // Nettoyage du fichier temporaire
+            try { fs.unlinkSync(filepath) } catch(e) {}
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -1390,8 +1443,9 @@ class Caisse{
             where enc_id ${Array.isArray(enc_id)?'in (?)':' = ?'}`,[enc_id])
             //Eto amzay ny création an'ilay PDF            
 
-            await createDetFactPDF(serv_p,'det-fact-caisse',enc)
-            return res.send({status:true,link:'/api/encaissement/det/download/fact',message:"PDF bien générer"})
+            let pdf_name = `det-fact-caisse-${Array.isArray(enc_id)?enc_id.join('-'):enc_id}`
+            await createDetFactPDF(serv_p,pdf_name,enc)
+            return res.send({status:true,link:'/api/encaissement/det/download/fact',pdf_name,message:"PDF bien générer"})
 
         } catch (e) {
             console.error(e)
@@ -1401,10 +1455,14 @@ class Caisse{
 
     static async downDetFact(req,res){
         try {
-            let data = fs.readFileSync(`./files/det-fact-caisse.pdf`)
+            let pdf_name = req.query.pdf_name || 'det-fact-caisse'
+            let filepath = `./files/${pdf_name}.pdf`
+            let data = fs.readFileSync(filepath)
             res.contentType("application/pdf")
             // res.download(`./facture.pdf`)
             res.send(data);
+            // Nettoyage du fichier temporaire
+            try { fs.unlinkSync(filepath) } catch(e) {}
         } catch (e) {
             console.error(e)
             return res.send({status:false,message:"Erreur dans la base de donnée"})
@@ -1596,23 +1654,27 @@ class Caisse{
             let enc_ids = enc.map( x => parseInt(x.enc_id) )
             // Fin gestion département
 
-            //Récupération de la liste des encserv
-            let list_serv = await D.exec_params(`select * from enc_serv
-            left join service on service_id = encserv_serv_id
-            where encserv_enc_id in (?) and encserv_is_product = 0`,[enc_ids])
+            let list_serv = [], list_med = [], list_servp = [], list_medp = []
 
-            let list_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_serv
-            left join article on art_id = encserv_serv_id
-            where encserv_enc_id in (?) and encserv_is_product = 1`,[enc_ids])
+            if(enc_ids.length > 0){
+                //Récupération de la liste des encserv
+                list_serv = await D.exec_params(`select * from enc_serv
+                left join service on service_id = encserv_serv_id
+                where encserv_enc_id in (?) and encserv_is_product = 0`,[enc_ids])
 
-            //Récupération de la liste des encprescri
-            let list_servp = await D.exec_params(`select * from enc_prescri
-            left join service on service_id = encp_serv_id
-            where encp_enc_id in (?) and encp_is_product = 0`,[enc_ids])
+                list_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_serv
+                left join article on art_id = encserv_serv_id
+                where encserv_enc_id in (?) and encserv_is_product = 1`,[enc_ids])
 
-            let list_medp = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_prescri
-            left join article on art_id = encp_serv_id
-            where encp_enc_id in (?) and encp_is_product = 1`,[enc_ids])
+                //Récupération de la liste des encprescri
+                list_servp = await D.exec_params(`select * from enc_prescri
+                left join service on service_id = encp_serv_id
+                where encp_enc_id in (?) and encp_is_product = 0`,[enc_ids])
+
+                list_medp = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_prescri
+                left join article on art_id = encp_serv_id
+                where encp_enc_id in (?) and encp_is_product = 1`,[enc_ids])
+            }
 
 
             //Ici on va supposé que le index (ID) du service médicaments et de  [s500]
@@ -2349,23 +2411,27 @@ class Caisse{
             let enc_ids = enc.map( x => parseInt(x.enc_id) )
             // Fin gestion département
 
-            //Récupération de la liste des encserv
-            let list_serv = await D.exec_params(`select * from enc_serv
-            left join service on service_id = encserv_serv_id
-            where encserv_enc_id in (?) and encserv_is_product = 0`,[enc_ids])
+            let list_serv = [], list_med = [], list_servp = [], list_medp = []
 
-            let list_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_serv
-            left join article on art_id = encserv_serv_id
-            where encserv_enc_id in (?) and encserv_is_product = 1`,[enc_ids])
+            if(enc_ids.length > 0){
+                //Récupération de la liste des encserv
+                list_serv = await D.exec_params(`select * from enc_serv
+                left join service on service_id = encserv_serv_id
+                where encserv_enc_id in (?) and encserv_is_product = 0`,[enc_ids])
 
-            //Récupération de la liste des encprescri
-            let list_servp = await D.exec_params(`select * from enc_prescri
-            left join service on service_id = encp_serv_id
-            where encp_enc_id in (?) and encp_is_product = 0`,[enc_ids])
+                list_med = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_serv
+                left join article on art_id = encserv_serv_id
+                where encserv_enc_id in (?) and encserv_is_product = 1`,[enc_ids])
 
-            let list_medp = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_prescri
-            left join article on art_id = encp_serv_id
-            where encp_enc_id in (?) and encp_is_product = 1`,[enc_ids])
+                //Récupération de la liste des encprescri
+                list_servp = await D.exec_params(`select * from enc_prescri
+                left join service on service_id = encp_serv_id
+                where encp_enc_id in (?) and encp_is_product = 0`,[enc_ids])
+
+                list_medp = await D.exec_params(`select *,art_code as service_code,art_label as service_label from enc_prescri
+                left join article on art_id = encp_serv_id
+                where encp_enc_id in (?) and encp_is_product = 1`,[enc_ids])
+            }
 
 
             //Ici on va supposé que le index (ID) du service médicaments et de  [s500]
@@ -3525,7 +3591,6 @@ async function createRapportVt(dt){
 
 
     let year_cur = new Date().getFullYear()
-    let year_enc = new Date(enc.enc_date_enreg).getFullYear()
     const separateNumber = (n)=>{
         return (n)?n.toLocaleString('fr-CA'):''
     }
@@ -3545,7 +3610,8 @@ async function createRapportVt(dt){
     doc.font("fira")
 
     //Ecriture du PDF
-    doc.pipe(fs.createWriteStream(`./files/rapport-vt.pdf`))
+    let stream = fs.createWriteStream(`./files/rapport-vt.pdf`)
+    doc.pipe(stream)
 
     //les marges et le truc en bas
     //______________________________________
@@ -3705,8 +3771,8 @@ async function createRapportVt(dt){
     doc.lineJoin().rect(doc.x,doc.y,150,35).stroke()
     
     // ------ DEBUT TABLEAU REPARTITION PAR DEPARTEMENT -------- 
-    doc.text('',opt.margin,y_ttl)
-    doc.moveDown(5)
+    // Saut de page pour éviter que le tableau ne déborde et génère des pages vides
+    doc.addPage()
 
     doc.font('fira')
     doc.fontSize(8)
@@ -3833,6 +3899,12 @@ async function createRapportVt(dt){
     await doc.table(table, { /* options */ });
 
     doc.end()
+
+    // Attendre que le fichier PDF soit complètement écrit sur le disque
+    await new Promise((resolve, reject) => {
+        stream.on('finish', resolve)
+        stream.on('error', reject)
+    })
 }
 
 async function createDetFactPDF(list_serv,pdf_name,ee){
@@ -3863,7 +3935,8 @@ async function createDetFactPDF(list_serv,pdf_name,ee){
     doc.font("fira")
 
     //Ecriture du PDF
-    doc.pipe(fs.createWriteStream(`./files/${pdf_name}.pdf`))
+    let stream = fs.createWriteStream(`./files/${pdf_name}.pdf`)
+    doc.pipe(stream)
 
     //les marges et le truc en bas
     //______________________________________
@@ -4120,11 +4193,19 @@ async function createDetFactPDF(list_serv,pdf_name,ee){
     doc.text(t[2], (doc.page.width /2 + w_sign/2) - doc.widthOfString(t[1]) ,y_sign,{underline:true})*/
 
     doc.end();
+
+    // Attendre que le fichier PDF soit complètement écrit sur le disque
+    await new Promise((resolve, reject) => {
+        stream.on('finish', resolve)
+        stream.on('error', reject)
+    })
 }
 
 
 //Fonction pour la génération de PDF
-async function createFactPDF(fact,list_serv,mode,encav_last,ext){
+async function createFactPDF(fact,list_serv,mode,encav_last,ext,pdf_name){
+
+    pdf_name = pdf_name || 'fact-caisse'
 
     let year_cur = new Date().getFullYear()
     let year_enc = new Date(fact.enc_date_enreg).getFullYear()
@@ -4153,7 +4234,8 @@ async function createFactPDF(fact,list_serv,mode,encav_last,ext){
     doc.font("fira")
 
     //Ecriture du PDF
-    doc.pipe(fs.createWriteStream(`./files/fact-caisse.pdf`))
+    let stream = fs.createWriteStream(`./files/${pdf_name}.pdf`)
+    doc.pipe(stream)
 
     //les marges et le truc en bas
     //______________________________________
@@ -4380,7 +4462,7 @@ async function createFactPDF(fact,list_serv,mode,encav_last,ext){
         let t_avance_ac = 'Avance'
         let t_avance_ac_s = separateNumber(encav_last?encav_last.encav_montant:0)
 
-        hxx = 0
+        let hxx = 0
 
         if(fact.enc_validate){
             doc.font("fira_bold")
@@ -4509,7 +4591,7 @@ async function createFactPDF(fact,list_serv,mode,encav_last,ext){
         let t_avance_ac = 'Avance'
         let t_avance_ac_s = separateNumber(encav_last?encav_last.encav_montant:0)
 
-        hxx = 0
+        let hxx = 0
 
         if(fact.enc_validate){
             doc.font("fira_bold")
@@ -4545,6 +4627,12 @@ async function createFactPDF(fact,list_serv,mode,encav_last,ext){
         .stroke();
     //Famaranana an'ilay document
     doc.end();
+
+    // Attendre que le fichier PDF soit complètement écrit sur le disque
+    await new Promise((resolve, reject) => {
+        stream.on('finish', resolve)
+        stream.on('error', reject)
+    })
 }
 
 module.exports = Caisse

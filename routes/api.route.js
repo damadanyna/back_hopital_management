@@ -57,6 +57,9 @@ router.delete('/patient/:pat_id',require('../controller/patient.controller').del
 router.get('/patients',require('../controller/patient.controller').getList);
 router.get('/patients/out/search',require('../controller/patient.controller').outSearch);
 router.put('/patient',require('../controller/patient.controller').update);
+router.get('/patients/duplicates',require('../controller/patient.controller').getDuplicates);
+router.get('/patient/:pat_id/relations',require('../controller/patient.controller').getRelations);
+router.put('/patient/numero',require('../controller/patient.controller').updateNumero);
 
 //Gestion des entreprises
 router.post('/entreprises',require('../controller/entreprise.controller').register);

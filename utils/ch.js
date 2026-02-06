@@ -116,3 +116,67 @@ async function correctEncMvmtInsert(){
 
 async function delPatWithNoName(){
 }
+
+async function fillNullNumMvmt(opts = {}){
+    let only_to_caisse = (opts.only_to_caisse !== false)
+
+    let max_row = (await D.exec('select max(enc_num_mvmt) as max_mvmt from encaissement where enc_num_mvmt is not null'))[0]
+    let last_mvmt = (max_row && max_row.max_mvmt != null) ? parseInt(max_row.max_mvmt) : 0
+
+    let encs = await D.exec(`select enc_id from encaissement where enc_num_mvmt is null ${only_to_caisse ? 'and enc_to_caisse = 1' : ''} order by enc_id asc`)
+
+    for (let i = 0; i < encs.length; i++) {
+        last_mvmt += 1
+        await D.updateWhere('encaissement',{enc_num_mvmt:last_mvmt},{enc_id:encs[i].enc_id})
+    }
+
+    console.log('updated_null_enc_num_mvmt: '+encs.length)
+    console.log('last_mvmt: '+last_mvmt)
+}
+
+async function main(){
+    let cmd = process.argv[2]
+    let args = process.argv.slice(3)
+    let opts = {
+        only_to_caisse: !args.includes('--all')
+    }
+
+    let cmds = {
+        delete_occor_stkarticle,
+        correctNumMvmt,
+        correctEncMvmt,
+        correctEncMvmtInsert,
+        fillNullNumMvmt: async ()=> fillNullNumMvmt(opts),
+        encmvmt_fix: async ()=>{
+            await correctEncMvmt()
+            await correctEncMvmtInsert()
+        },
+        mvmt_fix: async ()=>{
+            await fillNullNumMvmt(opts)
+            await correctNumMvmt()
+        },
+    }
+
+    if(!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h'){
+        console.log('Usage: node utils/ch.js <command>')
+        console.log('Options:')
+        console.log('  --all   (pour fillNullNumMvmt / mvmt_fix : inclure aussi enc_to_caisse != 1)')
+        console.log('Commands:')
+        Object.keys(cmds).forEach(k => console.log('  - '+k))
+        process.exit(0)
+    }
+
+    if(!cmds[cmd]){
+        console.error('Unknown command: '+cmd)
+        console.log('Commands:')
+        Object.keys(cmds).forEach(k => console.log('  - '+k))
+        process.exit(1)
+    }
+
+    await cmds[cmd]()
+}
+
+main().catch((e)=>{
+    console.error(e)
+    process.exit(1)
+})

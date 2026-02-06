@@ -202,16 +202,38 @@ class Utilisateur{
     //GESTION HISTORIQUE DES UTILISATEURS
     static async getHistory(req,res){
         try {
+            let t0 = Date.now()
 
             let {filters} = req.query
+            let limit = 100
 
-            let date1 = new Date(filters.date)
-            let date2 = new Date(filters.date2)
-            
-            
-            let hist = await D.exec_params(`select * from user_historic
-            left join utilisateur on util_id = uh_user_id
-            where ${filters.by} like ? and date(uh_date) between date(?) and date(?) order by uh_date desc`,[`%${filters.search}%`,date1,date2])
+            // Whitelist pour éviter l'injection SQL sur filters.by
+            let _allowed_by = ['util_label','uh_module','uh_description']
+            let by = (_allowed_by.indexOf(filters.by) !== -1) ? filters.by : 'util_label'
+
+            let search = (filters.search || '').trim()
+            let pr = []
+
+            // Range direct sur uh_date (sans date() wrapper) pour utiliser l'index
+            let conditions = ['uh_date >= ? and uh_date <= ?']
+            pr.push(filters.date + ' 00:00:00', filters.date2 + ' 23:59:59')
+
+            if(search){
+                conditions.push(`${by} like ?`)
+                pr.push(`%${search}%`)
+            }
+
+            pr.push(limit)
+
+            let hist = await D.exec_params(`select uh.uh_id, uh.uh_date, uh.uh_module, uh.uh_description, uh.uh_obs, u.util_label
+            from user_historic uh
+            left join utilisateur u on u.util_id = uh.uh_user_id
+            where ${conditions.join(' and ')}
+            order by uh.uh_date desc
+            limit ?`, pr)
+
+            let t1 = Date.now()
+            if(t1 - t0 > 500) console.log(`[PERF] getHistory: ${t1-t0}ms (search="${search}", by=${by})`)
 
             return res.send({status:true,hist})
             

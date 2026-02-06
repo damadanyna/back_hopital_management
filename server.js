@@ -102,6 +102,34 @@ io.on('connection',(socket)=>{
 
 app.use('/api',require('./routes/api.route'))
 
+// Création des index pour accélérer les recherches
+let db = require('./config/db')
+const indexes = [
+    // Index patient
+    'ALTER TABLE patient ADD FULLTEXT INDEX idx_pat_nom (pat_nom_et_prenom)',
+    'ALTER TABLE patient ADD FULLTEXT INDEX idx_pat_search (pat_nom_et_prenom, pat_profession, pat_adresse)',
+    'ALTER TABLE patient ADD INDEX idx_pat_numero (pat_numero)',
+    // Index encaissement (jointures + filtres)
+    'ALTER TABLE encaissement ADD INDEX idx_enc_pat_id (enc_pat_id)',
+    'ALTER TABLE encaissement ADD INDEX idx_enc_ent_id (enc_ent_id)',
+    'ALTER TABLE encaissement ADD INDEX idx_enc_tarif_id (enc_tarif_id)',
+    'ALTER TABLE encaissement ADD INDEX idx_enc_dep_id (enc_dep_id)',
+    'ALTER TABLE encaissement ADD INDEX idx_enc_hosp_validate (enc_is_hosp, enc_validate)',
+    'ALTER TABLE encaissement ADD INDEX idx_enc_date_entre (enc_date_entre)',
+    'ALTER TABLE encaissement ADD INDEX idx_enc_date_sortie (enc_date_sortie)',
+    // Index enc_avance (jointure agrégée)
+    'ALTER TABLE enc_avance ADD INDEX idx_encav_enc_id (encav_enc_id)',
+    // Index user_historic (date, jointure, recherche)
+    'ALTER TABLE user_historic ADD INDEX idx_uh_date (uh_date)',
+    'ALTER TABLE user_historic ADD INDEX idx_uh_user_id (uh_user_id)',
+    'ALTER TABLE user_historic ADD INDEX idx_uh_module (uh_module)',
+]
+indexes.forEach(sql => {
+    db.query(sql, (err) => {
+        if(err && err.code !== 'ER_DUP_KEYNAME') console.log('[INDEX]', err.message)
+    })
+})
+
 http.listen(4044)
 
 
